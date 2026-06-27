@@ -14,7 +14,7 @@ These apply to **every** task; each task's requirements implicitly include this 
 
 - **Root package:** `com.company.pos`. Source root `src/main/java/com/company/pos/`, test root `src/test/java/com/company/pos/`.
 - **Build:** Maven via `./mvnw` (Maven Wrapper). Java 21 toolchain. Run focused tests with `./mvnw test -Dtest=ClassName`; full build with `./mvnw -B verify`.
-- **Module boundaries (Spring Modulith):** a module references another only through its public API. `common` and `database` are OPEN shared modules. New module allowed-dependencies: `auth → {common, database}`, `product → {common, database, integration}`, `inventory → {common, database, integration}`, `integration → {common, database}`. The `ModularityTests.verify()` test must stay green. Cross-module orchestration that must reach two capability modules (the ERP sync coordinator) lives in the **application root package** `com.company.pos` (not a module, so not boundary-constrained) — this is a temporary home until the formal `sync` module arrives in Phase 3.
+- **Module boundaries (Spring Modulith):** a module references another only through its public API. `common` and `database` are OPEN shared modules. New module allowed-dependencies: `auth → {common, database}`, `product → {common, database, integration}`, `inventory → {common, database, integration}`, `integration → {common, database}`. The `ModularityTests.verify()` test must stay green. Cross-module orchestration that must reach two capability modules (the ERP sync coordinator) lives in the **application root package** `com.company.pos` — a temporary home until the formal `sync` module arrives in Phase 3. **Important:** Spring Modulith enforces the root package too (as `root:com.company.pos`); it may only reference types that other modules *expose*. So `product.api` and `inventory.api` must each be declared a `@NamedInterface("api")` (like `integration.api`) for the root coordinator to use `ProductSync`/`InventorySync` — these named-interface package-info files are added in Task 12.
 - **Identifiers:** transactional/aggregate ids are client-generated UUIDs via `com.company.pos.common.util.Identifiers.newId()`. Persist UUID fields as strings for cross-engine portability: type the field `java.util.UUID`, annotate `@JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)` and `@Column(length = 36)`, and use `VARCHAR(36)` in migrations.
 - **Money:** never `double`/`float`. Use `BigDecimal` columns and `javax.money.MonetaryAmount` via `com.company.pos.common.util.Monies`. Store the currency code (`VARCHAR(3)`) alongside every amount.
 - **Errors:** throw `com.company.pos.common.exception.DomainException` (factories `notFound`/`validation`/`conflict`); the Phase 0 `ApiExceptionHandler` renders RFC-7807.
@@ -2847,13 +2847,17 @@ The cross-module coordinator lives in the **application root package** `com.comp
 - Modify: `src/main/java/com/company/pos/PosApplication.java` (add `@EnableScheduling`)
 - Modify: `src/main/resources/application.yml` (sync defaults; `scheduled` defaults false)
 - Modify: `src/main/resources/application-store-server.yml` (enable scheduled sync)
+- Create: `src/main/java/com/company/pos/product/api/package-info.java` (expose `product.api` as `@NamedInterface("api")`)
+- Create: `src/main/java/com/company/pos/inventory/api/package-info.java` (expose `inventory.api` as `@NamedInterface("api")`)
 - Create: `src/main/java/com/company/pos/ErpSyncCoordinator.java`
 - Create: `src/main/java/com/company/pos/ErpSyncScheduler.java`
 - Create: `src/main/java/com/company/pos/SyncController.java`
 - Test: `src/test/java/com/company/pos/SyncControllerTest.java`
 
+> **Modulith note:** the root package is enforced as `root:com.company.pos` and may only reference *exposed* module types. Expose `product.api` and `inventory.api` as named interfaces (each `package-info.java` carries `@org.springframework.modulith.NamedInterface("api")`, exactly like `integration/api/package-info.java`) so the coordinator can reference `ProductSync`/`InventorySync`. Without these two files, `ModularityTests.verify()` fails.
+
 **Interfaces:**
-- Consumes: `product.api.ProductSync`, `inventory.api.InventorySync` (referenced from the root package, which Modulith does not constrain).
+- Consumes: `product.api.ProductSync`, `inventory.api.InventorySync` (the root package may reference them because their `api` packages are exposed as named interfaces).
 - Produces:
   - `ErpSyncCoordinator` (`@Component`, root): `SyncSummary syncAll()` calling both syncs; nested public record `SyncSummary(int products, int stock)`.
   - `ErpSyncScheduler` (`@Component`, root, `@ConditionalOnProperty("pos.sync.erp.scheduled"=true)`): `@Scheduled(fixedDelayString=...)` calls `coordinator.syncAll()`.
