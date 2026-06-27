@@ -1,6 +1,7 @@
 package com.company.pos.auth.infrastructure;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import java.nio.charset.StandardCharsets;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +20,7 @@ class JwtSupportConfig {
     private final SecretKeySpec secretKey;
 
     JwtSupportConfig(@Value("${pos.auth.jwt.secret}") String secret) {
-        this.secretKey = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+        this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
     }
 
     @Bean
