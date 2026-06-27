@@ -14,4 +14,4 @@ spring:
     schemas: pos
     default-schema: pos
     create-schemas: true
-    locations: classpath:db/migration/configuration,classpath:db/migration/auth,classpath:db/migration/product
+    locations: classpath:db/migration/configuration,classpath:db/migration/auth,classpath:db/migration/product,classpath:db/migration/inventory
