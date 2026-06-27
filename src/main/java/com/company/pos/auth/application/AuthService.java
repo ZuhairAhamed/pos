@@ -30,4 +30,14 @@ public class AuthService {
         }
         return jwtService.issue(user);
     }
+
+    public String pinLogin(String cashierCode, String pin) {
+        User user = users.findByCashierCode(cashierCode)
+                .filter(User::isEnabled)
+                .orElseThrow(() -> DomainException.validation("Invalid credentials"));
+        if (user.getPinHash() == null || !encoder.matches(pin, user.getPinHash())) {
+            throw DomainException.validation("Invalid credentials");
+        }
+        return jwtService.issue(user);
+    }
 }

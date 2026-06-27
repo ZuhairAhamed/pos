@@ -21,7 +21,15 @@ class AuthController {
         return new TokenResponse(authService.login(request.username(), request.password()));
     }
 
+    @PostMapping("/pin-login")
+    TokenResponse pinLogin(@RequestBody PinRequest request) {
+        return new TokenResponse(authService.pinLogin(request.cashierCode(), request.pin()));
+    }
+
     public record LoginRequest(String username, String password) {
+    }
+
+    public record PinRequest(String cashierCode, String pin) {
     }
 
     public record TokenResponse(String token) {
