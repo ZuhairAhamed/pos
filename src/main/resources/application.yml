@@ -10,3 +10,9 @@ spring:
     properties:
       hibernate:
         format_sql: false
+
+pos:
+  auth:
+    jwt:
+      secret: ${POS_JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+      ttl-minutes: ${POS_JWT_TTL:720}
