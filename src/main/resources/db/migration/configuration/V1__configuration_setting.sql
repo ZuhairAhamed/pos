@@ -1,0 +1,5 @@
+CREATE TABLE setting (
+    setting_key   VARCHAR(100) PRIMARY KEY,
+    setting_value VARCHAR(1000) NOT NULL,
+    updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
