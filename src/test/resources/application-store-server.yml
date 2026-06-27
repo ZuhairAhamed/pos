@@ -1,4 +1,0 @@
-pos:
-  auth:
-    jwt:
-      secret: test-only-secret-not-for-production-use-abc123
