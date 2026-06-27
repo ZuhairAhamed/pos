@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: ${POS_DB_URL:jdbc:postgresql://localhost:5432/pos}
+    username: ${POS_DB_USER:pos}
+    password: ${POS_DB_PASSWORD:pos}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: configuration
+  flyway:
+    enabled: true
+    schemas: configuration
+    default-schema: configuration
+    create-schemas: true
+    locations: classpath:db/migration/configuration

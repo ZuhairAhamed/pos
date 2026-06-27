@@ -3,3 +3,10 @@ spring:
     name: pos
   main:
     banner-mode: "off"
+  profiles:
+    default: embedded
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false

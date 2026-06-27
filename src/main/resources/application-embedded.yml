@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: ${POS_DB_URL:jdbc:sqlite:file:pos?mode=memory&cache=shared}
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+  flyway:
+    enabled: false
