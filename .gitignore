@@ -1,4 +1,6 @@
-.gradle/
-build/
+target/
 .idea/
 *.log
+*.db
+*.sqlite
+!.mvn/wrapper/maven-wrapper.properties
