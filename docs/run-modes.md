@@ -28,3 +28,23 @@ java -jar target/pos.jar \
 
 > Encryption at rest (SQLCipher for SQLite, TDE for PostgreSQL) is added in the
 > security-hardening pass; it is not part of Phase 0.
+
+## Phase 1 — Identity & catalogue (API surface)
+
+Authentication is JWT bearer (HS256). Obtain a token, then send it as `Authorization: Bearer <token>`.
+
+```
+POST /auth/login        {"username","password"}      -> {"token"}
+POST /auth/pin-login    {"cashierCode","pin"}        -> {"token"}
+GET  /auth/me           (any authenticated)          -> {"username","roles"}
+GET  /products[?q=]     (any authenticated)          -> [ProductView...]
+GET  /products/{sku}    (any authenticated)          -> ProductView
+GET  /inventory/{sku}   (any authenticated)          -> {"sku","quantityOnHand"}
+POST /sync/erp          (ROLE_MANAGER)               -> {"products","stock"}  (manual ERP down-sync)
+```
+
+Config (env overridable):
+- `POS_JWT_SECRET` (≥ 32 bytes; a dev default is baked in — override in any real deployment), `POS_JWT_TTL` (minutes).
+- `POS_SYNC_ERP_SCHEDULED` — background ERP down-sync timer. Default **off**; enabled automatically on the `store-server` profile. `POS_SYNC_ERP_DELAY_MS` sets the interval.
+
+> The ERP integration runs against an in-memory **fake** adapter in Phase 1. A concrete vendor adapter implements `com.company.pos.integration.api.ErpClient` later with no change to the sync engine.
