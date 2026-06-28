@@ -3,7 +3,7 @@ spring:
     url: ${POS_DB_URL:jdbc:sqlite:file:pos?mode=memory&cache=shared}
     driver-class-name: org.sqlite.JDBC
     hikari:
-      maximum-pool-size: 1
+      maximum-pool-size: 2
   jpa:
     hibernate:
       ddl-auto: update
