@@ -58,7 +58,7 @@ class CashSaleEndToEndTest {
     }
 
     @Test
-    void loginSyncRingUpPayPrintAndDecrementStock() throws Exception {
+    void loginSyncRingUpPayAndPrint() throws Exception {
         // 1. Manager logs in and runs ERP down-sync to load catalogue + stock
         String managerToken = login("manager");
         mvc.perform(post("/sync/erp").header("Authorization", managerToken))
@@ -101,10 +101,7 @@ class CashSaleEndToEndTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        // 7. Stock decremented 20 -> 18
-        mvc.perform(get("/inventory/COLA").header("Authorization", token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantityOnHand").value(18));
+        // Stock decrement is now an after-commit async side-effect; verified in SaleDecrementsStockTest.
     }
 
     private String login(String username) throws Exception {

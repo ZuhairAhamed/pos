@@ -114,10 +114,7 @@ class AdvancedCheckoutEndToEndTest {
         // Receipt printed with the sale's number
         assertThat(printer.lastReceipt()).anyMatch(l -> l.text().contains(receiptNumber));
 
-        // Stock decremented 20 -> 18
-        mvc.perform(get("/inventory/COLA").header("Authorization", token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quantityOnHand").value(18));
+        // Stock decrement is now an after-commit async side-effect; verified in SaleDecrementsStockTest.
     }
 
     private String login(String username) throws Exception {
