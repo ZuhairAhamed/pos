@@ -10,6 +10,9 @@ spring:
     properties:
       hibernate:
         format_sql: false
+  modulith:
+    events:
+      republish-outstanding-publications-on-restart: true
 
 pos:
   auth:
