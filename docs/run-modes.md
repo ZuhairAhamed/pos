@@ -77,3 +77,24 @@ Config (env overridable via the `configuration` settings store):
 > JavaPOS/ESC-POS adapter implements `com.company.pos.device.api.Printer` later with no
 > change to the `receipt`/`sales` modules. Card/QR tenders, split payment, void, hold/resume,
 > and cashdrawer/shift reconciliation arrive in Phase 2b; returns/exchanges are a later plan.
+
+## Event outbox & resilience (Phase 3a)
+
+Domain events (`SaleCompleted`, …) are delivered through the Spring Modulith **Event Publication
+Registry** — a transactional outbox. Each `(event, listener)` pair is written as an
+`event_publication` row inside the publishing transaction (the sale), and its `completion_date`
+is stamped only when the listener finishes successfully. Listeners (`inventory` stock decrement,
+`cashdrawer` cash capture) are `@ApplicationModuleListener`s: they run **after the sale commits,
+asynchronously, in their own transaction**.
+
+Consequences:
+- A side-effect failure can never roll back a committed sale; it leaves an *incomplete*
+  publication instead.
+- Incomplete publications are **re-delivered on application restart**
+  (`spring.modulith.events.republish-outstanding-publications-on-restart=true`) and can be
+  resubmitted programmatically via `IncompleteEventPublications`.
+- On `store-server` the table is created by Flyway migration `V14` (`db/migration/events`); on
+  `embedded` Hibernate creates it automatically.
+
+ERP upload of sales/movements over this outbox, and operator notifications for stuck
+publications, are Phase 3b and 3c respectively.
