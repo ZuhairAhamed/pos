@@ -2096,3 +2096,19 @@ Plan complete and saved to `docs/superpowers/plans/2026-06-28-phase-2b-advanced-
 **2. Inline Execution** — Execute tasks in this session using executing-plans, batch execution with checkpoints.
 
 Which approach?
+
+---
+
+## AS-BUILT
+
+Execution completed 2026-06-28. Final `./mvnw -B verify`: **96 tests, 0 failures, BUILD SUCCESS**. `DatabaseStoreServerTest` ran (Docker available; Testcontainers Postgres 16-alpine; Flyway V1–V11 applied; `ddl-auto=validate` passed — V10 `masked_pan`/`auth_token` and V11 `terminal_id` columns validated against `Payment`/`Cart` entities).
+
+### Deviations from the plan
+
+1. **Tasks 2, 3, 4 executed as one merged commit.** Plan Tasks 2 (payment), 3 (receipt), and 4 (sales) each prescribe an isolated compile-and-commit step. This single-module Maven project cannot compile them independently — `DefaultSalesService` references both the new `ReceiptPaymentData` (Task 3) and the new `PaymentView`/`recordTerminalPayment` (Task 2) simultaneously. The three tasks were implemented and committed as a single merged dispatch. The per-task commit and isolated-test-run steps in those task sections do not apply to this project structure.
+
+2. **CartLineView intentionally does not expose `lineNo`.** The `renumber()` logic is internal to the `Cart` aggregate. `CartLineView` has no `lineNo` field by design (per brief). The renumber invariant is tested observably via `@OrderBy("sku")` assertions, not numeric sequence assertions.
+
+3. **No additional call sites required reconciliation.** All compile-time usages of the old `CashPaymentView`, single-tender `CheckoutCommand`, and `SaleView.payment` (singular) were already updated in the merged Task 2–4 commit. No further regressions were found during the full verify run.
+
+4. **No migration reconciliation required.** `DatabaseStoreServerTest` passed on the first run — V10 (`masked_pan VARCHAR(25)`, `auth_token VARCHAR(64)`) and V11 (`terminal_id VARCHAR(16)`) matched the entity `@Column(length=…)` annotations exactly as specified in the plan's self-review.
