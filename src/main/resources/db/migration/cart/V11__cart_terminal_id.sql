@@ -1,0 +1,1 @@
+ALTER TABLE cart ADD COLUMN terminal_id VARCHAR(16);

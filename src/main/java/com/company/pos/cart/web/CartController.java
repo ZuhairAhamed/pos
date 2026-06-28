@@ -3,6 +3,7 @@ package com.company.pos.cart.web;
 import com.company.pos.cart.api.CartService;
 import com.company.pos.cart.api.CartView;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -55,5 +57,20 @@ class CartController {
     @DeleteMapping("/carts/{cartId}/lines/{sku}")
     CartView removeLine(@PathVariable UUID cartId, @PathVariable String sku) {
         return carts.removeLine(cartId, sku);
+    }
+
+    @PutMapping("/carts/{cartId}/hold")
+    CartView hold(@PathVariable UUID cartId) {
+        return carts.hold(cartId);
+    }
+
+    @PutMapping("/carts/{cartId}/resume")
+    CartView resume(@PathVariable UUID cartId) {
+        return carts.resume(cartId);
+    }
+
+    @GetMapping("/carts/held")
+    List<CartView> held(@RequestParam String terminalId) {
+        return carts.listHeld(terminalId);
     }
 }

@@ -1,5 +1,6 @@
 package com.company.pos.cart.domain;
 
+import com.company.pos.common.exception.DomainException;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -25,6 +26,9 @@ public class Cart {
     @Column(length = 36)
     private UUID id;
 
+    @Column(name = "terminal_id", length = 16)
+    private String terminalId;
+
     @Column(nullable = false, length = 16)
     private String status;
 
@@ -42,14 +46,19 @@ public class Cart {
         // JPA
     }
 
-    public Cart(UUID id, Instant createdAt) {
+    public Cart(UUID id, String terminalId, Instant createdAt) {
         this.id = id;
+        this.terminalId = terminalId;
         this.status = "OPEN";
         this.createdAt = createdAt;
     }
 
     public UUID getId() {
         return id;
+    }
+
+    public String getTerminalId() {
+        return terminalId;
     }
 
     public String getStatus() {
@@ -84,6 +93,28 @@ public class Cart {
 
     public void removeLine(String sku) {
         lines.removeIf(l -> l.getSku().equals(sku));
+        renumber();
+    }
+
+    private void renumber() {
+        int lineNo = 1;
+        for (CartLine line : lines) {
+            line.setLineNo(lineNo++);
+        }
+    }
+
+    public void hold() {
+        if (!isOpen()) {
+            throw DomainException.conflict("Only an open cart can be held");
+        }
+        this.status = "HELD";
+    }
+
+    public void resume() {
+        if (!isHeld()) {
+            throw DomainException.conflict("Only a held cart can be resumed");
+        }
+        this.status = "OPEN";
     }
 
     public void close() {
@@ -92,5 +123,9 @@ public class Cart {
 
     public boolean isOpen() {
         return "OPEN".equals(status);
+    }
+
+    public boolean isHeld() {
+        return "HELD".equals(status);
     }
 }

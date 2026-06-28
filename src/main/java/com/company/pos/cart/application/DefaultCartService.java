@@ -7,6 +7,8 @@ import com.company.pos.cart.domain.Cart;
 import com.company.pos.cart.infrastructure.CartRepository;
 import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
+import com.company.pos.configuration.api.ConfigurationService;
+import com.company.pos.configuration.api.SettingKey;
 import com.company.pos.product.api.ProductCatalog;
 import com.company.pos.product.api.ProductView;
 import java.math.BigDecimal;
@@ -22,15 +24,17 @@ class DefaultCartService implements CartService {
 
     private final CartRepository carts;
     private final ProductCatalog catalogue;
+    private final ConfigurationService config;
 
-    DefaultCartService(CartRepository carts, ProductCatalog catalogue) {
+    DefaultCartService(CartRepository carts, ProductCatalog catalogue, ConfigurationService config) {
         this.carts = carts;
         this.catalogue = catalogue;
+        this.config = config;
     }
 
     @Override
     public UUID createCart() {
-        Cart cart = new Cart(Identifiers.newId(), Instant.now());
+        Cart cart = new Cart(Identifiers.newId(), config.getString(SettingKey.TERMINAL_ID), Instant.now());
         carts.save(cart);
         return cart.getId();
     }
@@ -59,6 +63,9 @@ class DefaultCartService implements CartService {
     @Override
     public CartView removeLine(UUID cartId, String sku) {
         Cart cart = openCart(cartId);
+        if (cart.findLine(sku).isEmpty()) {
+            throw DomainException.notFound("No line for sku " + sku);
+        }
         cart.removeLine(sku);
         return toView(cart);
     }
@@ -67,6 +74,28 @@ class DefaultCartService implements CartService {
     @Transactional(readOnly = true)
     public CartView getCart(UUID cartId) {
         return toView(load(cartId));
+    }
+
+    @Override
+    public CartView hold(UUID cartId) {
+        Cart cart = load(cartId);
+        cart.hold();
+        return toView(cart);
+    }
+
+    @Override
+    public CartView resume(UUID cartId) {
+        Cart cart = load(cartId);
+        cart.resume();
+        return toView(cart);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CartView> listHeld(String terminalId) {
+        return carts.findByStatusAndTerminalId("HELD", terminalId).stream()
+                .map(this::toView)
+                .toList();
     }
 
     @Override

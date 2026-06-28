@@ -89,4 +89,8 @@ public class CartLine {
     void setQuantity(BigDecimal quantity) {
         this.quantity = quantity;
     }
+
+    void setLineNo(int lineNo) {
+        this.lineNo = lineNo;
+    }
 }
