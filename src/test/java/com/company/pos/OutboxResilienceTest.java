@@ -29,6 +29,7 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.modulith.events.IncompleteEventPublications;
 import org.springframework.modulith.events.core.EventPublicationRegistry;
 import org.springframework.stereotype.Component;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -39,6 +40,8 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest
 @ActiveProfiles("embedded")
 @Import(OutboxResilienceTest.FailingConsumer.class)
+// Commits to the shared in-memory DB; rebuild the context after this class so its committed rows (sync_cursor, product, …) don't leak into other tests.
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class OutboxResilienceTest {
 
     @Autowired
