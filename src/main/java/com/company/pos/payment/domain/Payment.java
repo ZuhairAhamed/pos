@@ -22,7 +22,7 @@ public class Payment {
     @Column(length = 36)
     private UUID id;
 
-    @Column(name = "sale_id", nullable = false)
+    @Column(name = "sale_id", nullable = false, length = 36)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID saleId;
 
