@@ -75,7 +75,7 @@ class DefaultPaymentService implements PaymentService {
     @Override
     @Transactional(readOnly = true)
     public List<PaymentView> findBySale(UUID saleId) {
-        return payments.findBySaleId(saleId).stream()
+        return payments.findBySaleIdOrderByCreatedAtAsc(saleId).stream()
                 .map(p -> new PaymentView(p.getSaleId(), p.getMethod().name(), p.getAmount(),
                         p.getAmountTendered(), p.getChangeDue(), p.getMaskedPan(),
                         p.getCurrencyCode()))
