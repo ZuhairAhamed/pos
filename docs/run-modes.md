@@ -98,3 +98,18 @@ Consequences:
 
 ERP upload of sales/movements over this outbox, and operator notifications for stuck
 publications, are Phase 3b and 3c respectively.
+
+### Known operational limits (hardening deferred to Phase 3b)
+
+The foundation deliberately omits two pieces of production hardening:
+
+- **No retry cap / dead-letter.** A deterministically-failing publication (a permanently
+  invalid event or an unrecoverable downstream error) is retried on every restart with no
+  backoff and no maximum-attempts cutoff. The negative-stock path only logs (it never throws,
+  so it cannot become a poison message), but a genuine listener exception will be replayed
+  indefinitely until it succeeds or is cleared. A retry cap + dead-letter handling (surfaced via
+  the Phase 3c `notification` path) is a Phase 3b/3c follow-up.
+- **Unbounded async executor.** `@EnableAsync` uses Spring's default `SimpleAsyncTaskExecutor`,
+  which starts a new thread per task (unbounded). This is fine for the current local listeners
+  but must be replaced with a bounded `ThreadPoolTaskExecutor` before the outbox carries the
+  ERP-upload workload in Phase 3b.
