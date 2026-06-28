@@ -1,5 +1,6 @@
 package com.company.pos.cart.domain;
 
+import com.company.pos.common.util.Identifiers;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -51,7 +52,7 @@ public class CartLine {
 
     CartLine(Cart cart, int lineNo, String sku, String name, BigDecimal quantity,
             BigDecimal unitPrice, String currencyCode) {
-        this.id = UUID.randomUUID();
+        this.id = Identifiers.newId();
         this.cart = cart;
         this.lineNo = lineNo;
         this.sku = sku;
