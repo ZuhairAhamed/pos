@@ -38,6 +38,9 @@ public class Shift {
     @Column(name = "counted_cash", precision = 19, scale = 2)
     private BigDecimal countedCash;
 
+    @Column(name = "closed_by", length = 100)
+    private String closedBy;
+
     @Column(name = "opened_at", nullable = false)
     private Instant openedAt;
 
@@ -59,8 +62,9 @@ public class Shift {
         this.status = "OPEN";
     }
 
-    public void close(BigDecimal countedCash, Instant closedAt) {
+    public void close(BigDecimal countedCash, String closedBy, Instant closedAt) {
         this.countedCash = countedCash;
+        this.closedBy = closedBy;
         this.closedAt = closedAt;
         this.status = "CLOSED";
     }
@@ -99,5 +103,9 @@ public class Shift {
 
     public Instant getClosedAt() {
         return closedAt;
+    }
+
+    public String getClosedBy() {
+        return closedBy;
     }
 }

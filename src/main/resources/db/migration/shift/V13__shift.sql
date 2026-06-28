@@ -6,6 +6,7 @@ CREATE TABLE shift (
     drawer_session_id VARCHAR(36) NOT NULL REFERENCES drawer_session (id),
     currency_code     VARCHAR(3) NOT NULL,
     counted_cash      NUMERIC(19, 2),
+    closed_by         VARCHAR(100),
     opened_at         TIMESTAMP NOT NULL,
     closed_at         TIMESTAMP
 );

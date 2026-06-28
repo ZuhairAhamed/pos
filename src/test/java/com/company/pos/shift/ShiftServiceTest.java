@@ -52,6 +52,7 @@ class ShiftServiceTest {
         assertThat(summary.cash().expectedCash()).isEqualByComparingTo("100.00");
         assertThat(summary.cash().countedCash()).isEqualByComparingTo("99.00");
         assertThat(summary.cash().variance()).isEqualByComparingTo("-1.00");
+        assertThat(summary.closedBy()).isEqualTo("cashier");
         assertThat(shifts.findOpenShift("T01")).isEmpty();
     }
 

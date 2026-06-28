@@ -1,6 +1,7 @@
 package com.company.pos.shift;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +39,24 @@ class ShiftControllerTest {
                 .andExpect(jsonPath("$.status").value("CLOSED"))
                 .andExpect(jsonPath("$.cash.expectedCash").value(100.00))
                 .andExpect(jsonPath("$.cash.variance").value(-2.50));
+    }
+
+    @Test
+    void getOpenAndGetByIdReturnTheOpenShift() throws Exception {
+        String opened = mvc.perform(post("/shifts").with(jwt().jwt(j -> j.subject("cashier")))
+                        .contentType("application/json").content("{\"openingFloat\":100.00}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String shiftId = com.jayway.jsonpath.JsonPath.read(opened, "$.shiftId");
+
+        mvc.perform(get("/shifts/open").with(jwt().jwt(j -> j.subject("cashier"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPEN"));
+
+        mvc.perform(get("/shifts/" + shiftId).with(jwt().jwt(j -> j.subject("cashier"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("OPEN"))
+                .andExpect(jsonPath("$.cash.openingFloat").value(100.00));
     }
 
     @Test

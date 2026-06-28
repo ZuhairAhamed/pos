@@ -53,7 +53,7 @@ class DefaultShiftService implements ShiftService {
             throw DomainException.conflict("Shift " + shiftId + " is not open");
         }
         DrawerReconciliation cash = drawer.closeSession(shift.getDrawerSessionId(), countedCash);
-        shift.close(countedCash, Instant.now());
+        shift.close(countedCash, closedBy, Instant.now());
         return toSummary(shift, cash);
     }
 
@@ -83,6 +83,6 @@ class DefaultShiftService implements ShiftService {
 
     private ShiftSummary toSummary(Shift shift, DrawerReconciliation cash) {
         return new ShiftSummary(shift.getId(), shift.getTerminalId(), shift.getOpenedBy(),
-                shift.getStatus(), shift.getOpenedAt(), shift.getClosedAt(), cash);
+                shift.getClosedBy(), shift.getStatus(), shift.getOpenedAt(), shift.getClosedAt(), cash);
     }
 }
