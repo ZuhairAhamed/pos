@@ -10,19 +10,21 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Decrements on-hand and appends a movement-ledger row when a sale completes.
- * Runs synchronously inside the checkout transaction and swallows per-line
- * {@link RuntimeException}s so that ordinary stock failures do not roll back the sale.
- * Note: a database constraint violation (e.g. a duplicate key) marks the shared
- * transaction rollback-only, so under that specific failure the checkout would still
- * roll back. Full decoupling — where the listener runs after commit and never affects
- * the sale transaction — arrives in Phase 3 via the transactional outbox and
- * {@code @TransactionalEventListener(AFTER_COMMIT)}.
+ *
+ * <p>From Phase 3a this is an {@link ApplicationModuleListener}: it runs <em>after</em> the
+ * checkout transaction commits, asynchronously, in its own transaction. The Spring Modulith
+ * Event Publication Registry persists an {@code event_publication} row for this listener inside
+ * the publishing (sale) transaction and stamps its completion only when this method returns
+ * normally. Consequently a failure here can no longer roll back the sale; it leaves an
+ * incomplete publication that is resubmitted on restart (or via
+ * {@code IncompleteEventPublications}). We therefore no longer swallow exceptions — letting one
+ * propagate is what triggers durable retry. A negative-stock result is still only a warning,
+ * not a failure, so it neither blocks nor poisons the publication.
  */
 @Component
 class SaleCompletedListener {
@@ -37,16 +39,10 @@ class SaleCompletedListener {
         this.movements = movements;
     }
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
     void on(SaleCompleted event) {
         for (SaleCompleted.SoldLine line : event.lines()) {
-            try {
-                applyMovement(event, line);
-            } catch (RuntimeException ex) {
-                log.warn("Failed to apply stock movement for sku {} on sale {}",
-                        line.sku(), event.receiptNumber(), ex);
-            }
+            applyMovement(event, line);
         }
     }
 
