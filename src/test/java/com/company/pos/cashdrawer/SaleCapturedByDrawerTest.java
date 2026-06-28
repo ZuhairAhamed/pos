@@ -26,9 +26,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.company.pos.support.DatabaseCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -39,10 +40,11 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @SpringBootTest
 @ActiveProfiles("embedded")
-// Commits to the shared in-memory DB; rebuild the context after this class so its committed rows (sync_cursor, product, …) don't leak into other tests.
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Import(DatabaseCleaner.class)
 class SaleCapturedByDrawerTest {
 
+    @Autowired
+    DatabaseCleaner databaseCleaner;
     @Autowired
     SalesService sales;
     @Autowired
@@ -66,6 +68,7 @@ class SaleCapturedByDrawerTest {
 
     @BeforeEach
     void seed() {
+        databaseCleaner.clean();
         cashMovements.deleteAll();
         drawerSessions.deleteAll();
         stockMovements.deleteAll();
@@ -79,10 +82,7 @@ class SaleCapturedByDrawerTest {
 
     @AfterEach
     void cleanup() {
-        cashMovements.deleteAll();
-        drawerSessions.deleteAll();
-        stockMovements.deleteAll();
-        stockLevels.deleteAll();
+        databaseCleaner.clean();
         terminal.setApprove(true);
     }
 

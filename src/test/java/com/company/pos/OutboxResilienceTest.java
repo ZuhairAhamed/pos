@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import com.company.pos.support.DatabaseCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -29,7 +30,6 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.modulith.events.IncompleteEventPublications;
 import org.springframework.modulith.events.core.EventPublicationRegistry;
 import org.springframework.stereotype.Component;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 /**
@@ -39,11 +39,11 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @SpringBootTest
 @ActiveProfiles("embedded")
-@Import(OutboxResilienceTest.FailingConsumer.class)
-// Commits to the shared in-memory DB; rebuild the context after this class so its committed rows (sync_cursor, product, …) don't leak into other tests.
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@Import({OutboxResilienceTest.FailingConsumer.class, DatabaseCleaner.class})
 class OutboxResilienceTest {
 
+    @Autowired
+    DatabaseCleaner databaseCleaner;
     @Autowired
     SalesService sales;
     @Autowired
@@ -65,6 +65,7 @@ class OutboxResilienceTest {
 
     @BeforeEach
     void seed() {
+        databaseCleaner.clean();
         failing.reset();
         stockMovements.deleteAll();
         stockLevels.deleteAll();
@@ -76,8 +77,7 @@ class OutboxResilienceTest {
 
     @AfterEach
     void cleanup() {
-        stockMovements.deleteAll();
-        stockLevels.deleteAll();
+        databaseCleaner.clean();
     }
 
     @Test
