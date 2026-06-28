@@ -24,4 +24,12 @@ class ModularityTests {
                 .collect(Collectors.toSet());
         assertThat(names).contains("common", "database", "configuration", "device");
     }
+
+    @Test
+    void detectsTheCheckoutCoreModules() {
+        Set<String> names = modules.stream()
+                .map(ApplicationModule::getName)
+                .collect(Collectors.toSet());
+        assertThat(names).contains("cart", "pricing", "tax", "payment", "receipt", "sales");
+    }
 }

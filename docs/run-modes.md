@@ -48,3 +48,32 @@ Config (env overridable):
 - `POS_SYNC_ERP_SCHEDULED` — background ERP down-sync timer. Default **off**; enabled automatically on the `store-server` profile. `POS_SYNC_ERP_DELAY_MS` sets the interval.
 
 > The ERP integration runs against an in-memory **fake** adapter in Phase 1. A concrete vendor adapter implements `com.company.pos.integration.api.ErpClient` later with no change to the sync engine.
+
+## Phase 2a — Checkout core (cash sell path)
+
+All endpoints require a bearer token. Any authenticated user (cashier) may sell.
+
+```
+POST   /carts                          -> 201 {"cartId"}
+GET    /carts/{cartId}                 -> CartView
+POST   /carts/{cartId}/lines           {"sku","quantity"}   -> CartView
+PUT    /carts/{cartId}/lines/{sku}     {"quantity"}         -> CartView
+DELETE /carts/{cartId}/lines/{sku}                          -> CartView
+POST   /sales                          {"cartId","amountTendered"} -> 201 SaleView
+GET    /sales/{saleId}                 -> SaleView
+POST   /sales/{saleId}/reprint         -> 204
+```
+
+Checkout prices the cart, applies VAT, takes a cash tender (rejecting short payment),
+persists an immutable sale with a `{storeId}-{terminalId}-{seq}` receipt number, prints
+through the device `Printer` port, and decrements stock (writing a movement-ledger row).
+
+Config (env overridable via the `configuration` settings store):
+- `tax.rate` (default `0.15`), `tax.inclusive` (default `false`)
+- `store.id` (default `S01`), `terminal.id` (default `T01`), `inventory.location` (default `MAIN`)
+- `store.name`, `currency.code` (default `SAR`), `locale` (default `en`)
+
+> Receipts print to an in-memory fake `Printer`/`CashDrawer` in this phase. A real
+> JavaPOS/ESC-POS adapter implements `com.company.pos.device.api.Printer` later with no
+> change to the `receipt`/`sales` modules. Card/QR tenders, split payment, void, hold/resume,
+> and cashdrawer/shift reconciliation arrive in Phase 2b; returns/exchanges are a later plan.
