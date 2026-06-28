@@ -16,9 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Decrements on-hand and appends a movement-ledger row when a sale completes.
- * Runs synchronously in the checkout transaction. Never throws: a sale must not be
- * rolled back by a stock side effect, and the offline store is authoritative (oversell
- * is allowed and reconciled with the ERP later via movement sync in Phase 3).
+ * Runs synchronously inside the checkout transaction and swallows per-line
+ * {@link RuntimeException}s so that ordinary stock failures do not roll back the sale.
+ * Note: a database constraint violation (e.g. a duplicate key) marks the shared
+ * transaction rollback-only, so under that specific failure the checkout would still
+ * roll back. Full decoupling — where the listener runs after commit and never affects
+ * the sale transaction — arrives in Phase 3 via the transactional outbox and
+ * {@code @TransactionalEventListener(AFTER_COMMIT)}.
  */
 @Component
 class SaleCompletedListener {

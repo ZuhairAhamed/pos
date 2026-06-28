@@ -22,8 +22,8 @@ class ReceiptNumberingTest {
     @Test
     void issuesPaddedMonotonicNumbersPerTerminal() {
         // Distinct store/terminal ids (not the S01/T01 used by checkout tests) avoid
-        // cross-test contamination: nextReceiptNumber commits in REQUIRES_NEW, so its
-        // increment survives even a @Transactional caller's rollback in the shared context.
+        // cross-test contamination: nextReceiptNumber uses plain @Transactional (REQUIRED),
+        // so each test's unique store/terminal key ensures independent, order-independent sequences.
         String first = numbering.nextReceiptNumber("RNT", "TA");
         String second = numbering.nextReceiptNumber("RNT", "TA");
 

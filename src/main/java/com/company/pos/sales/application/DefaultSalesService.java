@@ -1,6 +1,5 @@
 package com.company.pos.sales.application;
 
-import com.company.pos.cart.api.CartLineView;
 import com.company.pos.cart.api.CartService;
 import com.company.pos.cart.api.CartView;
 import com.company.pos.common.events.DomainEvents;

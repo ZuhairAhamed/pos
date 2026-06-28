@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -127,6 +128,6 @@ public class Sale {
     }
 
     public List<SaleLine> getLines() {
-        return lines;
+        return Collections.unmodifiableList(lines);
     }
 }

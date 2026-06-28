@@ -47,4 +47,18 @@ class TaxServiceTest {
         assertThat(cart.taxTotal()).isEqualByComparingTo("0.00");
         assertThat(cart.grandTotal()).isEqualByComparingTo("9.00");
     }
+
+    @Test
+    void inclusiveMultiLineTotalsReconcile() {
+        // 3-line inclusive cart: grandTotal = sum of extendedPrices; subtotal + taxTotal = grandTotal
+        List<TaxLineInput> lines = List.of(
+                new TaxLineInput("A", "Item A", new BigDecimal("1"), new BigDecimal("11.50"), new BigDecimal("11.50"), "SAR"),
+                new TaxLineInput("B", "Item B", new BigDecimal("1"), new BigDecimal("5.55"), new BigDecimal("5.55"), "SAR"),
+                new TaxLineInput("C", "Item C", new BigDecimal("1"), new BigDecimal("3.33"), new BigDecimal("3.33"), "SAR")
+        );
+        TaxedCart cart = tax.applyTax(lines, new BigDecimal("0.15"), true, "SAR");
+
+        assertThat(cart.grandTotal()).isEqualByComparingTo("20.38");
+        assertThat(cart.subtotal().add(cart.taxTotal())).isEqualByComparingTo(cart.grandTotal());
+    }
 }
