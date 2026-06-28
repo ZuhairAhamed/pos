@@ -37,6 +37,8 @@ class CartHoldResumeTest {
                 "EA", new BigDecimal("4.50"), "SAR", 1, true));
         fake.addProduct(new ErpProduct("CHIP", "Chips", "SNK", "Snacks", "bcCHIP",
                 "EA", new BigDecimal("3.00"), "SAR", 1, true));
+        fake.addProduct(new ErpProduct("MILK", "Milk Carton", "DRY", "Dairy", "bcMILK",
+                "EA", new BigDecimal("6.00"), "SAR", 1, true));
         productSync.sync();
     }
 
@@ -75,17 +77,26 @@ class CartHoldResumeTest {
 
         // createCart() stamps the configured terminal id (default T01)
         assertThat(carts.listHeld("T01")).extracting(CartView::cartId).contains(held).doesNotContain(open);
+        // terminal isolation: the held cart must NOT appear for a different terminal
+        assertThat(carts.listHeld("T99")).extracting(CartView::cartId).doesNotContain(held);
     }
 
     @Test
     void voidLineRemovesItAndRenumbersRemaining() {
+        // Three-line cart: add CHIP (line 1), COLA (line 2), MILK (line 3) in insertion order.
+        // Remove the first line (CHIP) to exercise the renumber path across multiple survivors.
+        // Note: lineNo renumbering is internal and not surfaced on CartLineView (sku, name,
+        // quantity, unitPrice, currencyCode), so we use sku ordering as the observable proxy
+        // that removal + reindex keep ordering coherent.
         UUID cart = carts.createCart();
-        carts.addLine(cart, "COLA", new BigDecimal("1"));
         carts.addLine(cart, "CHIP", new BigDecimal("1"));
+        carts.addLine(cart, "COLA", new BigDecimal("1"));
+        carts.addLine(cart, "MILK", new BigDecimal("1"));
 
-        CartView view = carts.removeLine(cart, "COLA");
-        assertThat(view.lines()).hasSize(1);
-        assertThat(view.lines().get(0).sku()).isEqualTo("CHIP");
+        CartView view = carts.removeLine(cart, "CHIP");
+        assertThat(view.lines()).hasSize(2);
+        assertThat(view.lines()).extracting(l -> l.sku())
+                .containsExactly("COLA", "MILK");
     }
 
     @Test
