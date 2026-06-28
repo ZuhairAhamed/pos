@@ -52,10 +52,10 @@ class SalesControllerTest {
 
         mvc.perform(post("/sales").with(jwt().jwt(j -> j.subject("cashier1")))
                         .contentType("application/json")
-                        .content("{\"cartId\":\"" + cart + "\",\"amountTendered\":20.00}"))
+                        .content("{\"cartId\":\"" + cart + "\",\"tenders\":[{\"method\":\"CASH\",\"tendered\":20.00}]}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.grandTotal").value(10.35))
-                .andExpect(jsonPath("$.payment.changeDue").value(9.65))
+                .andExpect(jsonPath("$.payments[0].changeDue").value(9.65))
                 .andExpect(jsonPath("$.receiptNumber", matchesPattern("S01-T01-\\d{6}")));
     }
 
@@ -65,7 +65,7 @@ class SalesControllerTest {
         carts.addLine(cart, "COLA", new BigDecimal("1"));
         String body = mvc.perform(post("/sales").with(jwt().jwt(j -> j.subject("cashier1")))
                         .contentType("application/json")
-                        .content("{\"cartId\":\"" + cart + "\",\"amountTendered\":10.00}"))
+                        .content("{\"cartId\":\"" + cart + "\",\"tenders\":[{\"method\":\"CASH\",\"tendered\":10.00}]}"))
                 .andReturn().getResponse().getContentAsString();
         String saleId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
 

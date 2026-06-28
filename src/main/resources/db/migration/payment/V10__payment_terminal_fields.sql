@@ -1,0 +1,2 @@
+ALTER TABLE payment ADD COLUMN masked_pan VARCHAR(25);
+ALTER TABLE payment ADD COLUMN auth_token VARCHAR(64);

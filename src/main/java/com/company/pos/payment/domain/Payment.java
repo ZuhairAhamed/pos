@@ -42,6 +42,12 @@ public class Payment {
     @Column(name = "currency_code", nullable = false, length = 3)
     private String currencyCode;
 
+    @Column(name = "masked_pan", length = 25)
+    private String maskedPan;
+
+    @Column(name = "auth_token", length = 64)
+    private String authToken;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -50,7 +56,8 @@ public class Payment {
     }
 
     public Payment(UUID id, UUID saleId, PaymentMethod method, BigDecimal amount,
-            BigDecimal amountTendered, BigDecimal changeDue, String currencyCode, Instant createdAt) {
+            BigDecimal amountTendered, BigDecimal changeDue, String currencyCode,
+            String maskedPan, String authToken, Instant createdAt) {
         this.id = id;
         this.saleId = saleId;
         this.method = method;
@@ -58,6 +65,8 @@ public class Payment {
         this.amountTendered = amountTendered;
         this.changeDue = changeDue;
         this.currencyCode = currencyCode;
+        this.maskedPan = maskedPan;
+        this.authToken = authToken;
         this.createdAt = createdAt;
     }
 
@@ -65,7 +74,27 @@ public class Payment {
         return saleId;
     }
 
+    public PaymentMethod getMethod() {
+        return method;
+    }
+
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public BigDecimal getAmountTendered() {
+        return amountTendered;
+    }
+
+    public BigDecimal getChangeDue() {
+        return changeDue;
+    }
+
+    public String getCurrencyCode() {
+        return currencyCode;
+    }
+
+    public String getMaskedPan() {
+        return maskedPan;
     }
 }

@@ -10,9 +10,12 @@ import com.company.pos.inventory.api.InventoryService;
 import com.company.pos.inventory.infrastructure.StockMovementRepository;
 import com.company.pos.product.api.ProductSync;
 import com.company.pos.inventory.api.InventorySync;
+import com.company.pos.payment.api.PaymentMethod;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SalesService;
+import com.company.pos.sales.api.TenderInput;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +58,8 @@ class SaleDecrementsStockTest {
     void completingSaleDecrementsOnHandAndWritesMovement() {
         UUID cart = carts.createCart();
         carts.addLine(cart, "COLA", new BigDecimal("3"));
-        sales.checkout(new CheckoutCommand(cart, new BigDecimal("100")), "cashier");
+        sales.checkout(new CheckoutCommand(cart,
+                List.of(new TenderInput(PaymentMethod.CASH, null, new BigDecimal("100")))), "cashier");
 
         assertThat(inventory.onHand("COLA").orElseThrow().quantityOnHand())
                 .isEqualByComparingTo("17");   // 20 - 3

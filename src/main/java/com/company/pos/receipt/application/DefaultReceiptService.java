@@ -7,6 +7,7 @@ import com.company.pos.device.api.PrintLine;
 import com.company.pos.device.api.Printer;
 import com.company.pos.receipt.api.ReceiptData;
 import com.company.pos.receipt.api.ReceiptLineData;
+import com.company.pos.receipt.api.ReceiptPaymentData;
 import com.company.pos.receipt.api.ReceiptService;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -47,8 +48,18 @@ class DefaultReceiptService implements ReceiptService {
         lines.add(new PrintLine("Subtotal: " + money(data.subtotal(), currency, locale), false));
         lines.add(new PrintLine("Tax:      " + money(data.taxTotal(), currency, locale), false));
         lines.add(new PrintLine("TOTAL:    " + money(data.grandTotal(), currency, locale), true));
-        lines.add(new PrintLine("Cash:     " + money(data.amountTendered(), currency, locale), false));
-        lines.add(new PrintLine("Change:   " + money(data.changeDue(), currency, locale), false));
+        for (ReceiptPaymentData payment : data.payments()) {
+            String label = payment.method() + ":";
+            String suffix = payment.maskedPan() != null ? "  " + payment.maskedPan() : "";
+            lines.add(new PrintLine(label + "    " + money(payment.amount(), currency, locale) + suffix,
+                    false));
+            if (payment.changeDue() != null && payment.changeDue().signum() > 0) {
+                lines.add(new PrintLine("  Tendered: " + money(payment.amountTendered(), currency, locale),
+                        false));
+                lines.add(new PrintLine("  Change:   " + money(payment.changeDue(), currency, locale),
+                        false));
+            }
+        }
 
         printer.print(lines);
         printer.cut();

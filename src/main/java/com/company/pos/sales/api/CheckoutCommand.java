@@ -1,7 +1,7 @@
 package com.company.pos.sales.api;
 
-import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
-public record CheckoutCommand(UUID cartId, BigDecimal amountTendered) {
+public record CheckoutCommand(UUID cartId, List<TenderInput> tenders) {
 }

@@ -81,12 +81,12 @@ class CashSaleEndToEndTest {
         // 4. Checkout with cash
         String sale = mvc.perform(post("/sales").header("Authorization", token)
                         .contentType("application/json")
-                        .content("{\"cartId\":\"" + cartId + "\",\"amountTendered\":20.00}"))
+                        .content("{\"cartId\":\"" + cartId + "\",\"tenders\":[{\"method\":\"CASH\",\"tendered\":20.00}]}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.subtotal").value(9.00))
                 .andExpect(jsonPath("$.taxTotal").value(1.35))
                 .andExpect(jsonPath("$.grandTotal").value(10.35))
-                .andExpect(jsonPath("$.payment.changeDue").value(9.65))
+                .andExpect(jsonPath("$.payments[0].changeDue").value(9.65))
                 .andExpect(jsonPath("$.receiptNumber", matchesPattern("S01-T01-\\d{6}")))
                 .andReturn().getResponse().getContentAsString();
         String saleId = JsonPath.read(sale, "$.id");

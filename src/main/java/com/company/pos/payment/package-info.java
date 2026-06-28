@@ -1,3 +1,3 @@
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = { "common", "database" })
+        allowedDependencies = { "common", "database", "device :: api" })
 package com.company.pos.payment;

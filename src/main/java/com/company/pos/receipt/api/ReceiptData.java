@@ -6,6 +6,5 @@ import java.util.List;
 
 public record ReceiptData(String receiptNumber, String cashierName, Instant timestamp,
         List<ReceiptLineData> lines, BigDecimal subtotal, BigDecimal taxTotal,
-        BigDecimal grandTotal, BigDecimal amountTendered, BigDecimal changeDue,
-        String currencyCode) {
+        BigDecimal grandTotal, List<ReceiptPaymentData> payments, String currencyCode) {
 }
