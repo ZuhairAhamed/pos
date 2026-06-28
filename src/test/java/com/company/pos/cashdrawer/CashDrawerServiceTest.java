@@ -90,6 +90,12 @@ class CashDrawerServiceTest {
     }
 
     @Test
+    void payOutWithoutOpenSessionIsRejected() {
+        assertThatThrownBy(() -> drawer.payOut("T08", new BigDecimal("5.00"), "x", "cashier"))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
     void payOutMustBePositive() {
         drawer.openSession("T01", new BigDecimal("100.00"), "SAR", "cashier");
         assertThatThrownBy(() -> drawer.payOut("T01", BigDecimal.ZERO, "x", "cashier"))

@@ -108,6 +108,7 @@ class DefaultCashDrawerService implements CashDrawerService {
             throw DomainException.conflict("Drawer session " + sessionId + " is not open");
         }
         session.close(scale(countedAmount), Instant.now());
+        sessions.save(session);
         return reconcileSession(session);
     }
 
@@ -122,7 +123,8 @@ class DefaultCashDrawerService implements CashDrawerService {
         BigDecimal cashSales = sum(ledger, "CASH_SALE");
         BigDecimal payIns = sum(ledger, "PAY_IN");
         BigDecimal payOuts = sum(ledger, "PAY_OUT");
-        int cashSalesCount = (int) ledger.stream().filter(m -> "CASH_SALE".equals(m.getType())).count();
+        int cashSalesCount = Math.toIntExact(ledger.stream()
+                .filter(m -> "CASH_SALE".equals(m.getType())).count());
         BigDecimal expected = scale(session.getOpeningFloat().add(cashSales).add(payIns).subtract(payOuts));
         BigDecimal counted = session.getCountedAmount();
         BigDecimal variance = counted != null ? scale(counted.subtract(expected)) : null;
