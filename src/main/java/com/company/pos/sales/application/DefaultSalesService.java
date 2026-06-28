@@ -157,12 +157,17 @@ class DefaultSalesService implements SalesService {
         // 5. Close the cart
         carts.close(command.cartId());
 
-        // 6. Publish SaleCompleted (in-process; inventory decrements synchronously in this tx)
+        // 6. Publish SaleCompleted (in-process; inventory + cashdrawer subscribe synchronously)
         List<SaleCompleted.SoldLine> soldLines = taxed.lines().stream()
                 .map(t -> new SaleCompleted.SoldLine(t.sku(), t.quantity()))
                 .toList();
-        events.publish(new SaleCompleted(saleId, receiptNumber, location, currency,
-                taxed.grandTotal(), soldLines));
+        BigDecimal cashTotal = recorded.stream()
+                .filter(p -> PaymentMethod.CASH.name().equals(p.method()))
+                .map(com.company.pos.payment.api.PaymentView::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+        events.publish(new SaleCompleted(saleId, receiptNumber, terminalId, location, currency,
+                taxed.grandTotal(), cashTotal, soldLines));
 
         // 7. Print the receipt (best-effort — never fails the sale)
         printReceipt(sale, recorded);
