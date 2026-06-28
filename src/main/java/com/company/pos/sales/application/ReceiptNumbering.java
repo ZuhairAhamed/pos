@@ -3,7 +3,6 @@ package com.company.pos.sales.application;
 import com.company.pos.sales.domain.SaleNumberSequence;
 import com.company.pos.sales.infrastructure.SaleNumberSequenceRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
@@ -15,7 +14,7 @@ public class ReceiptNumbering {
         this.sequences = sequences;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public String nextReceiptNumber(String storeId, String terminalId) {
         String key = storeId + "-" + terminalId;
         SaleNumberSequence sequence = sequences.findById(key)
