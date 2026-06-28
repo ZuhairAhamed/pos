@@ -2037,3 +2037,25 @@ Plan complete and saved to `docs/superpowers/plans/2026-06-28-phase-2c-cashdrawe
 **2. Inline Execution** — Execute tasks in this session using executing-plans, batch execution with checkpoints.
 
 Which approach?
+
+---
+
+## AS-BUILT
+
+**Executed:** 2026-06-28 — Task 5 capstone (ShiftReconciliationEndToEndTest + full verify).
+
+### Deviations from plan discovered during execution
+
+**(a) pay-in/pay-out with no open session raises `DomainException.conflict` (HTTP 409), not `notFound` (404).**
+The plan's prose said "no open session" would surface as a not-found error. During review/execution it was confirmed by the team that the correct semantics are a conflict error: the terminal exists but the state (no open session) conflicts with the operation. The `CashDrawerControllerTest.payInWithoutOpenSessionIsRejected` test asserts `DomainException` (class-level); the service throws `DomainException.conflict(...)`. No plan text change was needed — the code was correct; this note closes the ambiguity.
+
+**(b) `shift` entity and V13 migration persist `closed_by`; `ShiftSummary` exposes `closedBy`.**
+The plan's `closeShift` API accepted `closedBy` as a parameter but the original entity design did not explicitly commit to storing it as a column. During Task 4 execution the entity `Shift`, migration `V13__shift.sql`, and `ShiftSummary.closedBy()` were all implemented with the `closed_by VARCHAR(100)` column. The `ddl-auto=validate` pass in `DatabaseStoreServerTest` confirmed the column exists in Postgres and matches the entity `@Column(name = "closed_by", length = 100)` definition. No reconciliation was required in Task 5.
+
+### Final `./mvnw -B verify` result
+
+- **Total tests:** 119 — Failures: 0, Errors: 0, Skipped: 0
+- **BUILD SUCCESS**
+- **DatabaseStoreServerTest:** RAN AND PASSED (Docker available; Testcontainers Postgres applied all 13 Flyway migrations V1–V13, then `ddl-auto=validate` passed against all entities including `drawer_session`, `cash_movement`, and `shift`)
+- **ModularityTests:** PASSED (3 tests — module boundary verification)
+- **ShiftReconciliationEndToEndTest:** PASSED (1 test — full till-reconciliation scenario: open shift 100.00 float → cash sale 10.35 → pay-out 15.00 → close with count 95.35 → variance 0.00)
