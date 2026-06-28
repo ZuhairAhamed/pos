@@ -4,3 +4,6 @@ target/
 *.db
 *.sqlite
 !.mvn/wrapper/maven-wrapper.properties
+
+# Claude Code personal settings (not shared)
+.claude/settings.local.json
