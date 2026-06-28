@@ -3,24 +3,21 @@ package com.company.pos.cashdrawer.application;
 import com.company.pos.cashdrawer.api.CashDrawerService;
 import com.company.pos.sales.api.SaleCompleted;
 import java.math.BigDecimal;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Captures the cash portion of a completed sale into the terminal's open drawer session.
- * Runs synchronously inside the checkout transaction and swallows {@link RuntimeException} so a
- * drawer failure never rolls back the sale. If no session is open the capture is a no-op (handled
- * inside {@link CashDrawerService#recordCashSale}). Same caveat as the inventory listener: a DB
- * constraint violation can still mark the shared transaction rollback-only; the Phase 3 outbox +
- * {@code @TransactionalEventListener(AFTER_COMMIT)} removes that coupling.
+ * Attributes the cash portion of a completed sale to the terminal's open drawer session.
+ *
+ * <p>From Phase 3a this is an {@link ApplicationModuleListener}: it runs after the checkout
+ * transaction commits, asynchronously, in its own transaction, and is tracked by the Spring
+ * Modulith Event Publication Registry. A failure leaves an incomplete publication for replay
+ * rather than affecting the (already committed) sale, so we no longer swallow exceptions.
+ * {@link CashDrawerService#recordCashSale} is still a no-op when no session is open for the
+ * terminal, so cash sales rung up without an open drawer are simply not captured (not errors).
  */
 @Component
 class SaleCompletedCashListener {
-
-    private static final Logger log = LoggerFactory.getLogger(SaleCompletedCashListener.class);
 
     private final CashDrawerService drawer;
 
@@ -28,17 +25,11 @@ class SaleCompletedCashListener {
         this.drawer = drawer;
     }
 
-    @EventListener
-    @Transactional
+    @ApplicationModuleListener
     void on(SaleCompleted event) {
         if (event.cashTotal() == null || event.cashTotal().signum() <= 0) {
-            return;
+            return; // nothing paid in cash
         }
-        try {
-            drawer.recordCashSale(event.terminalId(), event.cashTotal(), event.saleId().toString());
-        } catch (RuntimeException ex) {
-            log.warn("Failed to capture cash for sale {} on terminal {}",
-                    event.receiptNumber(), event.terminalId(), ex);
-        }
+        drawer.recordCashSale(event.terminalId(), event.cashTotal(), event.saleId().toString());
     }
 }
