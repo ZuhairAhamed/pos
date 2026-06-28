@@ -5,7 +5,11 @@ public enum SettingKey {
     CURRENCY_CODE("currency.code", "SAR"),
     LOCALE("locale", "en"),
     TAX_INCLUSIVE("tax.inclusive", "false"),
-    RECEIPT_PRINTER_PORT("printer.port", "COM1");
+    RECEIPT_PRINTER_PORT("printer.port", "COM1"),
+    VAT_RATE("tax.rate", "0.15"),
+    STORE_ID("store.id", "S01"),
+    TERMINAL_ID("terminal.id", "T01"),
+    INVENTORY_LOCATION("inventory.location", "MAIN");
 
     private final String key;
     private final String defaultValue;
