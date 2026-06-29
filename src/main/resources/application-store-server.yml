@@ -4,6 +4,9 @@ pos:
       scheduled: true
       upload:
         scheduled: true
+  notification:
+    stuck-upload:
+      scheduled: true
 
 spring:
   datasource:

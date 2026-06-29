@@ -29,3 +29,8 @@ pos:
         scheduled: ${POS_SYNC_ERP_UPLOAD_SCHEDULED:false}
         fixed-delay-ms: ${POS_SYNC_ERP_UPLOAD_DELAY_MS:30000}
         min-age-ms: ${POS_SYNC_ERP_UPLOAD_MIN_AGE_MS:10000}
+  notification:
+    stuck-upload:
+      scheduled: ${POS_NOTIFICATION_STUCK_UPLOAD_SCHEDULED:false}
+      fixed-delay-ms: ${POS_NOTIFICATION_STUCK_UPLOAD_DELAY_MS:60000}
+      min-age-ms: ${POS_NOTIFICATION_STUCK_UPLOAD_MIN_AGE_MS:300000}
