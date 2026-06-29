@@ -113,3 +113,26 @@ The foundation deliberately omits two pieces of production hardening:
   which starts a new thread per task (unbounded). This is fine for the current local listeners
   but must be replaced with a bounded `ThreadPoolTaskExecutor` before the outbox carries the
   ERP-upload workload in Phase 3b.
+
+## ERP up-sync (Phase 3b)
+
+Completed sales and their stock-movement deltas are uploaded to the ERP over the Phase 3a outbox.
+A `sync`-module `@ApplicationModuleListener` on `SaleCompleted` fetches the full sale (`sales :: api`),
+maps it to a `SaleUpload`, derives the per-line stock deltas (−quantity at the sale's location), and
+calls the ERP adapter's idempotent `uploadSale` / `uploadStockMovements`.
+
+- **Offline-first:** the upload runs only after the sale commits, asynchronously. If the ERP is
+  down the call throws and the publication stays incomplete — the sale is unaffected. The store
+  keeps trading; uploads queue in `event_publication`.
+- **Drain:** incomplete publications are resubmitted on restart (republish-on-restart), on a
+  schedule when `pos.sync.erp.upload.scheduled=true` (on by default for `store-server`), and on
+  demand via `POST /sync/erp/upload` (MANAGER-only).
+- **Idempotency:** uploads are at-least-once; the ERP adapter dedupes on `saleId`, so replay never
+  double-posts. Sales/movements are immutable facts, so there is no merge/conflict logic — just
+  idempotent delivery.
+- The ERP adapter is still the in-memory `FakeErpClient`; a real vendor adapter replaces it later
+  without touching the `sync` module.
+
+Operator notifications for stuck (persistently failing) uploads and low-stock are Phase 3c. A
+bounded async executor and a poison-publication retry cap (see the Phase 3a operational limits
+above) should land before this path carries real ERP load.
