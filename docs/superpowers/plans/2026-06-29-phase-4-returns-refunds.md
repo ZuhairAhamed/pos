@@ -302,13 +302,23 @@ Add getters alongside the existing ones:
     }
 ```
 
-- [ ] **Step 4: Add the repository query**
+- [ ] **Step 4: Add the repository queries**
 
-In `src/main/java/com/company/pos/payment/infrastructure/PaymentRepository.java`, add:
+In `src/main/java/com/company/pos/payment/infrastructure/PaymentRepository.java`, add the return query, and **replace** `findBySaleIdOrderByCreatedAtAsc` with a direction-filtered variant (so refund rows — which carry `sale_id = returnId` — never leak into the original sale's payment query):
 
 ```java
+    List<Payment> findBySaleIdAndDirectionOrderByCreatedAtAsc(UUID saleId, PaymentDirection direction);
+
     List<Payment> findByReturnIdOrderByCreatedAtAsc(UUID returnId);
 ```
+
+Update `DefaultPaymentService.findBySale` to call the new query with `PaymentDirection.SALE`:
+
+```java
+        return payments.findBySaleIdAndDirectionOrderByCreatedAtAsc(saleId, PaymentDirection.SALE)
+```
+
+> Correctness note (caught in review): the original `findBySaleIdOrderByCreatedAtAsc` is *not* kept. Because refund rows set `sale_id = returnId`, an unfiltered `findBySale` would return refund rows. The `SALE`-direction filter is behavior-preserving for the existing callers (`DefaultSalesService.getSale`/`reprint` only ever pass a real sale id, whose payments are all `SALE`).
 
 - [ ] **Step 5: Extend the `PaymentService` API and fix sale call sites**
 
@@ -386,7 +396,7 @@ In `recordTerminalPayment`, replace the `new Payment(...)` with:
     @Transactional(readOnly = true)
     public List<PaymentView> findByReturn(UUID returnId) {
         return payments.findByReturnIdOrderByCreatedAtAsc(returnId).stream()
-                .map(p -> new PaymentView(p.getSaleId(), p.getMethod().name(), p.getAmount(),
+                .map(p -> new PaymentView(p.getReturnId(), p.getMethod().name(), p.getAmount(),
                         p.getAmountTendered(), p.getChangeDue(), p.getMaskedPan(),
                         p.getCurrencyCode()))
                 .toList();
@@ -475,7 +485,7 @@ class RefundPaymentTest {
 }
 ```
 
-> Note: `findBySale(returnId)` is empty because refund rows set `sale_id = returnId` AND `return_id = returnId`; `findBySale` filters on `sale_id`, and no SALE row uses this id. This is the test's way of proving refund rows don't pollute the original-sale payment query.
+> Note: `findBySale(returnId)` is empty because `findBySale` is filtered to `direction = SALE` (Step 4), and the only rows carrying `sale_id = returnId` are `REFUND`-direction. This is the test's way of proving refund rows don't pollute the original-sale payment query.
 
 - [ ] **Step 7: Run the refund test**
 
