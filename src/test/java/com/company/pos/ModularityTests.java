@@ -40,4 +40,12 @@ class ModularityTests {
                 .collect(Collectors.toSet());
         assertThat(names).contains("sync");
     }
+
+    @Test
+    void detectsTheNotificationModule() {
+        Set<String> names = modules.stream()
+                .map(ApplicationModule::getName)
+                .collect(Collectors.toSet());
+        assertThat(names).contains("notification");
+    }
 }
