@@ -137,7 +137,7 @@ class DefaultReturnService implements ReturnService {
         BigDecimal cashRefundTotal = ZERO;
         for (int i = 0; i < originalPayments.size(); i++) {
             PaymentView op = originalPayments.get(i);
-            BigDecimal portion = (i == originalPayments.size() - 1)
+            BigDecimal portion = (i == originalPayments.size() - 1 || originalGrand.signum() == 0)
                     ? refundGrandTotal.subtract(allocated)
                     : refundGrandTotal.multiply(op.amount())
                             .divide(originalGrand, 2, RoundingMode.HALF_UP);

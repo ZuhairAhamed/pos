@@ -136,4 +136,30 @@ class ReturnServiceTest {
         assertThat(fetched.creditNoteNumber()).isEqualTo(created.creditNoteNumber());
         assertThat(fetched.refunds()).hasSize(1);
     }
+
+    @Test
+    void mixedTenderRefundAllocatesAcrossOriginalMethodsAndSumsExactly() {
+        // 2x COLA grand 10.35, paid 5.00 cash + 5.35 card. Return 1 -> refund 5.18, split
+        // proportionally across the two original tenders (exercises the proportional divide branch).
+        var cart = carts.createCart();
+        carts.addLine(cart, "COLA", new BigDecimal("2"));
+        SaleView sale = sales.checkout(new CheckoutCommand(cart, List.of(
+                new TenderInput(PaymentMethod.CASH, new BigDecimal("5.00"), new BigDecimal("5.00")),
+                new TenderInput(PaymentMethod.CARD, new BigDecimal("5.35"), null))), "cashier");
+        assertThat(sale.grandTotal()).isEqualByComparingTo("10.35");
+
+        ReturnView ret = returns.processReturn(new ReturnCommand(sale.id(), null,
+                List.of(new ReturnCommand.ReturnLineRequest(1, new BigDecimal("1")))), "manager");
+
+        // Order-independent: the per-tender split depends on payment ordering, but the total is
+        // exact and there is exactly one cash and one card refund regardless of order.
+        assertThat(ret.refundGrandTotal()).isEqualByComparingTo("5.18");
+        assertThat(ret.refunds()).hasSize(2);
+        BigDecimal sum = ret.refunds().stream()
+                .map(com.company.pos.sales.api.ReturnPaymentView::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        assertThat(sum).isEqualByComparingTo("5.18");
+        assertThat(ret.refunds().stream().filter(r -> r.method().equals("CASH")).count()).isEqualTo(1);
+        assertThat(ret.refunds().stream().filter(r -> r.method().equals("CARD")).count()).isEqualTo(1);
+    }
 }
