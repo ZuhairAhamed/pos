@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.company.pos.cart.api.CartService;
-import com.company.pos.common.events.DomainEvent;
 import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.api.ErpStockLevel;
 import com.company.pos.integration.erp.FakeErpClient;

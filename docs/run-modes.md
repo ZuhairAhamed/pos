@@ -158,6 +158,9 @@ phase; real SMS/email/push later, no module change). Two alert types:
   on for `store-server`) polls the Phase 3a outbox for publications still incomplete beyond
   `pos.notification.stuck-upload.min-age-ms` (default 5 min) — e.g. ERP uploads stuck because the
   link is down — and raises a SYNC_ERROR alert, deduped per publication so a stuck row alerts once.
+  The monitor scans *all* incomplete publications, so the alert means "a stuck outbox publication"
+  in general; in practice the local `inventory`/`cashdrawer` listeners complete on first run, so a
+  persistently-stuck row is almost always an ERP upload.
 
 This is observability only: there is still no automatic retry-cap/dead-letter and the async executor
 is still unbounded (see the Phase 3a operational limits). Real channels, those hardening items, and

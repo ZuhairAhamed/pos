@@ -8,6 +8,7 @@ import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.api.ErpStockLevel;
 import com.company.pos.integration.erp.FakeErpClient;
 import com.company.pos.inventory.api.InventorySync;
+import com.company.pos.notification.api.Alert;
 import com.company.pos.notification.api.AlertType;
 import com.company.pos.notification.infrastructure.InMemoryNotifier;
 import com.company.pos.payment.api.PaymentMethod;
@@ -80,7 +81,7 @@ class LowStockAlertTest {
                 List.of(new TenderInput(PaymentMethod.CASH, null, new BigDecimal("100")))), "cashier");
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
-            List<com.company.pos.notification.api.Alert> lowStock = notifier.alerts().stream()
+            List<Alert> lowStock = notifier.alerts().stream()
                     .filter(a -> a.type() == AlertType.LOW_STOCK)
                     .toList();
             assertThat(lowStock).hasSize(1);
