@@ -2,6 +2,8 @@ pos:
   sync:
     erp:
       scheduled: true
+      upload:
+        scheduled: true
 
 spring:
   datasource:

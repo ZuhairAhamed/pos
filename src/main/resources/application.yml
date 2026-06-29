@@ -23,3 +23,7 @@ pos:
     erp:
       scheduled: ${POS_SYNC_ERP_SCHEDULED:false}
       fixed-delay-ms: ${POS_SYNC_ERP_DELAY_MS:60000}
+      upload:
+        scheduled: ${POS_SYNC_ERP_UPLOAD_SCHEDULED:false}
+        fixed-delay-ms: ${POS_SYNC_ERP_UPLOAD_DELAY_MS:30000}
+        min-age-ms: ${POS_SYNC_ERP_UPLOAD_MIN_AGE_MS:10000}
