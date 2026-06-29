@@ -13,4 +13,11 @@ public interface PaymentService {
             PaymentMethod method, String reference);
 
     List<PaymentView> findBySale(UUID saleId);
+
+    PaymentView refundCash(UUID returnId, String currencyCode, BigDecimal amount);
+
+    PaymentView refundTerminalPayment(UUID returnId, String currencyCode, BigDecimal amount,
+            PaymentMethod method, String reference);
+
+    List<PaymentView> findByReturn(UUID returnId);
 }

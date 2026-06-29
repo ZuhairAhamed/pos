@@ -48,6 +48,14 @@ public class Payment {
     @Column(name = "auth_token", length = 64)
     private String authToken;
 
+    @Column(name = "return_id", length = 36)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    private UUID returnId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "txn_type", nullable = false, length = 16)
+    private PaymentDirection direction;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -55,11 +63,12 @@ public class Payment {
         // JPA
     }
 
-    public Payment(UUID id, UUID saleId, PaymentMethod method, BigDecimal amount,
-            BigDecimal amountTendered, BigDecimal changeDue, String currencyCode,
-            String maskedPan, String authToken, Instant createdAt) {
+    public Payment(UUID id, UUID saleId, UUID returnId, PaymentMethod method, BigDecimal amount,
+            BigDecimal amountTendered, BigDecimal changeDue, String currencyCode, String maskedPan,
+            String authToken, PaymentDirection direction, Instant createdAt) {
         this.id = id;
         this.saleId = saleId;
+        this.returnId = returnId;
         this.method = method;
         this.amount = amount;
         this.amountTendered = amountTendered;
@@ -67,6 +76,7 @@ public class Payment {
         this.currencyCode = currencyCode;
         this.maskedPan = maskedPan;
         this.authToken = authToken;
+        this.direction = direction;
         this.createdAt = createdAt;
     }
 
@@ -96,5 +106,13 @@ public class Payment {
 
     public String getMaskedPan() {
         return maskedPan;
+    }
+
+    public UUID getReturnId() {
+        return returnId;
+    }
+
+    public PaymentDirection getDirection() {
+        return direction;
     }
 }
