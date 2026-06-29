@@ -1,6 +1,7 @@
 package com.company.pos.sync.application;
 
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.modulith.events.IncompleteEventPublications;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,7 +20,7 @@ class ErpUploadDrainScheduler {
     private final Duration minAge;
 
     ErpUploadDrainScheduler(IncompleteEventPublications incomplete,
-            @org.springframework.beans.factory.annotation.Value("${pos.sync.erp.upload.min-age-ms:10000}") long minAgeMs) {
+            @Value("${pos.sync.erp.upload.min-age-ms:10000}") long minAgeMs) {
         this.incomplete = incomplete;
         this.minAge = Duration.ofMillis(minAgeMs);
     }
