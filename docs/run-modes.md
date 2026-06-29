@@ -136,3 +136,12 @@ calls the ERP adapter's idempotent `uploadSale` / `uploadStockMovements`.
 Operator notifications for stuck (persistently failing) uploads and low-stock are Phase 3c. A
 bounded async executor and a poison-publication retry cap (see the Phase 3a operational limits
 above) should land before this path carries real ERP load.
+
+> **Drain blast radius (hardening follow-up).** `POST /sync/erp/upload` and the scheduled drain
+> resubmit *all* incomplete outbox publications, not only `sync` uploads. This is safe today
+> because the local `inventory`/`cashdrawer` listeners normally complete on first run, so only the
+> `sync` upload is ever incomplete. But those local listeners are **not idempotent** (each
+> unconditionally decrements stock / appends a ledger row), so the outbox's at-least-once replay
+> has a narrow double-apply window (a crash between a listener's side-effect commit and its
+> completion stamp). Before this carries real load, make the local listeners idempotent (or scope
+> the drain to `sync` publications) alongside the bounded-executor work above.
