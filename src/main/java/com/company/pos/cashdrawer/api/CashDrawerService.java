@@ -11,6 +11,8 @@ public interface CashDrawerService {
 
     void recordCashSale(String terminalId, BigDecimal amount, String reference);
 
+    void recordCashRefund(String terminalId, BigDecimal amount, String reference);
+
     CashMovementView payIn(String terminalId, BigDecimal amount, String reason, String performedBy);
 
     CashMovementView payOut(String terminalId, BigDecimal amount, String reason, String performedBy);

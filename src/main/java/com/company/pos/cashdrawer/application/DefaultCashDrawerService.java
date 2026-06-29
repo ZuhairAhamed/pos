@@ -70,6 +70,18 @@ class DefaultCashDrawerService implements CashDrawerService {
     }
 
     @Override
+    public void recordCashRefund(String terminalId, BigDecimal amount, String reference) {
+        Optional<DrawerSession> open = sessions.findByTerminalIdAndStatus(terminalId, "OPEN");
+        if (open.isEmpty()) {
+            log.info("Cash refund {} on terminal {} not captured — no open drawer session",
+                    reference, terminalId);
+            return;
+        }
+        appendMovement(open.get().getId(), "PAY_OUT", scale(amount), reference, null);
+        device.open();
+    }
+
+    @Override
     public CashMovementView payIn(String terminalId, BigDecimal amount, String reason,
             String performedBy) {
         return record(terminalId, "PAY_IN", amount, reason, performedBy);
