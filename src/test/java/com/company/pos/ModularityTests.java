@@ -32,4 +32,12 @@ class ModularityTests {
                 .collect(Collectors.toSet());
         assertThat(names).contains("cart", "pricing", "tax", "payment", "receipt", "sales");
     }
+
+    @Test
+    void detectsTheSyncModule() {
+        Set<String> names = modules.stream()
+                .map(ApplicationModule::getName)
+                .collect(Collectors.toSet());
+        assertThat(names).contains("sync");
+    }
 }
