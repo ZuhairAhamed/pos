@@ -3,6 +3,7 @@ package com.company.pos.integration.erp;
 import com.company.pos.integration.api.ErpClient;
 import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.api.ErpStockLevel;
+import com.company.pos.integration.api.ReturnUpload;
 import com.company.pos.integration.api.SaleUpload;
 import com.company.pos.integration.api.StockMovementUpload;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ public class FakeErpClient implements ErpClient {
     private final List<ErpStockLevel> stockLevels = new ArrayList<>();
     private final Map<UUID, SaleUpload> uploadedSales = new LinkedHashMap<>();
     private final Map<String, List<StockMovementUpload>> movementBatches = new LinkedHashMap<>();
+    private final Map<UUID, ReturnUpload> uploadedReturns = new LinkedHashMap<>();
     private volatile boolean available = true;
 
     public void addProduct(ErpProduct product) {
@@ -40,6 +42,10 @@ public class FakeErpClient implements ErpClient {
         return new ArrayList<>(uploadedSales.values());
     }
 
+    public List<ReturnUpload> uploadedReturns() {
+        return new ArrayList<>(uploadedReturns.values());
+    }
+
     public Map<String, List<StockMovementUpload>> uploadedMovementBatches() {
         return new LinkedHashMap<>(movementBatches);
     }
@@ -49,6 +55,7 @@ public class FakeErpClient implements ErpClient {
         stockLevels.clear();
         uploadedSales.clear();
         movementBatches.clear();
+        uploadedReturns.clear();
         available = true;
     }
 
@@ -78,6 +85,12 @@ public class FakeErpClient implements ErpClient {
     public void uploadStockMovements(String saleId, List<StockMovementUpload> movements) {
         requireAvailable();
         movementBatches.putIfAbsent(saleId, List.copyOf(movements)); // idempotent on saleId
+    }
+
+    @Override
+    public void uploadReturn(ReturnUpload ret) {
+        requireAvailable();
+        uploadedReturns.putIfAbsent(ret.returnId(), ret); // idempotent on returnId
     }
 
     private void requireAvailable() {

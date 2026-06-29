@@ -16,4 +16,7 @@ public interface ErpClient {
      * batch for the same sale is a no-op.
      */
     void uploadStockMovements(String saleId, List<StockMovementUpload> movements);
+
+    /** Uploads a return as a credit note. Idempotent: a repeat {@code ret.returnId()} is a no-op. */
+    void uploadReturn(ReturnUpload ret);
 }
