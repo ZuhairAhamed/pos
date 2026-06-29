@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.company.pos.cart.api.CartService;
 import com.company.pos.common.exception.DomainException;
+import com.company.pos.common.exception.ErrorCode;
 import com.company.pos.device.infrastructure.InMemoryPaymentTerminal;
 import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.api.ErpStockLevel;
@@ -112,7 +113,26 @@ class ReturnServiceTest {
         // Second return of 2 would make cumulative 3 > 2 sold.
         assertThatThrownBy(() -> returns.processReturn(new ReturnCommand(sale.id(), null,
                 List.of(new ReturnCommand.ReturnLineRequest(1, new BigDecimal("2")))), "manager"))
-                .isInstanceOf(DomainException.class);
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.CONFLICT));
+    }
+
+    @Test
+    void emptyLinesAreRejectedWithValidation() {
+        SaleView sale = sellTwoColasForCash();
+        assertThatThrownBy(() -> returns.processReturn(
+                new ReturnCommand(sale.id(), null, List.of()), "manager"))
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.VALIDATION));
+    }
+
+    @Test
+    void nonPositiveQuantityIsRejectedWithValidation() {
+        SaleView sale = sellTwoColasForCash();
+        assertThatThrownBy(() -> returns.processReturn(new ReturnCommand(sale.id(), null,
+                List.of(new ReturnCommand.ReturnLineRequest(1, new BigDecimal("0")))), "manager"))
+                .isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ErrorCode.VALIDATION));
     }
 
     @Test

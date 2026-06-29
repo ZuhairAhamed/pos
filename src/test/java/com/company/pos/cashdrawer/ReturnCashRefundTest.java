@@ -96,4 +96,14 @@ class ReturnCashRefundTest {
             assertThat(rec.payOuts()).isEqualByComparingTo("5.18");
         });
     }
+
+    @Test
+    void cashRefundWithNoOpenDrawerIsANoOp() {
+        // No session opened for this terminal -> recordCashRefund must not throw (so it never
+        // wedges the outbox publication) and must record nothing.
+        org.assertj.core.api.Assertions.assertThatCode(() ->
+                drawer.recordCashRefund("T-NONE", new java.math.BigDecimal("5.18"), "ref-noop"))
+                .doesNotThrowAnyException();
+        assertThat(drawer.findOpenSession("T-NONE")).isEmpty();
+    }
 }

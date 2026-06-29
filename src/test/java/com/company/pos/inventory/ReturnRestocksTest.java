@@ -9,6 +9,7 @@ import com.company.pos.integration.api.ErpStockLevel;
 import com.company.pos.integration.erp.FakeErpClient;
 import com.company.pos.inventory.api.InventoryService;
 import com.company.pos.inventory.api.InventorySync;
+import com.company.pos.inventory.infrastructure.StockMovementRepository;
 import com.company.pos.payment.api.PaymentMethod;
 import com.company.pos.product.api.ProductSync;
 import com.company.pos.sales.api.CheckoutCommand;
@@ -53,6 +54,8 @@ class ReturnRestocksTest {
     @Autowired
     InventorySync inventorySync;
     @Autowired
+    StockMovementRepository stockMovements;
+    @Autowired
     DatabaseCleaner databaseCleaner;
 
     @BeforeEach
@@ -85,8 +88,11 @@ class ReturnRestocksTest {
         returns.processReturn(new ReturnCommand(sale.id(), null,
                 List.of(new ReturnCommand.ReturnLineRequest(1, new BigDecimal("1")))), "manager");
 
-        await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
-                assertThat(inventory.onHand("COLA").orElseThrow().quantityOnHand())
-                        .isEqualByComparingTo("19"));
+        await().atMost(Duration.ofSeconds(5)).untilAsserted(() -> {
+            assertThat(inventory.onHand("COLA").orElseThrow().quantityOnHand())
+                    .isEqualByComparingTo("19");
+            assertThat(stockMovements.findBySku("COLA")).anyMatch(m ->
+                    "RETURN".equals(m.getReason()) && m.getQuantityDelta().signum() > 0);
+        });
     }
 }

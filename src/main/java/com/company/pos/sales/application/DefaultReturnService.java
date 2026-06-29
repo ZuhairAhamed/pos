@@ -100,6 +100,9 @@ class DefaultReturnService implements ReturnService {
             }
             BigDecimal sold = original.getQuantity();
             BigDecimal already = returnLines.sumReturnedQuantity(sale.getId(), req.lineNo());
+            // Single-register assumption: returns are serial MANAGER actions per store, so the
+            // cumulative cap is enforced without a row lock. A multi-lane deployment would need
+            // SELECT ... FOR UPDATE on the sale line (or a DB constraint) to close the race.
             if (already.add(requested).compareTo(sold) > 0) {
                 throw DomainException.conflict("Line " + req.lineNo() + " return exceeds sold quantity"
                         + " (sold " + sold + ", already returned " + already + ", requested "
