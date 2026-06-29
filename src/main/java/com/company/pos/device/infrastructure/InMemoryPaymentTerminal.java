@@ -26,6 +26,15 @@ public class InMemoryPaymentTerminal implements PaymentTerminal {
         return new PaymentResult(true, "**** **** **** 4242", "tok_" + UUID.randomUUID());
     }
 
+    @Override
+    public PaymentResult refund(PaymentRequest request) {
+        this.lastRequest = request;
+        if (!approve) {
+            return new PaymentResult(false, null, null);
+        }
+        return new PaymentResult(true, "**** **** **** 4242", "ref_" + UUID.randomUUID());
+    }
+
     /** Test control: set {@code false} to make the next requests decline. */
     public void setApprove(boolean approve) {
         this.approve = approve;
