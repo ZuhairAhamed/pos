@@ -145,3 +145,20 @@ above) should land before this path carries real ERP load.
 > has a narrow double-apply window (a crash between a listener's side-effect commit and its
 > completion stamp). Before this carries real load, make the local listeners idempotent (or scope
 > the drain to `sync` publications) alongside the bounded-executor work above.
+
+## Notifications (Phase 3c)
+
+The `notification` module raises operator alerts through a `Notifier` port (in-memory/log fake this
+phase; real SMS/email/push later, no module change). Two alert types:
+
+- **LOW_STOCK** — `inventory` carries a per-SKU `reorderLevel` (set from `pos.inventory.reorder-level`,
+  default `0` = disabled). When a sale's stock decrement edge-crosses below it, `inventory` publishes
+  `LowStockDetected`; `notification` turns it into a LOW_STOCK alert (after-commit, async).
+- **SYNC_ERROR** — a scheduled monitor (`pos.notification.stuck-upload.scheduled`, off by default,
+  on for `store-server`) polls the Phase 3a outbox for publications still incomplete beyond
+  `pos.notification.stuck-upload.min-age-ms` (default 5 min) — e.g. ERP uploads stuck because the
+  link is down — and raises a SYNC_ERROR alert, deduped per publication so a stuck row alerts once.
+
+This is observability only: there is still no automatic retry-cap/dead-letter and the async executor
+is still unbounded (see the Phase 3a operational limits). Real channels, those hardening items, and
+auto-reordering are later work.
