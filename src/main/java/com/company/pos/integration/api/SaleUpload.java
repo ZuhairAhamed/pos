@@ -1,0 +1,19 @@
+package com.company.pos.integration.api;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public record SaleUpload(UUID saleId, String receiptNumber, String terminalId, String locationCode,
+        String currencyCode, BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal,
+        Instant createdAt, List<Line> lines, List<Payment> payments) {
+
+    public record Line(int lineNo, String sku, String name, BigDecimal quantity,
+            BigDecimal unitPrice, BigDecimal netAmount, BigDecimal taxAmount, BigDecimal lineTotal) {
+    }
+
+    public record Payment(String method, BigDecimal amount, BigDecimal amountTendered,
+            BigDecimal changeDue, String maskedPan) {
+    }
+}
