@@ -67,6 +67,7 @@ class ReturnUploadTest {
     @AfterEach
     void cleanup() {
         databaseCleaner.clean();
+        fake.clear();
     }
 
     @Test
@@ -84,6 +85,10 @@ class ReturnUploadTest {
             assertThat(uploaded).hasSize(1);
             assertThat(uploaded.get(0).returnId()).isEqualTo(ret.id());
             assertThat(uploaded.get(0).lines()).hasSize(1);
+            var line = uploaded.get(0).lines().get(0);
+            assertThat(line.sku()).isEqualTo("COLA");
+            assertThat(line.quantity()).isEqualByComparingTo("1");
+            assertThat(uploaded.get(0).creditNoteNumber()).isNotBlank();
         });
     }
 }
