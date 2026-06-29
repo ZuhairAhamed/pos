@@ -19,6 +19,8 @@ pos:
     jwt:
       secret: ${POS_JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
       ttl-minutes: ${POS_JWT_TTL:720}
+  inventory:
+    reorder-level: ${POS_INVENTORY_REORDER_LEVEL:0}
   sync:
     erp:
       scheduled: ${POS_SYNC_ERP_SCHEDULED:false}

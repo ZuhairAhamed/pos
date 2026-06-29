@@ -30,6 +30,9 @@ public class StockLevel {
     @Column(name = "quantity_on_hand", nullable = false, precision = 19, scale = 3)
     private BigDecimal quantityOnHand = BigDecimal.ZERO;
 
+    @Column(name = "reorder_level", nullable = false, precision = 19, scale = 3)
+    private BigDecimal reorderLevel = BigDecimal.ZERO;
+
     @Column(name = "erp_version", nullable = false)
     private long erpVersion;
 
@@ -69,5 +72,13 @@ public class StockLevel {
 
     public void setErpVersion(long erpVersion) {
         this.erpVersion = erpVersion;
+    }
+
+    public BigDecimal getReorderLevel() {
+        return reorderLevel;
+    }
+
+    public void setReorderLevel(BigDecimal reorderLevel) {
+        this.reorderLevel = reorderLevel;
     }
 }

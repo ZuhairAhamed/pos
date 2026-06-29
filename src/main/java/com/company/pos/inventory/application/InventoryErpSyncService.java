@@ -7,7 +7,9 @@ import com.company.pos.integration.api.SyncCursorStore;
 import com.company.pos.inventory.api.InventorySync;
 import com.company.pos.inventory.domain.StockLevel;
 import com.company.pos.inventory.infrastructure.StockLevelRepository;
+import java.math.BigDecimal;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +22,14 @@ class InventoryErpSyncService implements InventorySync {
     private final ErpClient erpClient;
     private final SyncCursorStore cursors;
     private final StockLevelRepository stock;
+    private final BigDecimal reorderLevel;
 
-    InventoryErpSyncService(ErpClient erpClient, SyncCursorStore cursors, StockLevelRepository stock) {
+    InventoryErpSyncService(ErpClient erpClient, SyncCursorStore cursors, StockLevelRepository stock,
+            @Value("${pos.inventory.reorder-level:0}") BigDecimal reorderLevel) {
         this.erpClient = erpClient;
         this.cursors = cursors;
         this.stock = stock;
+        this.reorderLevel = reorderLevel;
     }
 
     @Override
@@ -46,6 +51,7 @@ class InventoryErpSyncService implements InventorySync {
                     ? existing
                     : new StockLevel(Identifiers.newId(), e.sku(), e.locationCode());
             level.setQuantityOnHand(e.quantityOnHand());
+            level.setReorderLevel(reorderLevel);
             level.setErpVersion(e.version());
             stock.save(level);
             upserted++;

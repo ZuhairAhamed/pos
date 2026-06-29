@@ -1,6 +1,8 @@
 package com.company.pos.inventory.application;
 
+import com.company.pos.common.events.DomainEvents;
 import com.company.pos.common.util.Identifiers;
+import com.company.pos.inventory.api.LowStockDetected;
 import com.company.pos.inventory.domain.StockLevel;
 import com.company.pos.inventory.domain.StockMovement;
 import com.company.pos.inventory.infrastructure.StockLevelRepository;
@@ -14,17 +16,10 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Decrements on-hand and appends a movement-ledger row when a sale completes.
- *
- * <p>From Phase 3a this is an {@link ApplicationModuleListener}: it runs <em>after</em> the
- * checkout transaction commits, asynchronously, in its own transaction. The Spring Modulith
- * Event Publication Registry persists an {@code event_publication} row for this listener inside
- * the publishing (sale) transaction and stamps its completion only when this method returns
- * normally. Consequently a failure here can no longer roll back the sale; it leaves an
- * incomplete publication that is resubmitted on restart (or via
- * {@code IncompleteEventPublications}). We therefore no longer swallow exceptions — letting one
- * propagate is what triggers durable retry. A negative-stock result is still only a warning,
- * not a failure, so it neither blocks nor poisons the publication.
+ * Decrements on-hand and appends a movement-ledger row when a sale completes (after-commit, async,
+ * own transaction; see Phase 3a). From Phase 3c it also publishes {@link LowStockDetected} when a
+ * decrement edge-crosses below the SKU's reorder level. Exceptions propagate (no swallow) so a
+ * failure leaves the publication incomplete for replay; a negative-stock result is only a warning.
  */
 @Component
 class SaleCompletedListener {
@@ -33,10 +28,13 @@ class SaleCompletedListener {
 
     private final StockLevelRepository stock;
     private final StockMovementRepository movements;
+    private final DomainEvents events;
 
-    SaleCompletedListener(StockLevelRepository stock, StockMovementRepository movements) {
+    SaleCompletedListener(StockLevelRepository stock, StockMovementRepository movements,
+            DomainEvents events) {
         this.stock = stock;
         this.movements = movements;
+        this.events = events;
     }
 
     @ApplicationModuleListener
@@ -50,7 +48,8 @@ class SaleCompletedListener {
         StockLevel level = stock.findBySkuAndLocationCode(line.sku(), event.locationCode())
                 .orElseGet(() -> stock.save(
                         new StockLevel(Identifiers.newId(), line.sku(), event.locationCode())));
-        BigDecimal updated = level.getQuantityOnHand().subtract(line.quantity());
+        BigDecimal previous = level.getQuantityOnHand();
+        BigDecimal updated = previous.subtract(line.quantity());
         if (updated.signum() < 0) {
             log.warn("Stock for sku {} at {} went negative ({}) after sale {}",
                     line.sku(), event.locationCode(), updated, event.receiptNumber());
@@ -58,5 +57,10 @@ class SaleCompletedListener {
         level.setQuantityOnHand(updated);
         movements.save(new StockMovement(Identifiers.newId(), line.sku(), event.locationCode(),
                 line.quantity().negate(), "SALE", event.saleId().toString(), Instant.now()));
+
+        BigDecimal reorder = level.getReorderLevel();
+        if (reorder.signum() > 0 && previous.compareTo(reorder) >= 0 && updated.compareTo(reorder) < 0) {
+            events.publish(new LowStockDetected(line.sku(), event.locationCode(), updated, reorder));
+        }
     }
 }

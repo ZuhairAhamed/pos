@@ -1,0 +1,1 @@
+ALTER TABLE stock_level ADD COLUMN reorder_level NUMERIC(19, 3) NOT NULL DEFAULT 0;
