@@ -165,3 +165,27 @@ phase; real SMS/email/push later, no module change). Two alert types:
 This is observability only: there is still no automatic retry-cap/dead-letter and the async executor
 is still unbounded (see the Phase 3a operational limits). Real channels, those hardening items, and
 auto-reordering are later work.
+
+## Returns & Refunds (Phase 4)
+
+A MANAGER processes a **receipted return** via `POST /returns` (cashiers get `403`). The request
+references the original sale (by `originalSaleId` or `receiptNumber`) and the lines/quantities to
+return. The `sales` module records an immutable `SalesReturn` (its own credit-note number) in one
+synchronous transaction:
+
+- **Over-return guard** — cumulative returned quantity per original line can never exceed the sold
+  quantity, across repeated partial returns.
+- **Proportional refund** — each returned line refunds the original line's net/tax/total scaled by
+  `returnQty / soldQty`, so VAT stays exactly proportional.
+- **Mirror-tender refund** — the refund is allocated across the original tenders proportionally;
+  cash goes back as a drawer pay-out, card/wallet via a terminal refund (the in-memory terminal
+  approves). Refunds are stored as `payment` rows tagged `REFUND`, keyed by the return id.
+
+After the return commits, three after-commit outbox listeners reverse the sale effects (replayable,
+mirroring the sale fan-out): `inventory` adds stock back (positive `RETURN` movement); `cashdrawer`
+pays the cash refund out of the open drawer (a no-op, not an error, when no drawer is open);
+`sync` uploads the return to the ERP as an idempotent credit note (stuck behind the Phase 3b
+drain/replay when the ERP is offline).
+
+Deferred: blind/unreferenced returns, cashier returns with manager-approval thresholds,
+damaged-goods/no-restock, exchanges, refunding to a different tender, and returns reporting.
