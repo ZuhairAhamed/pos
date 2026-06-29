@@ -124,7 +124,7 @@ class DefaultPaymentService implements PaymentService {
     @Transactional(readOnly = true)
     public List<PaymentView> findByReturn(UUID returnId) {
         return payments.findByReturnIdOrderByCreatedAtAsc(returnId).stream()
-                .map(p -> new PaymentView(p.getSaleId(), p.getMethod().name(), p.getAmount(),
+                .map(p -> new PaymentView(p.getReturnId(), p.getMethod().name(), p.getAmount(),
                         p.getAmountTendered(), p.getChangeDue(), p.getMaskedPan(),
                         p.getCurrencyCode()))
                 .toList();

@@ -1,7 +1,9 @@
 package com.company.pos.payment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
 import com.company.pos.device.infrastructure.InMemoryPaymentTerminal;
 import com.company.pos.payment.api.PaymentMethod;
@@ -71,5 +73,15 @@ class RefundPaymentTest {
         assertThat(pv.method()).isEqualTo("CARD");
         assertThat(pv.maskedPan()).isNotBlank();
         assertThat(payments.findByReturn(returnId)).hasSize(1);
+    }
+
+    @Test
+    void terminalRefundDeclinedThrows() {
+        terminal.setApprove(false);
+        UUID returnId = Identifiers.newId();
+
+        assertThatThrownBy(() -> payments.refundTerminalPayment(returnId, "SAR",
+                new BigDecimal("4.50"), PaymentMethod.CARD, returnId.toString()))
+                .isInstanceOf(DomainException.class);
     }
 }
