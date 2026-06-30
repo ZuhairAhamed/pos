@@ -1,0 +1,13 @@
+package com.company.pos.audit.api;
+
+public enum AuditAction {
+    SALE_COMPLETED,
+    RETURN_COMPLETED,
+    DISCOUNT_OVERRIDE,
+    LOGIN_SUCCEEDED,
+    LOGIN_FAILED,
+    PIN_LOGIN_SUCCEEDED,
+    PIN_LOGIN_FAILED,
+    PRICE_CHANGED,
+    SETTING_CHANGED
+}
