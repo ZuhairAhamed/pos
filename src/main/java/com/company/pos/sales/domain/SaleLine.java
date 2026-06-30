@@ -51,13 +51,26 @@ public class SaleLine {
     @Column(name = "currency_code", nullable = false, length = 3)
     private String currencyCode;
 
+    @Column(name = "gross_amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal grossAmount;
+
+    @Column(name = "line_discount_amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal lineDiscountAmount;
+
+    @Column(name = "line_discount_type", length = 8)
+    private String lineDiscountType;
+
+    @Column(name = "line_discount_reason", length = 32)
+    private String lineDiscountReason;
+
     protected SaleLine() {
         // JPA
     }
 
     public SaleLine(UUID id, Sale sale, int lineNo, String sku, String name, BigDecimal quantity,
             BigDecimal unitPrice, BigDecimal netAmount, BigDecimal taxAmount, BigDecimal lineTotal,
-            String currencyCode) {
+            String currencyCode, BigDecimal grossAmount, BigDecimal lineDiscountAmount,
+            String lineDiscountType, String lineDiscountReason) {
         this.id = id;
         this.sale = sale;
         this.lineNo = lineNo;
@@ -69,6 +82,10 @@ public class SaleLine {
         this.taxAmount = taxAmount;
         this.lineTotal = lineTotal;
         this.currencyCode = currencyCode;
+        this.grossAmount = grossAmount;
+        this.lineDiscountAmount = lineDiscountAmount;
+        this.lineDiscountType = lineDiscountType;
+        this.lineDiscountReason = lineDiscountReason;
     }
 
     public int getLineNo() {
@@ -105,5 +122,21 @@ public class SaleLine {
 
     public String getCurrencyCode() {
         return currencyCode;
+    }
+
+    public BigDecimal getGrossAmount() {
+        return grossAmount;
+    }
+
+    public BigDecimal getLineDiscountAmount() {
+        return lineDiscountAmount;
+    }
+
+    public String getLineDiscountType() {
+        return lineDiscountType;
+    }
+
+    public String getLineDiscountReason() {
+        return lineDiscountReason;
     }
 }

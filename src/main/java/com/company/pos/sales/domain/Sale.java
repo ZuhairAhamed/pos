@@ -58,6 +58,18 @@ public class Sale {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "txn_discount_amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal txnDiscountAmount;
+
+    @Column(name = "txn_discount_type", length = 8)
+    private String txnDiscountType;
+
+    @Column(name = "txn_discount_reason", length = 32)
+    private String txnDiscountReason;
+
+    @Column(name = "discount_total", nullable = false, precision = 19, scale = 2)
+    private BigDecimal discountTotal;
+
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineNo ASC")
     private List<SaleLine> lines = new ArrayList<>();
@@ -68,7 +80,9 @@ public class Sale {
 
     public Sale(UUID id, String receiptNumber, String storeId, String terminalId,
             String cashierUsername, String locationCode, String currencyCode,
-            BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal, Instant createdAt) {
+            BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal, Instant createdAt,
+            BigDecimal txnDiscountAmount, String txnDiscountType, String txnDiscountReason,
+            BigDecimal discountTotal) {
         this.id = id;
         this.receiptNumber = receiptNumber;
         this.storeId = storeId;
@@ -80,6 +94,10 @@ public class Sale {
         this.taxTotal = taxTotal;
         this.grandTotal = grandTotal;
         this.createdAt = createdAt;
+        this.txnDiscountAmount = txnDiscountAmount;
+        this.txnDiscountType = txnDiscountType;
+        this.txnDiscountReason = txnDiscountReason;
+        this.discountTotal = discountTotal;
         this.status = "COMPLETED";
     }
 
@@ -121,6 +139,22 @@ public class Sale {
 
     public BigDecimal getGrandTotal() {
         return grandTotal;
+    }
+
+    public BigDecimal getTxnDiscountAmount() {
+        return txnDiscountAmount;
+    }
+
+    public String getTxnDiscountType() {
+        return txnDiscountType;
+    }
+
+    public String getTxnDiscountReason() {
+        return txnDiscountReason;
+    }
+
+    public BigDecimal getDiscountTotal() {
+        return discountTotal;
     }
 
     public Instant getCreatedAt() {
