@@ -77,10 +77,8 @@ public class DefaultAuditService implements AuditService {
     @Transactional(readOnly = true)
     public List<AuditRecordView> recent(int limit) {
         String storeId = config.getString(SettingKey.STORE_ID);
-        List<AuditRecord> chain = records.findByStoreIdOrderBySeqAsc(storeId);
-        int from = Math.max(0, chain.size() - limit);
-        return chain.subList(from, chain.size()).stream()
-                .sorted((a, b) -> Long.compare(b.getSeq(), a.getSeq()))
+        return records.findByStoreIdOrderBySeqDesc(storeId, org.springframework.data.domain.PageRequest.of(0, limit))
+                .stream()
                 .map(this::toView)
                 .toList();
     }
@@ -117,7 +115,7 @@ public class DefaultAuditService implements AuditService {
         }
     }
 
-    AuditRecordView toView(AuditRecord r) {
+    private AuditRecordView toView(AuditRecord r) {
         return new AuditRecordView(r.getId(), r.getSeq(), r.getStoreId(), r.getOccurredAt(),
                 r.getActor(), r.getAction(), r.getEntityRef(), r.getPayload(), r.getPrevHash(),
                 r.getHash());

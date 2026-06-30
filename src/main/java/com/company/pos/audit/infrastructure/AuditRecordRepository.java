@@ -12,6 +12,8 @@ public interface AuditRecordRepository extends JpaRepository<AuditRecord, String
 
     List<AuditRecord> findByStoreIdOrderBySeqAsc(String storeId);
 
+    java.util.List<AuditRecord> findByStoreIdOrderBySeqDesc(String storeId, org.springframework.data.domain.Pageable pageable);
+
     @Query("""
             select a from AuditRecord a
             where (:actor is null or a.actor = :actor)

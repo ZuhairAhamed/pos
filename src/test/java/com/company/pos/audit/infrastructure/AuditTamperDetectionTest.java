@@ -7,6 +7,8 @@ import com.company.pos.audit.api.AuditService;
 import com.company.pos.audit.api.AuditVerifyResult;
 import com.company.pos.audit.application.DefaultAuditService;
 import com.company.pos.audit.domain.AuditRecord;
+import com.company.pos.configuration.api.ConfigurationService;
+import com.company.pos.configuration.api.SettingKey;
 import com.company.pos.support.DatabaseCleaner;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,9 @@ class AuditTamperDetectionTest {
     AuditRecordRepository records;
 
     @Autowired
+    ConfigurationService config;
+
+    @Autowired
     DatabaseCleaner cleaner;
 
     @BeforeEach
@@ -52,7 +57,7 @@ class AuditTamperDetectionTest {
         auditService.record(AuditAction.SETTING_CHANGED, "admin", "store.name",
                 Map.of("old", "A", "new", "B"));
 
-        List<AuditRecord> all = records.findAll();
+        List<AuditRecord> all = records.findByStoreIdOrderBySeqAsc(config.getString(SettingKey.STORE_ID));
         AuditRecord victim = all.get(0);
         // Tamper: overwrite the payload directly, leaving the stored hash stale.
         records.save(new AuditRecord(victim.getId(), victim.getSeq(), victim.getStoreId(),
