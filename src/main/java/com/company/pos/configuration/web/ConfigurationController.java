@@ -44,6 +44,6 @@ class ConfigurationController {
         }
     }
 
-    public record UpdateRequest(String value) {
+    record UpdateRequest(String value) {
     }
 }

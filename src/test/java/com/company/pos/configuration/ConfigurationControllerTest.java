@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,7 +34,7 @@ class ConfigurationControllerTest {
         mvc.perform(put("/config/STORE_NAME")
                         .with(jwt().jwt(j -> j.subject("admin"))
                                 .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
-                        .contentType("application/json")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"value\":\"Downtown Branch\"}"))
                 .andExpect(status().isNoContent());
         assertThat(config.getString(SettingKey.STORE_NAME)).isEqualTo("Downtown Branch");
@@ -44,8 +45,18 @@ class ConfigurationControllerTest {
         mvc.perform(put("/config/STORE_NAME")
                         .with(jwt().jwt(j -> j.subject("mgr"))
                                 .authorities(new SimpleGrantedAuthority("ROLE_MANAGER")))
-                        .contentType("application/json")
+                        .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"value\":\"Nope\"}"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unknownKeyReturnsBadRequest() throws Exception {
+        mvc.perform(put("/config/NO_SUCH_KEY")
+                        .with(jwt().jwt(j -> j.subject("admin"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"value\":\"x\"}"))
+                .andExpect(status().isBadRequest());
     }
 }
