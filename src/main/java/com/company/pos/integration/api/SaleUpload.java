@@ -7,10 +7,12 @@ import java.util.UUID;
 
 public record SaleUpload(UUID saleId, String receiptNumber, String terminalId, String locationCode,
         String currencyCode, BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal,
-        Instant createdAt, List<Line> lines, List<Payment> payments) {
+        Instant createdAt, List<Line> lines, List<Payment> payments, BigDecimal discountTotal,
+        BigDecimal txnDiscountAmount, String txnDiscountType, String txnDiscountReason) {
 
     public record Line(int lineNo, String sku, String name, BigDecimal quantity,
-            BigDecimal unitPrice, BigDecimal netAmount, BigDecimal taxAmount, BigDecimal lineTotal) {
+            BigDecimal unitPrice, BigDecimal netAmount, BigDecimal taxAmount, BigDecimal lineTotal,
+            BigDecimal grossAmount, BigDecimal lineDiscountAmount, String lineDiscountReason) {
     }
 
     public record Payment(String method, BigDecimal amount, BigDecimal amountTendered,

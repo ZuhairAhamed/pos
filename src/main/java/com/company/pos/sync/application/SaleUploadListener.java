@@ -43,7 +43,8 @@ class SaleUploadListener {
     private SaleUpload toUpload(SaleCompleted event, SaleView sale) {
         List<SaleUpload.Line> lines = sale.lines().stream()
                 .map(l -> new SaleUpload.Line(l.lineNo(), l.sku(), l.name(), l.quantity(),
-                        l.unitPrice(), l.netAmount(), l.taxAmount(), l.lineTotal()))
+                        l.unitPrice(), l.netAmount(), l.taxAmount(), l.lineTotal(),
+                        l.grossAmount(), l.lineDiscountAmount(), l.lineDiscountReason()))
                 .toList();
         List<SaleUpload.Payment> payments = sale.payments().stream()
                 .map(p -> new SaleUpload.Payment(p.method(), p.amount(), p.amountTendered(),
@@ -51,7 +52,8 @@ class SaleUploadListener {
                 .toList();
         return new SaleUpload(sale.id(), sale.receiptNumber(), event.terminalId(),
                 event.locationCode(), sale.currencyCode(), sale.subtotal(), sale.taxTotal(),
-                sale.grandTotal(), sale.createdAt(), lines, payments);
+                sale.grandTotal(), sale.createdAt(), lines, payments, sale.discountTotal(),
+                sale.txnDiscountAmount(), sale.txnDiscountType(), sale.txnDiscountReason());
     }
 
     private List<StockMovementUpload> toMovements(SaleCompleted event, SaleView sale) {
