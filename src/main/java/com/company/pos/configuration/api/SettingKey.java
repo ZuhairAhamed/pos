@@ -9,7 +9,10 @@ public enum SettingKey {
     VAT_RATE("tax.rate", "0.15"),
     STORE_ID("store.id", "S01"),
     TERMINAL_ID("terminal.id", "T01"),
-    INVENTORY_LOCATION("inventory.location", "MAIN");
+    INVENTORY_LOCATION("inventory.location", "MAIN"),
+    DISCOUNT_REASON_CODES("discount.reason.codes", "DAMAGED,PRICE_MATCH,LOYALTY,MANAGER_COMP"),
+    DISCOUNT_CASHIER_MAX_PERCENT("discount.cashier.max.percent", "10"),
+    DISCOUNT_CASHIER_MAX_AMOUNT("discount.cashier.max.amount", "20.00");
 
     private final String key;
     private final String defaultValue;

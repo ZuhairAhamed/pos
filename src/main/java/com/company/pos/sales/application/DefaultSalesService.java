@@ -35,8 +35,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -57,10 +60,12 @@ class DefaultSalesService implements SalesService {
     private final SaleRepository sales;
     private final ReceiptNumbering numbering;
     private final DomainEvents events;
+    private final DiscountCalculator discounts;
 
     DefaultSalesService(CartService carts, PricingService pricing, TaxService tax,
             PaymentService payments, ReceiptService receipts, ConfigurationService config,
-            SaleRepository sales, ReceiptNumbering numbering, DomainEvents events) {
+            SaleRepository sales, ReceiptNumbering numbering, DomainEvents events,
+            DiscountCalculator discounts) {
         this.carts = carts;
         this.pricing = pricing;
         this.tax = tax;
@@ -70,10 +75,11 @@ class DefaultSalesService implements SalesService {
         this.sales = sales;
         this.numbering = numbering;
         this.events = events;
+        this.discounts = discounts;
     }
 
     @Override
-    public SaleView checkout(CheckoutCommand command, String cashierUsername) {
+    public SaleView checkout(CheckoutCommand command, String cashierUsername, boolean callerIsManager) {
         CartView cart = carts.getCart(command.cartId());
         if (!"OPEN".equals(cart.status())) {
             throw DomainException.conflict("Cart " + command.cartId() + " is not open");
@@ -91,15 +97,24 @@ class DefaultSalesService implements SalesService {
                 .toList();
         List<PricedLine> priced = pricing.price(pricingInputs);
 
-        // 2. Apply tax
+        // 2. Apply manual discounts (line, then transaction) BEFORE tax.
+        BigDecimal maxPct = new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_PERCENT));
+        BigDecimal maxAmt = new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_AMOUNT));
+        Set<String> reasonCodes = Arrays.stream(
+                        config.getString(SettingKey.DISCOUNT_REASON_CODES).split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+        DiscountResult disc = discounts.apply(priced, command.lineDiscounts(),
+                command.transactionDiscount(), callerIsManager, maxPct, maxAmt, reasonCodes);
+
+        // 3. Apply tax on the discounted extended amounts
         String currency = cart.currencyCode() != null
                 ? cart.currencyCode()
                 : config.getString(SettingKey.CURRENCY_CODE);
         BigDecimal rate = new BigDecimal(config.getString(SettingKey.VAT_RATE));
         boolean inclusive = Boolean.parseBoolean(config.getString(SettingKey.TAX_INCLUSIVE));
-        List<TaxLineInput> taxInputs = priced.stream()
-                .map(p -> new TaxLineInput(p.sku(), p.name(), p.quantity(), p.unitPrice(),
-                        p.extendedPrice(), p.currencyCode()))
+        List<TaxLineInput> taxInputs = disc.lines().stream()
+                .map(d -> new TaxLineInput(d.sku(), d.name(), d.quantity(), d.unitPrice(),
+                        d.discountedExtended(), d.currencyCode()))
                 .toList();
         TaxedCart taxed = tax.applyTax(taxInputs, rate, inclusive, currency);
         BigDecimal grandTotal = taxed.grandTotal().setScale(2, RoundingMode.HALF_UP);
@@ -145,12 +160,19 @@ class DefaultSalesService implements SalesService {
         String receiptNumber = numbering.nextReceiptNumber(storeId, terminalId);
         Instant now = Instant.now();
         Sale sale = new Sale(saleId, receiptNumber, storeId, terminalId, cashierUsername,
-                location, currency, taxed.subtotal(), taxed.taxTotal(), taxed.grandTotal(), now);
+                location, currency, taxed.subtotal(), taxed.taxTotal(), taxed.grandTotal(), now,
+                disc.txnDiscountAmount(),
+                disc.txnDiscountType() == null ? null : disc.txnDiscountType().name(),
+                disc.txnDiscountReason(), disc.discountTotal());
         int lineNo = 1;
-        for (TaxedLine t : taxed.lines()) {
+        for (int i = 0; i < taxed.lines().size(); i++) {
+            TaxedLine t = taxed.lines().get(i);
+            DiscountedLine d = disc.lines().get(i);
             sale.addLine(new SaleLine(Identifiers.newId(), sale, lineNo++, t.sku(), t.name(),
                     t.quantity(), t.unitPrice(), t.netAmount(), t.taxAmount(), t.lineTotal(),
-                    t.currencyCode()));
+                    t.currencyCode(), d.grossAmount(), d.lineDiscountAmount(),
+                    d.lineDiscountType() == null ? null : d.lineDiscountType().name(),
+                    d.lineDiscountReason()));
         }
         sales.save(sale);
 
@@ -215,7 +237,8 @@ class DefaultSalesService implements SalesService {
         for (SaleLine l : sale.getLines()) {
             lines.add(new SaleLineView(l.getLineNo(), l.getSku(), l.getName(), l.getQuantity(),
                     l.getUnitPrice(), l.getNetAmount(), l.getTaxAmount(), l.getLineTotal(),
-                    l.getCurrencyCode()));
+                    l.getCurrencyCode(), l.getGrossAmount(), l.getLineDiscountAmount(),
+                    l.getLineDiscountType(), l.getLineDiscountReason()));
         }
         List<SalePaymentView> paymentViews = salePayments.stream()
                 .map(p -> new SalePaymentView(p.method(), p.amount(), p.amountTendered(),
@@ -223,6 +246,7 @@ class DefaultSalesService implements SalesService {
                 .toList();
         return new SaleView(sale.getId(), sale.getReceiptNumber(), sale.getStatus(),
                 sale.getCurrencyCode(), sale.getSubtotal(), sale.getTaxTotal(), sale.getGrandTotal(),
-                sale.getCreatedAt(), lines, paymentViews);
+                sale.getCreatedAt(), lines, paymentViews, sale.getDiscountTotal(),
+                sale.getTxnDiscountAmount(), sale.getTxnDiscountType(), sale.getTxnDiscountReason());
     }
 }
