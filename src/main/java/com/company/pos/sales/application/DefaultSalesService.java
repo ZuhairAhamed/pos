@@ -79,6 +79,11 @@ class DefaultSalesService implements SalesService {
     }
 
     @Override
+    public SaleView checkout(CheckoutCommand command, String cashierUsername) {
+        return checkout(command, cashierUsername, false);
+    }
+
+    @Override
     public SaleView checkout(CheckoutCommand command, String cashierUsername, boolean callerIsManager) {
         CartView cart = carts.getCart(command.cartId());
         if (!"OPEN".equals(cart.status())) {

@@ -5,9 +5,7 @@ import java.util.UUID;
 public interface SalesService {
 
     /** Checkout as a non-manager (cashier). Discounts are subject to the cashier cap. */
-    default SaleView checkout(CheckoutCommand command, String cashierUsername) {
-        return checkout(command, cashierUsername, false);
-    }
+    SaleView checkout(CheckoutCommand command, String cashierUsername);
 
     /**
      * Checkout. {@code callerIsManager} lifts the cashier discount cap (manager = unlimited).
