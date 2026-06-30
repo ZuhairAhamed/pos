@@ -189,3 +189,57 @@ drain/replay when the ERP is offline).
 
 Deferred: blind/unreferenced returns, cashier returns with manager-approval thresholds,
 damaged-goods/no-restock, exchanges, refunding to a different tender, and returns reporting.
+
+## Manual Discounts (Phase 5)
+
+A cashier or manager may apply discounts at checkout by extending the `POST /sales` body. Two
+discount surfaces are available:
+
+- **Line discounts** — `lineDiscounts` is a `Map<sku, DiscountInput>` keyed by the cart SKU.
+- **Transaction discount** — `transactionDiscount` is a single `DiscountInput` applied to the
+  whole transaction.
+
+Both surfaces accept the same `DiscountInput` shape: `{ DiscountType type, BigDecimal value,
+String reasonCode }`. `DiscountType` is `PERCENT` (value is a percentage, e.g. `10` for 10 %) or
+`AMOUNT` (value is an absolute monetary deduction, e.g. `5.00`). `reasonCode` is required and must
+be one of the values in `DISCOUNT_REASON_CODES` (default `DAMAGED,PRICE_MATCH,LOYALTY,MANAGER_COMP`);
+an unrecognised code is rejected with HTTP 400.
+
+**Application order** — discounts are applied after pricing and before tax. Each line's extended
+amount is reduced by its discount first; VAT is then computed on that discounted base. This keeps
+`TaxService` and both tax modes (`tax.inclusive=false` and `=true`) correct without change, and
+the persisted `net_amount` per line is the post-discount net so Phase 4 returns need no
+adjustment.
+
+**Transaction discount allocation** — the resolved transaction discount is spread
+proportionally across lines by each line's share of the pre-discount subtotal. The last line
+absorbs any rounding remainder so the per-line shares always sum exactly to the full transaction
+discount. This mirrors Phase 4's proportional refund allocation.
+
+**Role-based cap** — to prevent unauthorised over-discounting, cashiers are limited by two config
+keys (env-overridable via the `configuration` settings store):
+
+- `DISCOUNT_CASHIER_MAX_PERCENT` (default `10`) — maximum percentage discount per line or for the
+  transaction.
+- `DISCOUNT_CASHIER_MAX_AMOUNT` (default `20.00`) — maximum absolute-amount discount per line or
+  for the transaction.
+
+A caller authenticated with `ROLE_MANAGER` is uncapped. A cashier whose discount exceeds either
+cap gets HTTP 400.
+
+**Receipt and ERP** — discounts are itemised on the printed receipt (one discount line per
+affected sale line) and are included in the `SaleUpload` sent to the ERP, so the back-office sees
+the pre-discount price, the discount amount, and the net. The persisted `SaleLine` stores the
+discount type, value, reason code, and resolved discount amount alongside the line net and tax.
+
+**Returns** — because the persisted line net is already post-discount, Phase 4's proportional
+refund logic refunds the discounted amount automatically. No change to `POST /returns` is needed.
+
+Config summary (all env-overridable via the `configuration` settings store):
+- `DISCOUNT_REASON_CODES` (default `DAMAGED,PRICE_MATCH,LOYALTY,MANAGER_COMP`)
+- `DISCOUNT_CASHIER_MAX_PERCENT` (default `10`)
+- `DISCOUNT_CASHIER_MAX_AMOUNT` (default `20.00`)
+
+Deferred: manager-approval workflow for cashier discounts that exceed a soft threshold,
+discount reporting and analytics, coupon/promo-code–driven discounts, and time-limited
+promotional pricing.
