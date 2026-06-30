@@ -8,6 +8,7 @@ import com.company.pos.configuration.api.SettingKey;
 import java.security.Principal;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +29,7 @@ class ConfigurationController {
     @PutMapping("/config/{key}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
+    @Transactional
     void update(@PathVariable String key, @RequestBody UpdateRequest request, Principal principal) {
         SettingKey settingKey = resolve(key);
         String oldValue = config.getString(settingKey);
