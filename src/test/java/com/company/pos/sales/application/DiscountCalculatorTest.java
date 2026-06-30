@@ -1,4 +1,4 @@
-package com.company.pos.sales;
+package com.company.pos.sales.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -7,8 +7,6 @@ import com.company.pos.common.exception.DomainException;
 import com.company.pos.pricing.api.PricedLine;
 import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.DiscountType;
-import com.company.pos.sales.application.DiscountCalculator;
-import com.company.pos.sales.application.DiscountResult;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;

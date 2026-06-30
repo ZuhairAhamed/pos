@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  * Discounts reduce the line extended amount before tax, so VAT is computed on the discounted base.
  */
 @Component
-public class DiscountCalculator {
+class DiscountCalculator {
 
     private static final BigDecimal HUNDRED = new BigDecimal("100");
 
@@ -28,7 +28,7 @@ public class DiscountCalculator {
         return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
     }
 
-    public DiscountResult apply(List<PricedLine> priced, Map<String, DiscountInput> lineDiscounts,
+    DiscountResult apply(List<PricedLine> priced, Map<String, DiscountInput> lineDiscounts,
             DiscountInput txnDiscount, boolean callerIsManager, BigDecimal cashierMaxPercent,
             BigDecimal cashierMaxAmount, Set<String> reasonCodes) {
 
