@@ -230,7 +230,7 @@ cap gets HTTP 400.
 **Receipt and ERP** — discounts are itemised on the printed receipt (one discount line per
 affected sale line) and are included in the `SaleUpload` sent to the ERP, so the back-office sees
 the pre-discount price, the discount amount, and the net. The persisted `SaleLine` stores the
-discount type, value, reason code, and resolved discount amount alongside the line net and tax.
+discount type, reason code, and resolved discount amount alongside the line net and tax.
 
 **Returns** — because the persisted line net is already post-discount, Phase 4's proportional
 refund logic refunds the discounted amount automatically. No change to `POST /returns` is needed.

@@ -49,8 +49,17 @@ class DefaultReceiptService implements ReceiptService {
             }
         }
         lines.add(new PrintLine("--------------------------------", false));
-        lines.add(new PrintLine("Subtotal: " + money(data.subtotal(), currency, locale), false));
-        if (data.discountTotal() != null && data.discountTotal().signum() > 0) {
+        BigDecimal subtotalShown = data.subtotal();
+        boolean discounted = data.discountTotal() != null && data.discountTotal().signum() > 0;
+        if (discounted) {
+            // Show the pre-discount (gross) subtotal so the tape foots: gross - discount + tax = total.
+            subtotalShown = data.lines().stream()
+                    .map(ReceiptLineData::grossAmount)
+                    .filter(java.util.Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        lines.add(new PrintLine("Subtotal: " + money(subtotalShown, currency, locale), false));
+        if (discounted) {
             lines.add(new PrintLine("Discount: -" + money(data.discountTotal(), currency, locale), false));
         }
         if (data.txnDiscountAmount() != null && data.txnDiscountAmount().signum() > 0) {
