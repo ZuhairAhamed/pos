@@ -222,7 +222,7 @@ class DefaultSalesService implements SalesService {
         try {
             List<ReceiptLineData> lines = sale.getLines().stream()
                     .map(l -> new ReceiptLineData(l.getName(), l.getQuantity(), l.getUnitPrice(),
-                            l.getLineTotal()))
+                            l.getLineTotal(), l.getGrossAmount(), l.getLineDiscountAmount()))
                     .toList();
             List<ReceiptPaymentData> pays = salePayments.stream()
                     .map(p -> new ReceiptPaymentData(p.method(), p.amount(), p.amountTendered(),
@@ -230,7 +230,8 @@ class DefaultSalesService implements SalesService {
                     .toList();
             receipts.print(new ReceiptData(sale.getReceiptNumber(), sale.getCashierUsername(),
                     sale.getCreatedAt(), lines, sale.getSubtotal(), sale.getTaxTotal(),
-                    sale.getGrandTotal(), pays, sale.getCurrencyCode()));
+                    sale.getGrandTotal(), pays, sale.getCurrencyCode(), sale.getDiscountTotal(),
+                    sale.getTxnDiscountAmount(), sale.getTxnDiscountReason()));
         } catch (RuntimeException ex) {
             log.warn("Receipt print failed for sale {} ({}) — sale is recorded; reprint available",
                     sale.getId(), sale.getReceiptNumber(), ex);
