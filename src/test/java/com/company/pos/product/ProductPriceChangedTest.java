@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -97,10 +97,17 @@ class ProductPriceChangedTest {
 
     @TestConfiguration
     static class TestConfig {
-        @Component
+        @Bean
+        EventCapture eventCapture() {
+            return new EventCaptureBean();
+        }
+
         static class EventCaptureBean implements EventCapture {
             private final List<ProductPriceChanged> events = new ArrayList<>();
 
+            // Fires synchronously within the publisher's transaction — correct for DomainEvents.publish();
+            // a @TransactionalEventListener(AFTER_COMMIT) would never fire under this rolled-back test
+            // and silently invert these assertions.
             @EventListener
             public void on(ProductPriceChanged event) {
                 events.add(event);
