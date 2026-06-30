@@ -8,6 +8,7 @@ import com.company.pos.audit.domain.AuditChainHead;
 import com.company.pos.audit.domain.AuditRecord;
 import com.company.pos.audit.infrastructure.AuditChainHeadRepository;
 import com.company.pos.audit.infrastructure.AuditRecordRepository;
+import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
 import com.company.pos.configuration.api.ConfigurationService;
 import com.company.pos.configuration.api.SettingKey;
@@ -18,6 +19,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -72,6 +74,13 @@ public class DefaultAuditService implements AuditService {
             checked++;
         }
         return new AuditVerifyResult(true, checked, null);
+    }
+
+    @Transactional(readOnly = true)
+    public AuditRecordView findById(UUID id) {
+        return records.findById(id.toString())
+                .map(this::toView)
+                .orElseThrow(() -> DomainException.notFound("No audit record " + id));
     }
 
     @Transactional(readOnly = true)
