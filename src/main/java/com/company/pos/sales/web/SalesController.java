@@ -3,9 +3,9 @@ package com.company.pos.sales.web;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
-import java.security.Principal;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,8 +24,10 @@ class SalesController {
 
     @PostMapping("/sales")
     @ResponseStatus(HttpStatus.CREATED)
-    SaleView checkout(@RequestBody CheckoutCommand command, Principal principal) {
-        return sales.checkout(command, principal.getName());
+    SaleView checkout(@RequestBody CheckoutCommand command, Authentication authentication) {
+        boolean isManager = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_MANAGER".equals(a.getAuthority()));
+        return sales.checkout(command, authentication.getName(), isManager);
     }
 
     @GetMapping("/sales/{saleId}")
