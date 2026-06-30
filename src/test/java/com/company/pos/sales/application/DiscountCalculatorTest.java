@@ -131,4 +131,33 @@ class DiscountCalculatorTest {
                 null, true, MAX_PCT, MAX_AMT, REASONS))
                 .isInstanceOf(DomainException.class);
     }
+
+    @Test
+    void managerOverCapDiscountIsReportedAsAnOverride() {
+        // base 100.00; cashier caps: 10% and 20.00. A 50% manager discount exceeds both.
+        java.util.List<com.company.pos.pricing.api.PricedLine> priced = java.util.List.of(
+                new com.company.pos.pricing.api.PricedLine("SKU1", "Item", new java.math.BigDecimal("1"),
+                        new java.math.BigDecimal("100.00"), "SAR", new java.math.BigDecimal("100.00")));
+        DiscountResult result = new DiscountCalculator().apply(priced,
+                java.util.Map.of("SKU1", new com.company.pos.sales.api.DiscountInput(
+                        com.company.pos.sales.api.DiscountType.PERCENT, new java.math.BigDecimal("50"), "MANAGER_COMP")),
+                null, true, new java.math.BigDecimal("10"), new java.math.BigDecimal("20.00"),
+                java.util.Set.of("MANAGER_COMP"));
+        assertThat(result.overrides()).hasSize(1);
+        assertThat(result.overrides().get(0).sku()).isEqualTo("SKU1");
+        assertThat(result.overrides().get(0).amount()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void cashierWithinCapProducesNoOverride() {
+        java.util.List<com.company.pos.pricing.api.PricedLine> priced = java.util.List.of(
+                new com.company.pos.pricing.api.PricedLine("SKU1", "Item", new java.math.BigDecimal("1"),
+                        new java.math.BigDecimal("100.00"), "SAR", new java.math.BigDecimal("100.00")));
+        DiscountResult result = new DiscountCalculator().apply(priced,
+                java.util.Map.of("SKU1", new com.company.pos.sales.api.DiscountInput(
+                        com.company.pos.sales.api.DiscountType.PERCENT, new java.math.BigDecimal("5"), "LOYALTY")),
+                null, false, new java.math.BigDecimal("10"), new java.math.BigDecimal("20.00"),
+                java.util.Set.of("LOYALTY"));
+        assertThat(result.overrides()).isEmpty();
+    }
 }

@@ -32,6 +32,7 @@ class DiscountCalculator {
             DiscountInput txnDiscount, boolean callerIsManager, BigDecimal cashierMaxPercent,
             BigDecimal cashierMaxAmount, Set<String> reasonCodes) {
 
+        List<DiscountOverride> overrides = new ArrayList<>();
         Map<String, DiscountInput> lineMap = lineDiscounts == null ? Map.of() : lineDiscounts;
         Set<String> skus = new HashSet<>();
         for (PricedLine p : priced) {
@@ -58,6 +59,9 @@ class DiscountCalculator {
             if (in != null) {
                 d = resolve(in, g, reasonCodes);
                 enforceCap(d, g, callerIsManager, cashierMaxPercent, cashierMaxAmount);
+                if (callerIsManager && exceedsCashierCap(d, g, cashierMaxPercent, cashierMaxAmount)) {
+                    overrides.add(new DiscountOverride(p.sku(), d, in.type(), in.reasonCode()));
+                }
                 type = in.type();
                 reason = in.reasonCode();
             }
@@ -84,6 +88,9 @@ class DiscountCalculator {
             }
             txnAmt = resolve(txnDiscount, cartBase, reasonCodes);
             enforceCap(txnAmt, cartBase, callerIsManager, cashierMaxPercent, cashierMaxAmount);
+            if (callerIsManager && exceedsCashierCap(txnAmt, cartBase, cashierMaxPercent, cashierMaxAmount)) {
+                overrides.add(new DiscountOverride(null, txnAmt, txnDiscount.type(), txnDiscount.reasonCode()));
+            }
             txnType = txnDiscount.type();
             txnReason = txnDiscount.reasonCode();
             BigDecimal allocated = zero();
@@ -112,7 +119,7 @@ class DiscountCalculator {
         }
         discountTotal = discountTotal.add(txnAmt);
 
-        return new DiscountResult(lines, txnAmt, txnType, txnReason, discountTotal);
+        return new DiscountResult(lines, txnAmt, txnType, txnReason, discountTotal, overrides);
     }
 
     private BigDecimal resolve(DiscountInput in, BigDecimal base, Set<String> reasonCodes) {
@@ -132,20 +139,25 @@ class DiscountCalculator {
         return in.value().setScale(2, RoundingMode.HALF_UP).min(base);
     }
 
+    private boolean exceedsCashierCap(BigDecimal d, BigDecimal base, BigDecimal maxPercent,
+            BigDecimal maxAmount) {
+        if (d.compareTo(maxAmount) > 0) {
+            return true;
+        }
+        if (base.signum() > 0) {
+            BigDecimal effectivePercent = d.multiply(HUNDRED).divide(base, 2, RoundingMode.HALF_UP);
+            return effectivePercent.compareTo(maxPercent) > 0;
+        }
+        return false;
+    }
+
     private void enforceCap(BigDecimal d, BigDecimal base, boolean callerIsManager,
             BigDecimal maxPercent, BigDecimal maxAmount) {
         if (callerIsManager) {
             return;
         }
-        if (d.compareTo(maxAmount) > 0) {
+        if (exceedsCashierCap(d, base, maxPercent, maxAmount)) {
             throw DomainException.validation("Discount exceeds cashier limit; manager approval required");
-        }
-        if (base.signum() > 0) {
-            BigDecimal effectivePercent = d.multiply(HUNDRED).divide(base, 2, RoundingMode.HALF_UP);
-            if (effectivePercent.compareTo(maxPercent) > 0) {
-                throw DomainException.validation(
-                        "Discount exceeds cashier limit; manager approval required");
-            }
         }
     }
 }

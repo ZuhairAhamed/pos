@@ -195,6 +195,10 @@ class DefaultSalesService implements SalesService {
                 .setScale(2, RoundingMode.HALF_UP);
         events.publish(new SaleCompleted(saleId, receiptNumber, terminalId, location, currency,
                 taxed.grandTotal(), cashTotal, soldLines));
+        for (DiscountOverride o : disc.overrides()) {
+            events.publish(new com.company.pos.sales.api.DiscountOverridden(saleId, cashierUsername,
+                    o.sku(), o.amount(), o.type() == null ? null : o.type().name(), o.reasonCode()));
+        }
 
         // 7. Print the receipt (best-effort — never fails the sale)
         printReceipt(sale, recorded);
