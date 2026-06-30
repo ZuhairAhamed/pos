@@ -996,7 +996,7 @@ In `src/main/java/com/company/pos/configuration/api/SettingKey.java`, add these 
 
 - [ ] **Step 3b: Extend the `SalesService` interface**
 
-Replace `src/main/java/com/company/pos/sales/api/SalesService.java`:
+Replace `src/main/java/com/company/pos/sales/api/SalesService.java`. Declare BOTH overloads as **abstract** (do NOT make the 2-arg an interface `default` method — Spring's `@Transactional` CGLIB proxy does not advise interface default methods, so a self-delegating default would run checkout outside a transaction and silently skip every after-commit `@ApplicationModuleListener`). The 2-arg overload is implemented concretely on `DefaultSalesService` in Step 3d so the class-level `@Transactional` advises it:
 
 ```java
 package com.company.pos.sales.api;
@@ -1006,9 +1006,7 @@ import java.util.UUID;
 public interface SalesService {
 
     /** Checkout as a non-manager (cashier). Discounts are subject to the cashier cap. */
-    default SaleView checkout(CheckoutCommand command, String cashierUsername) {
-        return checkout(command, cashierUsername, false);
-    }
+    SaleView checkout(CheckoutCommand command, String cashierUsername);
 
     /**
      * Checkout. {@code callerIsManager} lifts the cashier discount cap (manager = unlimited).
@@ -1074,7 +1072,16 @@ Add the field and constructor parameter (append `DiscountCalculator discounts` l
 
 Update the constructor signature and body to accept and assign `DiscountCalculator discounts` (append it as the final parameter and `this.discounts = discounts;`).
 
-Replace the `checkout` method signature and its pricing→tax section. The method becomes:
+Add a concrete 2-arg overload (it is advised by the class-level `@Transactional`; the inner call to the 3-arg then runs inside that active transaction, so the after-commit `SaleCompleted` listeners fire). Place it just before the 3-arg method:
+
+```java
+    @Override
+    public SaleView checkout(CheckoutCommand command, String cashierUsername) {
+        return checkout(command, cashierUsername, false);
+    }
+```
+
+Then replace the `checkout` (3-arg) method signature and its pricing→tax section. The method becomes:
 
 ```java
     @Override
