@@ -1,7 +1,11 @@
 package com.company.pos.reporting.infrastructure;
 
+import com.company.pos.reporting.api.CashierReport;
+import com.company.pos.reporting.api.CashierReport.CashierLine;
 import com.company.pos.reporting.api.PaymentBreakdownReport;
 import com.company.pos.reporting.api.PaymentBreakdownReport.PaymentLine;
+import com.company.pos.reporting.api.ProductPerformanceReport;
+import com.company.pos.reporting.api.ProductPerformanceReport.ProductLine;
 import com.company.pos.reporting.api.SalesSummaryReport;
 import com.company.pos.reporting.api.TaxSummaryReport;
 import java.math.BigDecimal;
@@ -108,6 +112,36 @@ public class ReportingQueries {
                 BigDecimal.class, lo, hi);
         BigDecimal netTax = s.tax().subtract(refundTax);
         return new TaxSummaryReport(from, to, currency, s.subtotal(), s.tax(), refundTax, netTax);
+    }
+
+    public CashierReport cashierReport(LocalDate from, LocalDate to, Instant fromTs, Instant toTs,
+            String currency) {
+        List<CashierLine> lines = jdbc.query(
+                "SELECT cashier_username, COUNT(*) AS cnt, "
+                        + "COALESCE(SUM(grand_total), 0) AS total_sales, "
+                        + "COALESCE(SUM(discount_total + txn_discount_amount), 0) AS total_disc "
+                        + "FROM sale WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ? "
+                        + "GROUP BY cashier_username ORDER BY total_sales DESC",
+                (rs, n) -> new CashierLine(rs.getString("cashier_username"), rs.getLong("cnt"),
+                        rs.getBigDecimal("total_sales"), rs.getBigDecimal("total_disc")),
+                Timestamp.from(fromTs), Timestamp.from(toTs));
+        return new CashierReport(from, to, currency, lines);
+    }
+
+    public ProductPerformanceReport productPerformance(LocalDate from, LocalDate to, Instant fromTs,
+            Instant toTs, String currency, int limit) {
+        List<ProductLine> lines = jdbc.query(
+                "SELECT sl.sku, sl.name, COALESCE(SUM(sl.quantity), 0) AS qty, "
+                        + "COALESCE(SUM(sl.line_total), 0) AS revenue, "
+                        + "COALESCE(SUM(sl.line_discount_amount), 0) AS discounts "
+                        + "FROM sale_line sl JOIN sale s ON sl.sale_id = s.id "
+                        + "WHERE s.status = 'COMPLETED' AND s.created_at >= ? AND s.created_at < ? "
+                        + "GROUP BY sl.sku, sl.name ORDER BY revenue DESC LIMIT ?",
+                (rs, n) -> new ProductLine(rs.getString("sku"), rs.getString("name"),
+                        rs.getBigDecimal("qty"), rs.getBigDecimal("revenue"),
+                        rs.getBigDecimal("discounts")),
+                Timestamp.from(fromTs), Timestamp.from(toTs), limit);
+        return new ProductPerformanceReport(from, to, currency, lines);
     }
 
     record SaleAgg(long cnt, BigDecimal subtotal, BigDecimal lineDisc, BigDecimal txnDisc,

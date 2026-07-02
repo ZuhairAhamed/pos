@@ -9,4 +9,8 @@ public interface ReportingService {
     PaymentBreakdownReport paymentBreakdown(LocalDate from, LocalDate to);
 
     TaxSummaryReport taxSummary(LocalDate from, LocalDate to);
+
+    CashierReport cashierReport(LocalDate from, LocalDate to);
+
+    ProductPerformanceReport productPerformance(LocalDate from, LocalDate to, int limit);
 }
