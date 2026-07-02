@@ -46,11 +46,12 @@ class DefaultDashboardService implements DashboardService {
         LocalDate today = today();
         String currency = config.getString(SettingKey.CURRENCY_CODE);
         List<ShiftView> open = shifts.listOpenShifts();
+        SalesSummaryReport todayReport = reports.salesSummary(today, today);
         return new DashboardSnapshot(
                 today,
                 currency,
-                reports.salesSummary(today, today),
-                revenue(),
+                todayReport,
+                revenue(todayReport),
                 bestSellers(DEFAULT_BEST_SELLERS),
                 lowStock(),
                 open,
@@ -66,8 +67,13 @@ class DefaultDashboardService implements DashboardService {
     @Override
     public RevenueSummary revenue() {
         LocalDate today = today();
-        int windowDays = Math.max(1, config.getInt(SettingKey.DASHBOARD_REVENUE_WINDOW_DAYS));
         SalesSummaryReport todayReport = reports.salesSummary(today, today);
+        return revenue(todayReport);
+    }
+
+    private RevenueSummary revenue(SalesSummaryReport todayReport) {
+        LocalDate today = today();
+        int windowDays = Math.max(1, config.getInt(SettingKey.DASHBOARD_REVENUE_WINDOW_DAYS));
         SalesSummaryReport windowReport = reports.salesSummary(today.minusDays(windowDays - 1L), today);
         return new RevenueSummary(todayReport.netSales(), windowDays, windowReport.netSales());
     }

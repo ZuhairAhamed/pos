@@ -8,6 +8,7 @@ import com.company.pos.configuration.api.SettingKey;
 import com.company.pos.dashboard.api.DashboardService;
 import com.company.pos.dashboard.api.DashboardSnapshot;
 import com.company.pos.dashboard.api.LowStockTile;
+import com.company.pos.device.infrastructure.InMemoryPaymentTerminal;
 import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.api.ErpStockLevel;
 import com.company.pos.integration.erp.FakeErpClient;
@@ -15,6 +16,9 @@ import com.company.pos.inventory.api.InventorySync;
 import com.company.pos.payment.api.PaymentMethod;
 import com.company.pos.product.api.ProductSync;
 import com.company.pos.sales.api.CheckoutCommand;
+import com.company.pos.sales.api.ReturnCommand;
+import com.company.pos.sales.api.ReturnService;
+import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import com.company.pos.sales.api.TenderInput;
 import com.company.pos.shift.api.ShiftService;
@@ -48,14 +52,17 @@ class DashboardServiceTest {
     @Autowired ConfigurationService configService;
     @Autowired FakeErpClient fake;
     @Autowired DatabaseCleaner cleaner;
+    @Autowired ReturnService returns;
+    @Autowired InMemoryPaymentTerminal terminal;
 
     @BeforeEach
     void seed() {
         cleaner.clean();
         fake.clear();
+        terminal.setApprove(true);
         fake.addProduct(new ErpProduct("COLA", "Cola Can", "BEV", "Beverages", "bcCOLA",
                 "EA", new BigDecimal("4.50"), "SAR", 1, true));
-        fake.addStockLevel(new ErpStockLevel("COLA", "MAIN", new BigDecimal("5"), 1));
+        fake.addStockLevel(new ErpStockLevel("COLA", "MAIN", new BigDecimal("20"), 1));
         productSync.sync();
         inventorySync.sync();
     }
@@ -128,5 +135,26 @@ class DashboardServiceTest {
         // Window [today-2, today] still contains today's sale, so window net == today net.
         assertThat(dashboard.revenue().window()).isEqualByComparingTo("10.35");
         assertThat(dashboard.revenue().today()).isEqualByComparingTo("10.35");
+    }
+
+    @Test
+    void revenueTodayIsNetOfRefunds() {
+        // Sell 2x COLA (grand total 10.35), then process a full return.
+        // net = gross - refund = 10.35 - 10.35 = 0.00
+        UUID cartId = carts.createCart();
+        carts.addLine(cartId, "COLA", new BigDecimal("2"));
+        SaleView sold = salesService.checkout(new CheckoutCommand(cartId,
+                List.of(new TenderInput(PaymentMethod.CASH, null, new BigDecimal("20.00")))), "cashier");
+        assertThat(sold.grandTotal()).isEqualByComparingTo("10.35");
+
+        // Full return of line 1, qty 2
+        returns.processReturn(
+                new ReturnCommand(sold.id(), null,
+                        List.of(new ReturnCommand.ReturnLineRequest(1, new BigDecimal("2")))),
+                "manager");
+
+        // revenue().today() must be netSales (0.00), NOT grossSales (10.35)
+        assertThat(dashboard.revenue().today()).isEqualByComparingTo("0.00");
+        assertThat(dashboard.revenue().today()).isNotEqualByComparingTo("10.35");
     }
 }
