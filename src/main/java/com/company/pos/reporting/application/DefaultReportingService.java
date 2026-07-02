@@ -2,8 +2,10 @@ package com.company.pos.reporting.application;
 
 import com.company.pos.configuration.api.ConfigurationService;
 import com.company.pos.configuration.api.SettingKey;
+import com.company.pos.reporting.api.PaymentBreakdownReport;
 import com.company.pos.reporting.api.ReportingService;
 import com.company.pos.reporting.api.SalesSummaryReport;
+import com.company.pos.reporting.api.TaxSummaryReport;
 import com.company.pos.reporting.infrastructure.ReportingQueries;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
@@ -26,5 +28,19 @@ class DefaultReportingService implements ReportingService {
         ReportRanges.requireValid(from, to);
         String currency = config.getString(SettingKey.CURRENCY_CODE);
         return queries.salesSummary(from, to, ReportRanges.startOf(from), ReportRanges.endOf(to), currency);
+    }
+
+    @Override
+    public PaymentBreakdownReport paymentBreakdown(LocalDate from, LocalDate to) {
+        ReportRanges.requireValid(from, to);
+        String currency = config.getString(SettingKey.CURRENCY_CODE);
+        return queries.paymentBreakdown(from, to, ReportRanges.startOf(from), ReportRanges.endOf(to), currency);
+    }
+
+    @Override
+    public TaxSummaryReport taxSummary(LocalDate from, LocalDate to) {
+        ReportRanges.requireValid(from, to);
+        String currency = config.getString(SettingKey.CURRENCY_CODE);
+        return queries.taxSummary(from, to, ReportRanges.startOf(from), ReportRanges.endOf(to), currency);
     }
 }
