@@ -466,3 +466,16 @@ Deferred: profit/margin reporting (requires COGS data), hourly/shift-level break
 inventory/movement reports, JasperReports integration for printable PDF reports, and an
 event-sourced read model (materialised projections maintained by async listeners) to replace the
 direct-read native SQL as query volume grows.
+
+## Dashboard (Phase 8 — MANAGER/ADMIN)
+
+Operational insight, composed on-demand from module facades (no new tables). "Today" is the UTC day, consistent with reporting.
+
+- `GET /dashboard` — full snapshot: today's sales, revenue (today + rolling window), best sellers, low-stock items, open shifts, active cashiers.
+- `GET /dashboard/sales-today` — today's sales summary.
+- `GET /dashboard/revenue` — today's net + rolling-window net (window = `dashboard.revenue.window.days`, default 7).
+- `GET /dashboard/best-sellers?limit=` — top SKUs by revenue today (`limit` default 5, clamped `[1, 50]`).
+- `GET /dashboard/low-stock` — SKUs at/below reorder level, with product name.
+- `GET /dashboard/open-shifts` — currently-open shifts + derived active cashiers.
+
+Config key: `dashboard.revenue.window.days` (default `7`) sets the revenue rolling window.
