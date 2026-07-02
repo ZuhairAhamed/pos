@@ -1,6 +1,7 @@
 package com.company.pos.shift.api;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,4 +14,6 @@ public interface ShiftService {
     ShiftSummary getSummary(UUID shiftId);
 
     Optional<ShiftView> findOpenShift(String terminalId);
+
+    List<ShiftView> listOpenShifts();
 }

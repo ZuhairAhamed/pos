@@ -14,6 +14,7 @@ import com.company.pos.shift.domain.Shift;
 import com.company.pos.shift.infrastructure.ShiftRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,14 @@ class DefaultShiftService implements ShiftService {
     @Transactional(readOnly = true)
     public Optional<ShiftView> findOpenShift(String terminalId) {
         return shifts.findByTerminalIdAndStatus(terminalId, "OPEN").map(this::toView);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ShiftView> listOpenShifts() {
+        return shifts.findByStatusOrderByOpenedAt("OPEN").stream()
+                .map(this::toView)
+                .toList();
     }
 
     private Shift load(UUID shiftId) {

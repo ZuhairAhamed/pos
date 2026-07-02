@@ -8,6 +8,7 @@ import com.company.pos.shift.api.ShiftService;
 import com.company.pos.shift.api.ShiftSummary;
 import com.company.pos.shift.api.ShiftView;
 import java.math.BigDecimal;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -62,5 +63,18 @@ class ShiftServiceTest {
         shifts.closeShift(shift.shiftId(), new BigDecimal("100.00"), "cashier");
         assertThatThrownBy(() -> shifts.closeShift(shift.shiftId(), new BigDecimal("100.00"), "cashier"))
                 .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void listOpenShiftsReturnsOnlyOpenOnes() {
+        ShiftView open = shifts.openShift("T01", new BigDecimal("100.00"), "alice");
+        ShiftView toClose = shifts.openShift("T02", new BigDecimal("50.00"), "bob");
+        shifts.closeShift(toClose.shiftId(), new BigDecimal("50.00"), "bob");
+
+        List<ShiftView> openShifts = shifts.listOpenShifts();
+
+        assertThat(openShifts).extracting(ShiftView::terminalId).containsExactly("T01");
+        assertThat(openShifts).extracting(ShiftView::openedBy).containsExactly("alice");
+        assertThat(openShifts.get(0).shiftId()).isEqualTo(open.shiftId());
     }
 }
