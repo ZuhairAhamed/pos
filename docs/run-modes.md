@@ -467,7 +467,7 @@ inventory/movement reports, JasperReports integration for printable PDF reports,
 event-sourced read model (materialised projections maintained by async listeners) to replace the
 direct-read native SQL as query volume grows.
 
-## Dashboard (Phase 8 — MANAGER/ADMIN)
+## Dashboard (Phase 9 — MANAGER/ADMIN)
 
 Operational insight, composed on-demand from module facades (no new tables). "Today" is the UTC day, consistent with reporting.
 
