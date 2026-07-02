@@ -168,7 +168,7 @@ class DefaultSalesService implements SalesService {
                 location, currency, taxed.subtotal(), taxed.taxTotal(), taxed.grandTotal(), now,
                 disc.txnDiscountAmount(),
                 disc.txnDiscountType() == null ? null : disc.txnDiscountType().name(),
-                disc.txnDiscountReason(), disc.discountTotal());
+                disc.txnDiscountReason(), disc.discountTotal(), cart.customerId());
         int lineNo = 1;
         for (int i = 0; i < taxed.lines().size(); i++) {
             TaxedLine t = taxed.lines().get(i);
@@ -194,7 +194,7 @@ class DefaultSalesService implements SalesService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
         events.publish(new SaleCompleted(saleId, receiptNumber, terminalId, location, currency,
-                taxed.grandTotal(), cashTotal, soldLines));
+                taxed.grandTotal(), cashTotal, soldLines, cart.customerId(), now));
         for (DiscountOverride o : disc.overrides()) {
             events.publish(new com.company.pos.sales.api.DiscountOverridden(saleId, cashierUsername,
                     o.sku(), o.amount(), o.type() == null ? null : o.type().name(), o.reasonCode()));

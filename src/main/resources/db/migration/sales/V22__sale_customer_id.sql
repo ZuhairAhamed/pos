@@ -1,0 +1,1 @@
+ALTER TABLE sale ADD COLUMN customer_id VARCHAR(36);

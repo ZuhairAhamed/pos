@@ -70,6 +70,10 @@ public class Sale {
     @Column(name = "discount_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal discountTotal;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "customer_id", length = 36)
+    private UUID customerId;
+
     @OneToMany(mappedBy = "sale", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineNo ASC")
     private List<SaleLine> lines = new ArrayList<>();
@@ -82,7 +86,7 @@ public class Sale {
             String cashierUsername, String locationCode, String currencyCode,
             BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal, Instant createdAt,
             BigDecimal txnDiscountAmount, String txnDiscountType, String txnDiscountReason,
-            BigDecimal discountTotal) {
+            BigDecimal discountTotal, UUID customerId) {
         this.id = id;
         this.receiptNumber = receiptNumber;
         this.storeId = storeId;
@@ -98,6 +102,7 @@ public class Sale {
         this.txnDiscountType = txnDiscountType;
         this.txnDiscountReason = txnDiscountReason;
         this.discountTotal = discountTotal;
+        this.customerId = customerId;
         this.status = "COMPLETED";
     }
 
@@ -155,6 +160,10 @@ public class Sale {
 
     public BigDecimal getDiscountTotal() {
         return discountTotal;
+    }
+
+    public UUID getCustomerId() {
+        return customerId;
     }
 
     public Instant getCreatedAt() {

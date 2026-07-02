@@ -45,7 +45,7 @@ class SaleDiscountPersistenceTest {
         UUID saleId = Identifiers.newId();
         Sale sale = new Sale(saleId, "R-DISC-1", "S01", "T01", "cashier", "MAIN", "SAR",
                 new BigDecimal("8.10"), new BigDecimal("1.22"), new BigDecimal("9.32"), Instant.now(),
-                new BigDecimal("0.00"), null, null, new BigDecimal("0.90"));
+                new BigDecimal("0.00"), null, null, new BigDecimal("0.90"), null);
         sale.addLine(new SaleLine(Identifiers.newId(), sale, 1, "COLA", "Cola Can",
                 new BigDecimal("2.000"), new BigDecimal("4.5000"), new BigDecimal("8.10"),
                 new BigDecimal("1.22"), new BigDecimal("9.32"), "SAR",
