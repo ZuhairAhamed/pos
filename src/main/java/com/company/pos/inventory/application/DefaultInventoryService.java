@@ -1,6 +1,7 @@
 package com.company.pos.inventory.application;
 
 import com.company.pos.inventory.api.InventoryService;
+import com.company.pos.inventory.api.LowStockItem;
 import com.company.pos.inventory.api.StockView;
 import com.company.pos.inventory.domain.StockLevel;
 import com.company.pos.inventory.infrastructure.StockLevelRepository;
@@ -30,5 +31,12 @@ class DefaultInventoryService implements InventoryService {
                 .map(StockLevel::getQuantityOnHand)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return Optional.of(new StockView(sku, total));
+    }
+
+    @Override
+    public List<LowStockItem> listLowStock() {
+        return stock.findLowStock().stream()
+                .map(s -> new LowStockItem(s.getSku(), s.getQuantityOnHand(), s.getReorderLevel()))
+                .toList();
     }
 }
