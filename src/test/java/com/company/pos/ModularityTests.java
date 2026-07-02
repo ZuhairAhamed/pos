@@ -48,4 +48,12 @@ class ModularityTests {
                 .collect(Collectors.toSet());
         assertThat(names).contains("notification");
     }
+
+    @Test
+    void detectsTheDashboardModule() {
+        Set<String> names = modules.stream()
+                .map(ApplicationModule::getName)
+                .collect(Collectors.toSet());
+        assertThat(names).contains("dashboard", "reporting");
+    }
 }
