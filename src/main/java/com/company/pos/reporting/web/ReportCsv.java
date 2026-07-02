@@ -31,7 +31,7 @@ final class ReportCsv {
     static String of(PaymentBreakdownReport r) {
         StringBuilder sb = new StringBuilder("method,count,collected,refunded\n");
         for (PaymentBreakdownReport.PaymentLine l : r.lines()) {
-            sb.append(String.join(",", l.method(), String.valueOf(l.count()),
+            sb.append(String.join(",", csv(l.method()), String.valueOf(l.count()),
                     s(l.collected()), s(l.refunded()))).append('\n');
         }
         return sb.toString();
@@ -40,7 +40,7 @@ final class ReportCsv {
     static String of(CashierReport r) {
         StringBuilder sb = new StringBuilder("cashierUsername,saleCount,totalSales,totalDiscounts\n");
         for (CashierReport.CashierLine l : r.lines()) {
-            sb.append(String.join(",", l.cashierUsername(), String.valueOf(l.saleCount()),
+            sb.append(String.join(",", csv(l.cashierUsername()), String.valueOf(l.saleCount()),
                     s(l.totalSales()), s(l.totalDiscounts()))).append('\n');
         }
         return sb.toString();
@@ -49,7 +49,7 @@ final class ReportCsv {
     static String of(ProductPerformanceReport r) {
         StringBuilder sb = new StringBuilder("sku,name,quantitySold,revenue,discounts\n");
         for (ProductPerformanceReport.ProductLine l : r.lines()) {
-            sb.append(String.join(",", l.sku(), csv(l.name()), s(l.quantitySold()),
+            sb.append(String.join(",", csv(l.sku()), csv(l.name()), s(l.quantitySold()),
                     s(l.revenue()), s(l.discounts()))).append('\n');
         }
         return sb.toString();
