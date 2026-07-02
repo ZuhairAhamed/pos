@@ -32,6 +32,9 @@ public class AuthService {
     }
 
     public String login(String username, String rawPassword) {
+        // The success audit is recorded OUTSIDE the try so a transient audit-write failure cannot be
+        // caught and mislogged as LOGIN_FAILED (which would also wrongly deny a valid login).
+        String token;
         try {
             User user = users.findByUsername(username)
                     .filter(User::isEnabled)
@@ -39,17 +42,18 @@ public class AuthService {
             if (!encoder.matches(rawPassword, user.getPasswordHash())) {
                 throw DomainException.validation("Invalid credentials");
             }
-            String token = jwtService.issue(user);
-            audit.record(AuditAction.LOGIN_SUCCEEDED, username, username, Map.of());
-            return token;
+            token = jwtService.issue(user);
         } catch (RuntimeException ex) {
             audit.record(AuditAction.LOGIN_FAILED, username, username,
                     Map.of("reason", "invalid_credentials"));
             throw ex;
         }
+        audit.record(AuditAction.LOGIN_SUCCEEDED, username, username, Map.of());
+        return token;
     }
 
     public String pinLogin(String cashierCode, String pin) {
+        String token;
         try {
             User user = users.findByCashierCode(cashierCode)
                     .filter(User::isEnabled)
@@ -57,13 +61,13 @@ public class AuthService {
             if (user.getPinHash() == null || !encoder.matches(pin, user.getPinHash())) {
                 throw DomainException.validation("Invalid credentials");
             }
-            String token = jwtService.issue(user);
-            audit.record(AuditAction.PIN_LOGIN_SUCCEEDED, cashierCode, cashierCode, Map.of());
-            return token;
+            token = jwtService.issue(user);
         } catch (RuntimeException ex) {
             audit.record(AuditAction.PIN_LOGIN_FAILED, cashierCode, cashierCode,
                     Map.of("reason", "invalid_credentials"));
             throw ex;
         }
+        audit.record(AuditAction.PIN_LOGIN_SUCCEEDED, cashierCode, cashierCode, Map.of());
+        return token;
     }
 }
