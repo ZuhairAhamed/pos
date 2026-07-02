@@ -51,7 +51,7 @@ public class ReportingQueries {
                 "SELECT COUNT(*) AS cnt, "
                         + "COALESCE(SUM(refund_grand_total), 0) AS refund, "
                         + "COALESCE(SUM(refund_tax_total), 0) AS refund_tax "
-                        + "FROM sales_return WHERE created_at >= ? AND created_at < ?",
+                        + "FROM sales_return WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?",
                 (rs, n) -> new ReturnAgg(rs.getLong("cnt"), rs.getBigDecimal("refund"),
                         rs.getBigDecimal("refund_tax")),
                 lo, hi);
@@ -108,7 +108,7 @@ public class ReportingQueries {
                 lo, hi);
         BigDecimal refundTax = jdbc.queryForObject(
                 "SELECT COALESCE(SUM(refund_tax_total), 0) FROM sales_return "
-                        + "WHERE created_at >= ? AND created_at < ?",
+                        + "WHERE status = 'COMPLETED' AND created_at >= ? AND created_at < ?",
                 BigDecimal.class, lo, hi);
         BigDecimal netTax = s.tax().subtract(refundTax);
         return new TaxSummaryReport(from, to, currency, s.subtotal(), s.tax(), refundTax, netTax);

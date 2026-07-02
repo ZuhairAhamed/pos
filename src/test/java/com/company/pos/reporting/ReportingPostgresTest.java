@@ -26,6 +26,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+// NOTE: The static @Container is shared for the lifetime of this class and is seeded by the single
+// @Test method below, so saleCount==1 is deterministic. A second @Test here would see accumulated
+// data because DatabaseCleaner is SQLite-only and cannot reset the Testcontainers PostgreSQL instance.
 @SpringBootTest
 @ActiveProfiles("store-server")
 @Testcontainers
