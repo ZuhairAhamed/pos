@@ -77,6 +77,20 @@ class DefaultCartService implements CartService {
     }
 
     @Override
+    public CartView assignCustomer(UUID cartId, UUID customerId) {
+        Cart cart = load(cartId);
+        cart.assignCustomer(customerId);
+        return toView(cart);
+    }
+
+    @Override
+    public CartView clearCustomer(UUID cartId) {
+        Cart cart = load(cartId);
+        cart.clearCustomer();
+        return toView(cart);
+    }
+
+    @Override
     public CartView hold(UUID cartId) {
         Cart cart = load(cartId);
         cart.hold();
@@ -127,6 +141,7 @@ class DefaultCartService implements CartService {
                 .map(l -> new CartLineView(l.getSku(), l.getName(), l.getQuantity(),
                         l.getUnitPrice(), l.getCurrencyCode()))
                 .toList();
-        return new CartView(cart.getId(), cart.getStatus(), cart.getCurrencyCode(), lines);
+        return new CartView(cart.getId(), cart.getStatus(), cart.getCurrencyCode(),
+                cart.getCustomerId(), lines);
     }
 }

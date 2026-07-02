@@ -59,6 +59,11 @@ class CartController {
         return carts.removeLine(cartId, sku);
     }
 
+    @DeleteMapping("/carts/{cartId}/customer")
+    CartView detachCustomer(@PathVariable UUID cartId) {
+        return carts.clearCustomer(cartId);
+    }
+
     @PutMapping("/carts/{cartId}/hold")
     CartView hold(@PathVariable UUID cartId) {
         return carts.hold(cartId);

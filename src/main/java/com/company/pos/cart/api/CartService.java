@@ -16,6 +16,10 @@ public interface CartService {
 
     CartView getCart(UUID cartId);
 
+    CartView assignCustomer(UUID cartId, UUID customerId);
+
+    CartView clearCustomer(UUID cartId);
+
     CartView hold(UUID cartId);
 
     CartView resume(UUID cartId);

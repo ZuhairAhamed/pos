@@ -35,6 +35,10 @@ public class Cart {
     @Column(name = "currency_code", length = 3)
     private String currencyCode;
 
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "customer_id", length = 36)
+    private UUID customerId;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -67,6 +71,21 @@ public class Cart {
 
     public String getCurrencyCode() {
         return currencyCode;
+    }
+
+    public UUID getCustomerId() {
+        return customerId;
+    }
+
+    public void assignCustomer(UUID customerId) {
+        if (!isOpen()) {
+            throw DomainException.conflict("Only an open cart can have a customer assigned");
+        }
+        this.customerId = customerId;
+    }
+
+    public void clearCustomer() {
+        this.customerId = null;
     }
 
     public List<CartLine> getLines() {

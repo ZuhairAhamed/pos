@@ -1,5 +1,7 @@
 package com.company.pos.customer.web;
 
+import com.company.pos.cart.api.CartService;
+import com.company.pos.cart.api.CartView;
 import com.company.pos.common.exception.DomainException;
 import com.company.pos.customer.api.CustomerService;
 import com.company.pos.customer.api.CustomerView;
@@ -24,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 class CustomerController {
 
     private final CustomerService customers;
+    private final CartService carts;
 
-    CustomerController(CustomerService customers) {
+    CustomerController(CustomerService customers, CartService carts) {
         this.customers = customers;
+        this.carts = carts;
     }
 
     @PostMapping("/customers")
@@ -55,6 +59,16 @@ class CustomerController {
     @PreAuthorize("hasRole('MANAGER')")
     void deactivate(@PathVariable UUID id) {
         customers.deactivate(id);
+    }
+
+    @PostMapping("/customers/{customerId}/cart/{cartId}")
+    CartView attachToCart(@PathVariable UUID customerId, @PathVariable UUID cartId) {
+        CustomerView customer = customers.findById(customerId)
+                .orElseThrow(() -> DomainException.notFound("No customer " + customerId));
+        if (!customer.active()) {
+            throw DomainException.validation("Customer " + customerId + " is inactive");
+        }
+        return carts.assignCustomer(cartId, customerId);
     }
 
     @GetMapping("/customers/{id}/purchases")

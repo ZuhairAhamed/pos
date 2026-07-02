@@ -1,0 +1,1 @@
+ALTER TABLE cart ADD COLUMN customer_id VARCHAR(36);
