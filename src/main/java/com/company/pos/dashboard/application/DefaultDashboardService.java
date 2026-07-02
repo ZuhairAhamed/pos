@@ -9,6 +9,7 @@ import com.company.pos.dashboard.api.OpenShifts;
 import com.company.pos.dashboard.api.RevenueSummary;
 import com.company.pos.inventory.api.InventoryService;
 import com.company.pos.product.api.ProductCatalog;
+import com.company.pos.product.api.ProductView;
 import com.company.pos.reporting.api.ProductPerformanceReport;
 import com.company.pos.reporting.api.ReportingService;
 import com.company.pos.reporting.api.SalesSummaryReport;
@@ -51,7 +52,7 @@ class DefaultDashboardService implements DashboardService {
                 today,
                 currency,
                 todayReport,
-                revenue(todayReport),
+                revenue(today, todayReport),
                 bestSellers(DEFAULT_BEST_SELLERS),
                 lowStock(),
                 open,
@@ -68,11 +69,10 @@ class DefaultDashboardService implements DashboardService {
     public RevenueSummary revenue() {
         LocalDate today = today();
         SalesSummaryReport todayReport = reports.salesSummary(today, today);
-        return revenue(todayReport);
+        return revenue(today, todayReport);
     }
 
-    private RevenueSummary revenue(SalesSummaryReport todayReport) {
-        LocalDate today = today();
+    private RevenueSummary revenue(LocalDate today, SalesSummaryReport todayReport) {
         int windowDays = Math.max(1, config.getInt(SettingKey.DASHBOARD_REVENUE_WINDOW_DAYS));
         SalesSummaryReport windowReport = reports.salesSummary(today.minusDays(windowDays - 1L), today);
         return new RevenueSummary(todayReport.netSales(), windowDays, windowReport.netSales());
@@ -100,7 +100,7 @@ class DefaultDashboardService implements DashboardService {
     }
 
     private String nameOf(String sku) {
-        return products.findBySku(sku).map(p -> p.name()).orElse(sku);
+        return products.findBySku(sku).map(ProductView::name).orElse(sku);
     }
 
     private List<String> activeCashiers(List<ShiftView> open) {

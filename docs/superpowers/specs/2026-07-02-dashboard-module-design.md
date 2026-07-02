@@ -17,7 +17,7 @@ Summary, Best Selling Products, Low-Stock Items, Open Shifts, Active Cashiers.**
 1. **Today's Sales** — today's sales summary (counts + money totals).
 2. **Revenue Summary** — today plus a rolling window (default last 7 days).
 3. **Best Selling Products** — top SKUs by revenue today (small limit).
-4. **Low-Stock Items** — SKUs at or below their reorder level, with product name.
+4. **Low-Stock Items** — SKUs below their reorder level, with product name.
 5. **Open Shifts** — shifts currently `OPEN`.
 6. **Active Cashiers** — distinct cashiers with an open shift (derived from #5).
 

@@ -475,7 +475,7 @@ Operational insight, composed on-demand from module facades (no new tables). "To
 - `GET /dashboard/sales-today` — today's sales summary.
 - `GET /dashboard/revenue` — today's net + rolling-window net (window = `dashboard.revenue.window.days`, default 7).
 - `GET /dashboard/best-sellers?limit=` — top SKUs by revenue today (`limit` default 5, clamped `[1, 50]`).
-- `GET /dashboard/low-stock` — SKUs at/below reorder level, with product name.
+- `GET /dashboard/low-stock` — SKUs below reorder level, with product name.
 - `GET /dashboard/open-shifts` — currently-open shifts + derived active cashiers.
 
 Config key: `dashboard.revenue.window.days` (default `7`) sets the revenue rolling window.

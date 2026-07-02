@@ -73,7 +73,7 @@ class DashboardServiceTest {
         fake.clear();
     }
 
-    private void sellTwoColas() {
+    private void sellOneCartOfTwoColas() {
         UUID cartId = carts.createCart();
         carts.addLine(cartId, "COLA", new BigDecimal("2")); // 2 x 4.50 = 9.00 net, tax 1.35, grand 10.35
         salesService.checkout(new CheckoutCommand(cartId,
@@ -83,7 +83,7 @@ class DashboardServiceTest {
     @Test
     void snapshotAggregatesEveryTile() {
         shifts.openShift("T01", new BigDecimal("100.00"), "alice");
-        sellTwoColas();
+        sellOneCartOfTwoColas();
 
         DashboardSnapshot snap = dashboard.snapshot();
 
@@ -102,7 +102,7 @@ class DashboardServiceTest {
         // Best sellers
         assertThat(snap.bestSellers()).extracting(l -> l.sku()).contains("COLA");
 
-        // Low stock, name-enriched from product catalog (5 on hand < reorder 100)
+        // Low stock, name-enriched from product catalog (20 on hand < reorder 100)
         assertThat(snap.lowStock()).extracting(LowStockTile::sku).containsExactly("COLA");
         assertThat(snap.lowStock().get(0).name()).isEqualTo("Cola Can");
 
@@ -129,7 +129,7 @@ class DashboardServiceTest {
     void revenueWindowHonoursConfigOverride() {
         // Override the window and confirm it plumbs through to the response.
         configService.put(SettingKey.DASHBOARD_REVENUE_WINDOW_DAYS, "3");
-        sellTwoColas();
+        sellOneCartOfTwoColas();
 
         assertThat(dashboard.revenue().windowDays()).isEqualTo(3);
         // Window [today-2, today] still contains today's sale, so window net == today net.
