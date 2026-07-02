@@ -243,3 +243,60 @@ Config summary (all env-overridable via the `configuration` settings store):
 Deferred: manager-approval workflow for cashier discounts that exceed a soft threshold,
 discount reporting and analytics, coupon/promo-code–driven discounts, and time-limited
 promotional pricing.
+
+## Audit Trail (Phase 6)
+
+A new `audit` module records the security- and fraud-relevant actions in the store into a single
+**append-only, hash-chained** log. New endpoints (all `ROLE_ADMIN`, method-secured):
+
+- `GET /audit?actor=&action=&from=&to=&page=&size=` — filtered page of audit records, newest
+  first. `from`/`to` are ISO-8601 instants; omitting them spans all time.
+- `GET /audit/{id}` — a single record (404 if unknown).
+- `POST /audit/verify` — walk the whole chain and recompute every hash; returns
+  `{ intact, recordsChecked, firstBrokenSeq }`. `firstBrokenSeq` is null when intact.
+- `PUT /config/{key}` — set a runtime setting (`key` is a `SettingKey` name, e.g. `VAT_RATE`);
+  body `{ "value": "..." }`. Unknown key → HTTP 400. This is the only runtime setting-mutation
+  surface, and every change it makes is audited (bootstrap/env seeding is not).
+
+**What is captured, and how** — a hybrid of two mechanisms:
+
+- **Domain events (asynchronous, outbox-backed after-commit)** for transactional facts:
+  `SALE_COMPLETED` (from `SaleCompleted`), `RETURN_COMPLETED` (`ReturnCompleted`),
+  `DISCOUNT_OVERRIDE` (a new `DiscountOverridden` fact, published when a manager applies a discount
+  above the cashier cap), `PRICE_CHANGED` (a new `ProductPriceChanged` fact, published when an ERP
+  down-sync changes an existing SKU's price — first-time inserts are not changes), and
+  `SETTING_CHANGED` (a new `SettingChanged` fact from `PUT /config`).
+- **A synchronous `AuditService.record(...)` facade** for non-transactional security events:
+  `LOGIN_SUCCEEDED` / `LOGIN_FAILED` / `PIN_LOGIN_SUCCEEDED` / `PIN_LOGIN_FAILED`. A failed login
+  has no business transaction to ride, so `auth` calls the facade directly; the record commits
+  before the login's exception propagates, so the failed attempt is durably recorded.
+
+**Tamper-evidence** — each `audit_record` stores a per-store monotonic `seq`, the `prev_hash`, and
+`hash = SHA-256(seq ‖ occurredAt ‖ actor ‖ action ‖ entityRef ‖ payload ‖ prevHash)`. Because each
+hash binds the previous record's hash, any edit, deletion, or reorder breaks the chain and is
+detected by `POST /audit/verify`. Writes are append-only (no update/delete in application code) and
+serialise on a per-store `audit_chain_head` row.
+
+**Embedded persistence note** — the login-audit write must commit independently of the login flow,
+and single-writer SQLite cannot service two concurrent write connections. The embedded profile
+therefore runs with `maximum-pool-size: 1` (all DB access, including the async after-commit
+listeners, serialises onto one connection) and `AuthService` is intentionally non-transactional so
+its audit write needs only that one connection. Do not raise the embedded pool above 1 without
+re-running the full end-to-end suite — a larger pool un-serialises the async listeners and
+deadlocks SQLite (`SQLITE_BUSY`). `busy_timeout=5000` and `journal_mode=WAL` are configured for the
+benefit of a production file-based override (`POS_DB_URL=jdbc:sqlite:file:...`).
+
+Known limits:
+- **Actor on sales/returns is the terminal id, not the cashier/manager.** `SaleCompleted` and
+  `ReturnCompleted` do not carry the acting user, so those rows record `terminalId` and the
+  receipt/credit-note number. Login, setting-change, and discount-override records do carry the
+  real actor. Capturing the sale/return operator requires enriching those events — deferred.
+- **Audit listeners are not idempotent.** An outbox replay (e.g. after a crash) can append a second
+  chain-valid row for the same event; the chain stays verifiable but may contain a duplicate.
+- **No archival/pruning.** The chain grows unbounded; retention is indefinite (pruning would break
+  the chain). Checkpoint-based archival is later work.
+- **`verify` covers the whole chain only** — there is no partial-range verification, since a range
+  cannot check linkage to records outside it.
+
+Deferred: item-void / sale-cancel auditing (no void event exists yet), real tamper-alerting, and a
+richer search/review UI beyond the JSON query endpoint.
