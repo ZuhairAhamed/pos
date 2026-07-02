@@ -374,3 +374,95 @@ Known limits:
 
 Deferred: ERP customer sync (upload/download), loyalty points engine, GDPR erasure, purchase
 reporting/analytics, and customer-specific pricing.
+
+## Reporting (Phase 8)
+
+A new `reporting` module exposes five read-only aggregate reports over the store's sales data.
+All endpoints are `ROLE_MANAGER` or `ROLE_ADMIN` — method-secured with
+`@PreAuthorize("hasAnyRole('MANAGER','ADMIN')")` on the controller class. Cashiers receive
+`403`.
+
+### Endpoints
+
+| Method | Path                  | Required params  | Optional params                    | Description                                        |
+|--------|-----------------------|------------------|------------------------------------|----------------------------------------------------|
+| GET    | `/reports/sales`      | `from`, `to`     | `format` (default `json`)          | Sales summary: counts, subtotals, discounts, tax, gross/net sales, and returns |
+| GET    | `/reports/payments`   | `from`, `to`     | `format`                           | Payment breakdown by method: collected vs refunded |
+| GET    | `/reports/tax`        | `from`, `to`     | `format`                           | Tax summary: taxable amount, VAT collected, return VAT, net VAT |
+| GET    | `/reports/cashiers`   | `from`, `to`     | `format`                           | Per-cashier sale count, revenue, and discounts given |
+| GET    | `/reports/products`   | `from`, `to`     | `limit` (default `50`), `format`   | Top products by revenue: quantity, revenue, discounts |
+
+`from` and `to` are ISO-8601 date strings (`YYYY-MM-DD`). Supplying `from` after `to` returns
+HTTP 400.
+
+### CSV output
+
+Every endpoint accepts `?format=csv` to receive the report as `text/csv` instead of JSON. The
+CSV is a single-header flat file; multi-row reports (payments, cashiers, products) emit one row
+per line. The default (`format=json`) returns the full report record as JSON.
+
+### Date-range semantics
+
+`from` and `to` are treated as UTC-day boundaries. `from=2024-01-01` opens at
+`2024-01-01T00:00:00Z`; `to=2024-01-31` closes at `2024-02-01T00:00:00Z` (exclusive). Records
+are matched on the `created_at` column of the source table (UTC timestamp). This means a sale
+recorded at `2024-01-31T23:59:59Z` is included in a range ending `to=2024-01-31`, while one
+recorded at `2024-02-01T00:00:01Z` is not.
+
+> `STORE_TIMEZONE` support (adjusting day boundaries to the store's local clock) is deferred.
+> Until then, operators whose store is not in UTC should apply a manual offset when choosing
+> `from`/`to` values.
+
+### `limit` clamping
+
+The `/reports/products` `limit` parameter is clamped to `[1, 500]` at the service layer. Values
+below 1 are raised to 1; values above 500 are reduced to 500. The default is 50.
+
+### Design: read-only native SQL, no owned tables
+
+The `reporting` module owns **no database tables and runs no Flyway migrations**. It reads the
+`sale`, `sale_line`, `sales_return`, and `payment` tables of the `sales` and `payment` modules
+directly via `JdbcTemplate` (native SQL). This is a deliberate schema-level coupling — accepted
+because reports are read-only aggregates and the table shapes are stable — with no code
+dependency (no imports of another module's JPA entities or repositories). Module-boundary
+enforcement (`ModularityTests`) stays green because `reporting`'s declared
+`allowedDependencies` are limited to `common`, `database`, and `configuration :: api`.
+
+The `JdbcTemplate` binding uses `java.sql.Timestamp.from(Instant)` for the UTC-day boundary
+parameters. This binding is portable across both supported databases: it works on Postgres
+(tested by `ReportingPostgresTest` against a real PostgreSQL 16 container) and on SQLite
+(tested by `SalesSummaryReportTest`, `PaymentAndTaxReportTest`, and `CashierAndProductReportTest`
+against the embedded profile).
+
+On the `store-server` (PostgreSQL) profile, tables live in the `pos` schema. HikariCP is
+configured with `connection-init-sql: "SET search_path TO pos"` so that all connections —
+including JdbcTemplate connections — resolve unqualified table names to `pos` without requiring
+the SQL to carry explicit schema prefixes.
+
+### Module allowed dependencies
+
+`reporting` is permitted to import only `common`, `database`, and `configuration :: api`. It
+never imports sales/payment JPA entities, Spring Data repositories, or any other module's
+internals. This is declared in `com.company.pos.reporting`'s `package-info.java` and enforced
+by `ModularityTests`.
+
+### Currency
+
+The currency code is read from the `CURRENCY_CODE` configuration key (via
+`configuration :: api`) and stamped onto every report response. It is not hardcoded in the
+`reporting` module.
+
+### Known limits
+
+- **No profit / COGS.** Cost-of-goods data is not available in this phase; all reports show
+  revenue and discount figures only. A margin report requires a cost price on each
+  `sale_line`, which is deferred.
+- **No hourly or intra-day granularity.** All five reports aggregate over the full `from`/`to`
+  window with no finer time breakdown.
+- **No inventory-level reporting.** Stock-on-hand, stock-movement history, and reorder-status
+  reports are not in scope for this phase.
+
+Deferred: profit/margin reporting (requires COGS data), hourly/shift-level breakdowns,
+inventory/movement reports, JasperReports integration for printable PDF reports, and an
+event-sourced read model (materialised projections maintained by async listeners) to replace the
+direct-read native SQL as query volume grows.
