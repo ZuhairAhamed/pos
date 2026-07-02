@@ -321,11 +321,14 @@ with `@PreAuthorize`); all others require only a valid token (authenticated base
 
 **Attach flow** — `POST /customers/{customerId}/cart/{cartId}` validates that the customer exists
 and is active (400 on an inactive customer, 404 on unknown) before stamping the `customerId` onto
-the open cart. The detach endpoint `DELETE /carts/{cartId}/customer` lives under `/carts` (owned by
-the `cart` module) because the endpoint mutates cart state. The attach endpoint lives under
-`/customers` so the module dependency stays acyclic: `customer → cart :: api`, `customer →
-sales :: api`; nothing depends on `customer`. Moving the attach endpoint into `cart` or `sales`
-would introduce a reverse dependency that `ModularityTests` enforces against.
+the open cart. Both endpoints ultimately mutate cart state; what determines placement is module
+ownership. The attach endpoint lives under `/customers` because validating the customer requires
+`customer` code, and the `customer` module issues the write through `cart :: api` — keeping the
+dependency acyclic (`customer → cart :: api`, `customer → sales :: api`; nothing depends on
+`customer`). The detach endpoint `DELETE /carts/{cartId}/customer` needs no customer validation, so
+it lives in the `cart` module's own controller — `cart` never depends on `customer`, avoiding the
+reverse crossing. Moving the attach endpoint into `cart` or `sales` would introduce a reverse
+dependency that `ModularityTests` enforces against.
 
 **Purchase history** — `GET /customers/{id}/purchases` returns entries ordered by `occurredAt`
 descending. Each entry carries `saleId`, `receiptNumber`, `occurredAt`, `grandTotal`, and
