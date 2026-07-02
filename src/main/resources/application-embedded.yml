@@ -1,21 +1,19 @@
 spring:
   datasource:
-    # WAL journal mode is appended to the default in-memory URL so file-based overrides
-    # (POS_DB_URL=jdbc:sqlite:file:/var/lib/pos/pos.db) also pick it up via the PRAGMA
-    # in connection-init-sql below.  WAL is silently ignored for mode=memory — that's fine.
+    # SQLite is single-writer. pool=1 serialises ALL database access onto one connection, so the
+    # many async @ApplicationModuleListener threads (inventory, cashdrawer, sync, audit, ...) queue
+    # rather than contend — the stable pre-audit strategy (see commit b4908c3). Login auditing works
+    # under pool=1 because AuthService is non-transactional: its audit write (REQUIRES_NEW) needs only
+    # one connection, held by nothing else at that moment. Do NOT raise this to 2 without re-checking
+    # the full e2e suite — pool=2 un-serialises the listeners and deadlocks shared-cache SQLite.
     #
-    # pool=2 was introduced so login-audit's REQUIRES_NEW propagation can acquire a second
-    # connection (see commit b4908c3 which intentionally reversed the previous pool=1
-    # serialisation strategy).  With SQLite's single-writer model and multiple async
-    # @ApplicationModuleListener threads, a second concurrent writer would immediately
-    # get SQLITE_BUSY with no timeout.  busy_timeout=5000 makes contending writers
-    # wait/retry for up to 5 s before failing, which is the critical safety net.
+    # WAL + busy_timeout are harmless here (WAL is ignored for mode=memory) and remain as good hygiene
+    # for a production file override (POS_DB_URL=jdbc:sqlite:file:/var/lib/pos/pos.db): the PRAGMA in
+    # connection-init-sql applies to every physical connection regardless of the URL.
     url: ${POS_DB_URL:jdbc:sqlite:file:pos?mode=memory&cache=shared&journal_mode=WAL}
     driver-class-name: org.sqlite.JDBC
     hikari:
-      maximum-pool-size: 2
-      # connection-init-sql runs on EVERY physical connection regardless of the URL,
-      # so busy_timeout is guaranteed even when an operator supplies a custom POS_DB_URL.
+      maximum-pool-size: 1
       connection-init-sql: "PRAGMA busy_timeout=5000"
   jpa:
     hibernate:

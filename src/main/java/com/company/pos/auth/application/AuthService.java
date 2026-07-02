@@ -8,10 +8,14 @@ import com.company.pos.common.exception.DomainException;
 import java.util.Map;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+// Deliberately NOT @Transactional: login/pinLogin only read (the user lookup runs in its own
+// short repository transaction) then issue a JWT. Keeping no outer transaction means the audit
+// write — AuditService.record(...) is REQUIRES_NEW — needs only ONE connection, so it commits the
+// (even failed-) login record without a second concurrent connection. On single-writer SQLite
+// (embedded, pool=1) a nested write while an outer connection was held would deadlock; this avoids
+// it while preserving the durable-on-failure guarantee (record commits before the exception rethrows).
 @Service
-@Transactional(readOnly = true)
 public class AuthService {
 
     private final UserRepository users;

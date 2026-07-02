@@ -22,7 +22,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -43,10 +42,16 @@ public class DefaultAuditService implements AuditService {
         this.objectMapper = objectMapper;
     }
 
-    /** Facade for non-transactional callers (auth): commit independently so a caller that then
-     *  throws (e.g. a failed login) still leaves the record. */
+    /**
+     * Facade for non-transactional callers (auth). REQUIRED, not REQUIRES_NEW: the caller
+     * (AuthService) is deliberately non-transactional, so this starts its own transaction and
+     * commits the record before the caller's later throw (a failed-login row survives) — without
+     * demanding a second concurrent connection. REQUIRES_NEW here would suspend an outer
+     * transaction (e.g. a @Transactional test) and deadlock single-writer SQLite on a 2nd
+     * connection. See docs/run-modes.md (Phase 6) and application-embedded.yml (pool=1).
+     */
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void record(AuditAction action, String actor, String entityRef, Map<String, String> details) {
         doAppend(action, actor, entityRef, details);
     }
