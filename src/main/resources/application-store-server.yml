@@ -14,6 +14,10 @@ spring:
     username: ${POS_DB_USER:pos}
     password: ${POS_DB_PASSWORD:pos}
     hikari:
+      # Required by the reporting module's raw JdbcTemplate queries: hibernate.default_schema
+      # below only scopes JPQL/HQL, NOT raw JDBC, which would otherwise hit the default `public`
+      # schema and fail with "relation \"sale\" does not exist". Do not remove — it looks
+      # redundant next to flyway/hibernate schema config but is the only thing scoping native SQL.
       connection-init-sql: "SET search_path TO pos"
   jpa:
     hibernate:
