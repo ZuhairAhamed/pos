@@ -300,3 +300,74 @@ Known limits:
 
 Deferred: item-void / sale-cancel auditing (no void event exists yet), real tamper-alerting, and a
 richer search/review UI beyond the JSON query endpoint.
+
+## Customer (Phase 7)
+
+A new `customer` module manages shopper profiles, cart attachment, and purchase history. Endpoints:
+
+```
+POST   /customers                              {"name","phone","email","notes","loyaltyCode"}  -> CustomerView
+GET    /customers/{id}                                                                         -> CustomerView
+GET    /customers?q=                           (name/phone/email substring search)             -> [CustomerView...]
+PUT    /customers/{id}                         {"name","phone","email","notes","loyaltyCode"}  -> CustomerView
+DELETE /customers/{id}                         ROLE_MANAGER — soft-delete (active=false)       -> 204
+GET    /customers/{id}/purchases                                                               -> [PurchaseHistoryEntry...]
+POST   /customers/{customerId}/cart/{cartId}   (any authenticated — attach customer to cart)  -> CartView
+DELETE /carts/{cartId}/customer                (any authenticated — detach customer from cart) -> CartView
+```
+
+All endpoints require an authenticated bearer token. Delete is `ROLE_MANAGER`-only (method-secured
+with `@PreAuthorize`); all others require only a valid token (authenticated baseline).
+
+**Attach flow** — `POST /customers/{customerId}/cart/{cartId}` validates that the customer exists
+and is active (400 on an inactive customer, 404 on unknown) before stamping the `customerId` onto
+the open cart. The detach endpoint `DELETE /carts/{cartId}/customer` lives under `/carts` (owned by
+the `cart` module) because the endpoint mutates cart state. The attach endpoint lives under
+`/customers` so the module dependency stays acyclic: `customer → cart :: api`, `customer →
+sales :: api`; nothing depends on `customer`. Moving the attach endpoint into `cart` or `sales`
+would introduce a reverse dependency that `ModularityTests` enforces against.
+
+**Purchase history** — `GET /customers/{id}/purchases` returns entries ordered by `occurredAt`
+descending. Each entry carries `saleId`, `receiptNumber`, `occurredAt`, `grandTotal`, and
+`currencyCode`. The projection is built by `SaleCompletedCustomerListener`, an
+`@ApplicationModuleListener` that fires after-commit on `SaleCompleted`. Because it runs
+asynchronously after the sale transaction commits, history may lag the checkout response by a
+short moment (Awaitility polling works reliably in tests). The listener is **idempotent on
+`sale_id`**: a duplicate delivery (outbox replay after a crash) inserts nothing — the
+`customer_purchase` table has a unique constraint on `sale_id`.
+
+**`SaleCompleted` enrichment** — Phase 7 adds two trailing fields to the existing `SaleCompleted`
+record: `customerId` (nullable `UUID`) and `occurredAt` (`Instant`). The first carries the attached
+customer forward to the listener; the second gives the history entry a stable wall-clock timestamp
+from the sale event rather than the listener's execution time. Both fields are appended to the end
+of the record to keep all existing listeners source-compatible.
+
+**Migrations** — three Flyway migrations (store-server only; embedded uses Hibernate `ddl-auto`):
+
+- `V20` — `customers` table: `id` VARCHAR(36) PK, `name`, `phone`, `email`, `notes` TEXT,
+  `loyalty_code`, `active` BOOLEAN, `created_at`, `updated_at`, `external_id`, `erp_version`.
+- `V21` — `customer_purchases` table: `id` VARCHAR(36) PK, `customer_id` FK → `customers.id`,
+  `sale_id` VARCHAR(36) UNIQUE (idempotency key), `receipt_number`, `occurred_at`, `grand_total`
+  NUMERIC(19,4), `currency_code`.
+- `V22` — adds `customer_id` column (VARCHAR(36), nullable) to the `carts` table.
+
+Column types follow the project convention: VARCHAR(36) for all UUID columns, NUMERIC(19,4) for
+money, TEXT for free-text notes.
+
+**ERP sync deferred** — the `customers` table has `external_id` and `erp_version` columns to hold
+the ERP's customer key and change-version when sync machinery is added. No `customer` data is
+uploaded or downloaded from the ERP in this phase; those columns exist to avoid a migration churn
+later.
+
+Known limits:
+- **History listener is not idempotent for different events.** The unique constraint on `sale_id`
+  prevents double-projection for the *same* sale event, but there is no guard against two distinct
+  `SaleCompleted` events that happen to carry the same `customerId` (both will appear in history,
+  as they should). No known issue here, just clarifying scope.
+- **Soft-delete only.** Deactivated customers remain in the database with `active=false`. There is
+  no hard-delete or GDPR erasure path yet.
+- **No loyalty/points engine.** The `loyalty_code` field is stored and returned but drives no
+  discount or points calculation in this phase.
+
+Deferred: ERP customer sync (upload/download), loyalty points engine, GDPR erasure, purchase
+reporting/analytics, and customer-specific pricing.
