@@ -117,12 +117,18 @@ public class CartLine {
         this.unitPrice = sum;
     }
 
+    /**
+     * Single authority for the modifier merge key: sorted option-ids joined by comma.
+     * An empty stream (plain line, no modifiers) produces an empty string.
+     */
+    static String modifierKeyOf(java.util.stream.Stream<UUID> optionIds) {
+        return optionIds.map(UUID::toString).sorted()
+                .collect(Collectors.joining(","));
+    }
+
     /** Merge identity: sku + the sorted set of option ids (empty string for a plain line). */
     String modifierKey() {
-        return modifiers.stream()
-                .map(m -> m.getOptionId().toString())
-                .sorted()
-                .collect(Collectors.joining(","));
+        return modifierKeyOf(modifiers.stream().map(CartLineModifier::getOptionId));
     }
 
     void addQuantity(BigDecimal delta) {

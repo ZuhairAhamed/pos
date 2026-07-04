@@ -93,6 +93,10 @@ public class Cart {
         return lines;
     }
 
+    // --- by-sku mutators: serve the plain (no-modifier) merge path only ---
+    // Update / remove by line identity go through the *ById methods below.
+    // Do NOT wire these back into the CartService API — that would re-introduce
+    // the sku-ambiguity the lineId refactor was designed to eliminate.
     public Optional<CartLine> findLine(String sku) {
         return lines.stream().filter(l -> l.getSku().equals(sku)).findFirst();
     }
@@ -111,8 +115,7 @@ public class Cart {
         if (this.currencyCode == null) {
             this.currencyCode = currency;
         }
-        String key = mods.stream().map(m -> m.optionId().toString()).sorted()
-                .collect(Collectors.joining(","));
+        String key = CartLine.modifierKeyOf(mods.stream().map(com.company.pos.menu.api.ResolvedModifier::optionId));
         for (CartLine line : lines) {
             if (line.getSku().equals(sku) && line.modifierKey().equals(key)) {
                 line.addQuantity(quantity);
