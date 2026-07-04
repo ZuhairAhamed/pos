@@ -13,7 +13,8 @@ public enum SettingKey {
     DISCOUNT_REASON_CODES("discount.reason.codes", "DAMAGED,PRICE_MATCH,LOYALTY,MANAGER_COMP"),
     DISCOUNT_CASHIER_MAX_PERCENT("discount.cashier.max.percent", "10"),
     DISCOUNT_CASHIER_MAX_AMOUNT("discount.cashier.max.amount", "20.00"),
-    DASHBOARD_REVENUE_WINDOW_DAYS("dashboard.revenue.window.days", "7");
+    DASHBOARD_REVENUE_WINDOW_DAYS("dashboard.revenue.window.days", "7"),
+    DINING_TABLE_DEFAULT_SEATS("dining.table.default.seats", "4");
 
     private final String key;
     private final String defaultValue;
