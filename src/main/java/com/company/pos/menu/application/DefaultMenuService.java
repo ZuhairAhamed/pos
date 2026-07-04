@@ -16,9 +16,13 @@ import com.company.pos.menu.api.VariantMemberView;
 import com.company.pos.menu.domain.ModifierGroup;
 import com.company.pos.menu.domain.ModifierGroupAssignment;
 import com.company.pos.menu.domain.ModifierOption;
+import com.company.pos.menu.domain.VariantGroup;
+import com.company.pos.menu.domain.VariantMember;
 import com.company.pos.menu.infrastructure.ModifierGroupAssignmentRepository;
 import com.company.pos.menu.infrastructure.ModifierGroupRepository;
 import com.company.pos.menu.infrastructure.ModifierOptionRepository;
+import com.company.pos.menu.infrastructure.VariantGroupRepository;
+import com.company.pos.menu.infrastructure.VariantMemberRepository;
 import com.company.pos.product.api.ProductCatalog;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -38,13 +42,18 @@ class DefaultMenuService implements MenuService {
     private final ModifierOptionRepository options;
     private final ModifierGroupAssignmentRepository assignments;
     private final ProductCatalog products;
+    private final VariantGroupRepository variantGroups;
+    private final VariantMemberRepository variantMembers;
 
     DefaultMenuService(ModifierGroupRepository groups, ModifierOptionRepository options,
-            ModifierGroupAssignmentRepository assignments, ProductCatalog products) {
+            ModifierGroupAssignmentRepository assignments, ProductCatalog products,
+            VariantGroupRepository variantGroups, VariantMemberRepository variantMembers) {
         this.groups = groups;
         this.options = options;
         this.assignments = assignments;
         this.products = products;
+        this.variantGroups = variantGroups;
+        this.variantMembers = variantMembers;
     }
 
     @Override
@@ -153,26 +162,48 @@ class DefaultMenuService implements MenuService {
         return new ModifierResolution(resolved, total);
     }
 
-    // --- variant methods: implemented in Task 3 ---
+    // --- variant methods ---
     @Override
     public VariantGroupView createVariantGroup(CreateVariantGroupCommand command) {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        if (command.name() == null || command.name().isBlank()) {
+            throw DomainException.validation("Variant group name is required");
+        }
+        VariantGroup g = variantGroups.save(new VariantGroup(Identifiers.newId(), command.name().trim()));
+        return toVariantView(g);
     }
 
     @Override
     public VariantMemberView addVariantMember(UUID variantGroupId, AddVariantMemberCommand command) {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        variantGroups.findById(variantGroupId)
+                .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId));
+        products.findBySku(command.sku())
+                .orElseThrow(() -> DomainException.validation("Unknown sku " + command.sku()));
+        VariantMember m = variantMembers.save(new VariantMember(Identifiers.newId(),
+                variantGroupId, command.sku(), command.displayLabel()));
+        return new VariantMemberView(m.getSku(), m.getDisplayLabel());
     }
 
     @Override
     public void deactivateVariantGroup(UUID variantGroupId) {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        variantGroups.findById(variantGroupId)
+                .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId))
+                .setActive(false);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<VariantGroupView> listVariantGroups() {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        return variantGroups.findAll().stream()
+                .filter(VariantGroup::isActive)
+                .map(this::toVariantView)
+                .collect(Collectors.toList());
+    }
+
+    private VariantGroupView toVariantView(VariantGroup g) {
+        List<VariantMemberView> members = variantMembers.findByVariantGroupId(g.getId()).stream()
+                .map(m -> new VariantMemberView(m.getSku(), m.getDisplayLabel()))
+                .collect(Collectors.toList());
+        return new VariantGroupView(g.getId(), g.getName(), members);
     }
 
     private ModifierGroup loadGroup(UUID groupId) {
