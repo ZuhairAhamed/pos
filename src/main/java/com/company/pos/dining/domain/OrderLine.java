@@ -92,4 +92,12 @@ public class OrderLine {
     public void setCourse(CourseTag course) {
         this.course = course;
     }
+
+    public String getAddedBy() {
+        return addedBy;
+    }
+
+    public Instant getAddedAt() {
+        return addedAt;
+    }
 }

@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -125,6 +126,6 @@ public class DiningOrder {
     }
 
     public List<OrderLine> getLines() {
-        return lines;
+        return Collections.unmodifiableList(lines);
     }
 }
