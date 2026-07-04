@@ -111,4 +111,27 @@ class DiningLineServiceTest {
         OrderView afterRemove = dining.removeLine(orderId, lineId);
         assertThat(afterRemove.lines()).isEmpty();
     }
+
+    @Test
+    void rejectsRemoveOfUnknownLine() {
+        UUID orderId = openOrderOnFreshTable();
+        assertThatThrownBy(() -> dining.removeLine(orderId, UUID.randomUUID()))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void rejectsUpdateOfUnknownLine() {
+        UUID orderId = openOrderOnFreshTable();
+        assertThatThrownBy(() -> dining.updateLine(orderId, UUID.randomUUID(),
+                new BigDecimal("1"), null, null))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void rejectsNegativeQty() {
+        UUID orderId = openOrderOnFreshTable();
+        assertThatThrownBy(() -> dining.addLine(orderId,
+                new AddLineCommand("BURGER", new BigDecimal("-1"), null, null), "alice"))
+                .isInstanceOf(DomainException.class);
+    }
 }
