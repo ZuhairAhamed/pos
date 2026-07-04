@@ -7,17 +7,31 @@ import com.company.pos.common.exception.DomainException;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
+import com.company.pos.support.DatabaseCleaner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("embedded")
+@Import(DatabaseCleaner.class)
 class DiningTableServiceTest {
 
     @Autowired
     DiningService dining;
+
+    @Autowired
+    DatabaseCleaner cleaner;
+
+    @BeforeEach
+    @AfterEach
+    void clean() {
+        cleaner.clean();
+    }
 
     @Test
     void registersTableWithExplicitSeats() {
