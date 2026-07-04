@@ -1,12 +1,17 @@
 package com.company.pos.sales.domain;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -62,6 +67,9 @@ public class SaleLine {
 
     @Column(name = "line_discount_reason", length = 32)
     private String lineDiscountReason;
+
+    @OneToMany(mappedBy = "saleLine", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SaleLineModifier> modifiers = new ArrayList<>();
 
     protected SaleLine() {
         // JPA
@@ -138,5 +146,14 @@ public class SaleLine {
 
     public String getLineDiscountReason() {
         return lineDiscountReason;
+    }
+
+    public void addModifier(UUID optionId, String name, BigDecimal priceDelta) {
+        modifiers.add(new SaleLineModifier(com.company.pos.common.util.Identifiers.newId(),
+                this, optionId, name, priceDelta));
+    }
+
+    public List<SaleLineModifier> getModifiers() {
+        return Collections.unmodifiableList(modifiers);
     }
 }

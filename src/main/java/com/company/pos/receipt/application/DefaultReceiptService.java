@@ -7,6 +7,7 @@ import com.company.pos.device.api.PrintLine;
 import com.company.pos.device.api.Printer;
 import com.company.pos.receipt.api.ReceiptData;
 import com.company.pos.receipt.api.ReceiptLineData;
+import com.company.pos.receipt.api.ReceiptLineModifierData;
 import com.company.pos.receipt.api.ReceiptPaymentData;
 import com.company.pos.receipt.api.ReceiptService;
 import java.math.BigDecimal;
@@ -46,6 +47,15 @@ class DefaultReceiptService implements ReceiptService {
             if (line.lineDiscountAmount() != null && line.lineDiscountAmount().signum() > 0) {
                 lines.add(new PrintLine("  Discount: -" + money(line.lineDiscountAmount(), currency, locale),
                         false));
+            }
+            if (line.modifiers() != null && !line.modifiers().isEmpty()) {
+                for (ReceiptLineModifierData m : line.modifiers()) {
+                    String modLine = "  + " + m.name();
+                    if (m.priceDelta() != null && m.priceDelta().signum() != 0) {
+                        modLine += " " + money(m.priceDelta(), currency, locale);
+                    }
+                    lines.add(new PrintLine(modLine, false));
+                }
             }
         }
         lines.add(new PrintLine("--------------------------------", false));

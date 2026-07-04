@@ -15,10 +15,12 @@ import com.company.pos.pricing.api.PricingInput;
 import com.company.pos.pricing.api.PricingService;
 import com.company.pos.receipt.api.ReceiptData;
 import com.company.pos.receipt.api.ReceiptLineData;
+import com.company.pos.receipt.api.ReceiptLineModifierData;
 import com.company.pos.receipt.api.ReceiptPaymentData;
 import com.company.pos.receipt.api.ReceiptService;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SaleCompleted;
+import com.company.pos.sales.api.SaleLineModifierView;
 import com.company.pos.sales.api.SaleLineView;
 import com.company.pos.sales.api.SalePaymentView;
 import com.company.pos.sales.api.SaleView;
@@ -173,11 +175,15 @@ class DefaultSalesService implements SalesService {
         for (int i = 0; i < taxed.lines().size(); i++) {
             TaxedLine t = taxed.lines().get(i);
             DiscountedLine d = disc.lines().get(i);
-            sale.addLine(new SaleLine(Identifiers.newId(), sale, lineNo++, t.sku(), t.name(),
+            SaleLine sl = new SaleLine(Identifiers.newId(), sale, lineNo++, t.sku(), t.name(),
                     t.quantity(), t.unitPrice(), t.netAmount(), t.taxAmount(), t.lineTotal(),
                     t.currencyCode(), d.grossAmount(), d.lineDiscountAmount(),
                     d.lineDiscountType() == null ? null : d.lineDiscountType().name(),
-                    d.lineDiscountReason()));
+                    d.lineDiscountReason());
+            for (var m : cart.lines().get(i).modifiers()) {
+                sl.addModifier(m.optionId(), m.name(), m.priceDelta());
+            }
+            sale.addLine(sl);
         }
         sales.save(sale);
 
@@ -225,8 +231,13 @@ class DefaultSalesService implements SalesService {
     private void printReceipt(Sale sale, List<PaymentView> salePayments) {
         try {
             List<ReceiptLineData> lines = sale.getLines().stream()
-                    .map(l -> new ReceiptLineData(l.getName(), l.getQuantity(), l.getUnitPrice(),
-                            l.getLineTotal(), l.getGrossAmount(), l.getLineDiscountAmount()))
+                    .map(l -> {
+                        List<ReceiptLineModifierData> mods = l.getModifiers().stream()
+                                .map(m -> new ReceiptLineModifierData(m.getName(), m.getPriceDelta()))
+                                .toList();
+                        return new ReceiptLineData(l.getName(), l.getQuantity(), l.getUnitPrice(),
+                                l.getLineTotal(), l.getGrossAmount(), l.getLineDiscountAmount(), mods);
+                    })
                     .toList();
             List<ReceiptPaymentData> pays = salePayments.stream()
                     .map(p -> new ReceiptPaymentData(p.method(), p.amount(), p.amountTendered(),
@@ -245,10 +256,13 @@ class DefaultSalesService implements SalesService {
     private SaleView toView(Sale sale, List<PaymentView> salePayments) {
         List<SaleLineView> lines = new ArrayList<>();
         for (SaleLine l : sale.getLines()) {
+            List<SaleLineModifierView> modViews = l.getModifiers().stream()
+                    .map(m -> new SaleLineModifierView(m.getOptionId(), m.getName(), m.getPriceDelta()))
+                    .toList();
             lines.add(new SaleLineView(l.getLineNo(), l.getSku(), l.getName(), l.getQuantity(),
                     l.getUnitPrice(), l.getNetAmount(), l.getTaxAmount(), l.getLineTotal(),
                     l.getCurrencyCode(), l.getGrossAmount(), l.getLineDiscountAmount(),
-                    l.getLineDiscountType(), l.getLineDiscountReason()));
+                    l.getLineDiscountType(), l.getLineDiscountReason(), modViews));
         }
         List<SalePaymentView> paymentViews = salePayments.stream()
                 .map(p -> new SalePaymentView(p.method(), p.amount(), p.amountTendered(),
