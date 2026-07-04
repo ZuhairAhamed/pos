@@ -64,4 +64,12 @@ class ModularityTests {
                 .collect(Collectors.toSet());
         assertThat(names).contains("dining");
     }
+
+    @Test
+    void detectsTheMenuModule() {
+        Set<String> names = modules.stream()
+                .map(ApplicationModule::getName)
+                .collect(Collectors.toSet());
+        assertThat(names).contains("menu");
+    }
 }
