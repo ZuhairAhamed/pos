@@ -74,4 +74,17 @@ class CartServiceTest {
         assertThatThrownBy(() -> carts.addLine(cart, "COLA", BigDecimal.ZERO))
                 .isInstanceOf(DomainException.class);
     }
+
+    @Test
+    void updateAndRemoveByLineId() {
+        UUID cartId = carts.createCart();
+        CartView c = carts.addLine(cartId, "COLA", new BigDecimal("1"));
+        UUID lineId = c.lines().get(0).lineId();
+
+        CartView afterUpdate = carts.updateLine(cartId, lineId, new BigDecimal("3"));
+        assertThat(afterUpdate.lines().get(0).quantity()).isEqualByComparingTo("3");
+
+        CartView afterRemove = carts.removeLine(cartId, lineId);
+        assertThat(afterRemove.lines()).isEmpty();
+    }
 }

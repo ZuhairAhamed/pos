@@ -50,23 +50,23 @@ class DefaultCartService implements CartService {
     }
 
     @Override
-    public CartView updateLine(UUID cartId, String sku, BigDecimal quantity) {
+    public CartView updateLine(UUID cartId, UUID lineId, BigDecimal quantity) {
         requirePositive(quantity);
         Cart cart = openCart(cartId);
-        if (cart.findLine(sku).isEmpty()) {
-            throw DomainException.notFound("No line for sku " + sku);
+        if (cart.findLineById(lineId).isEmpty()) {
+            throw DomainException.notFound("No line " + lineId);
         }
-        cart.setLineQuantity(sku, quantity);
+        cart.setLineQuantityById(lineId, quantity);
         return toView(cart);
     }
 
     @Override
-    public CartView removeLine(UUID cartId, String sku) {
+    public CartView removeLine(UUID cartId, UUID lineId) {
         Cart cart = openCart(cartId);
-        if (cart.findLine(sku).isEmpty()) {
-            throw DomainException.notFound("No line for sku " + sku);
+        if (cart.findLineById(lineId).isEmpty()) {
+            throw DomainException.notFound("No line " + lineId);
         }
-        cart.removeLine(sku);
+        cart.removeLineById(lineId);
         return toView(cart);
     }
 
@@ -138,7 +138,7 @@ class DefaultCartService implements CartService {
 
     private CartView toView(Cart cart) {
         List<CartLineView> lines = cart.getLines().stream()
-                .map(l -> new CartLineView(l.getSku(), l.getName(), l.getQuantity(),
+                .map(l -> new CartLineView(l.getId(), l.getSku(), l.getName(), l.getQuantity(),
                         l.getUnitPrice(), l.getCurrencyCode()))
                 .toList();
         return new CartView(cart.getId(), cart.getStatus(), cart.getCurrencyCode(),

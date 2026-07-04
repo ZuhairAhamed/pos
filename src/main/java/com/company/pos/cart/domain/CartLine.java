@@ -7,16 +7,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "cart_line",
-        uniqueConstraints = @UniqueConstraint(name = "uq_cart_line_sku",
-                columnNames = { "cart_id", "sku" }))
+@Table(name = "cart_line")
 public class CartLine {
 
     @Id
@@ -60,6 +57,10 @@ public class CartLine {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.currencyCode = currencyCode;
+    }
+
+    public UUID getId() {
+        return id;
     }
 
     public String getSku() {

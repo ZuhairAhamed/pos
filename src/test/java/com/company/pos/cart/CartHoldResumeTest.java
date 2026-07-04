@@ -85,15 +85,16 @@ class CartHoldResumeTest {
     void voidLineRemovesItAndRenumbersRemaining() {
         // Three-line cart: add CHIP (line 1), COLA (line 2), MILK (line 3) in insertion order.
         // Remove the first line (CHIP) to exercise the renumber path across multiple survivors.
-        // Note: lineNo renumbering is internal and not surfaced on CartLineView (sku, name,
-        // quantity, unitPrice, currencyCode), so we use sku ordering as the observable proxy
-        // that removal + reindex keep ordering coherent.
+        // Note: lineNo renumbering is internal and not surfaced on CartLineView (lineId, sku,
+        // name, quantity, unitPrice, currencyCode), so we use sku ordering as the observable
+        // proxy that removal + reindex keep ordering coherent.
         UUID cart = carts.createCart();
-        carts.addLine(cart, "CHIP", new BigDecimal("1"));
+        CartView afterChip = carts.addLine(cart, "CHIP", new BigDecimal("1"));
         carts.addLine(cart, "COLA", new BigDecimal("1"));
         carts.addLine(cart, "MILK", new BigDecimal("1"));
+        UUID chipLineId = afterChip.lines().get(0).lineId();
 
-        CartView view = carts.removeLine(cart, "CHIP");
+        CartView view = carts.removeLine(cart, chipLineId);
         assertThat(view.lines()).hasSize(2);
         assertThat(view.lines()).extracting(l -> l.sku())
                 .containsExactly("COLA", "MILK");
@@ -103,7 +104,7 @@ class CartHoldResumeTest {
     void voidingAMissingLineIsRejected() {
         UUID cart = carts.createCart();
         carts.addLine(cart, "COLA", new BigDecimal("1"));
-        assertThatThrownBy(() -> carts.removeLine(cart, "NOPE"))
+        assertThatThrownBy(() -> carts.removeLine(cart, UUID.randomUUID()))
                 .isInstanceOf(DomainException.class);
     }
 }

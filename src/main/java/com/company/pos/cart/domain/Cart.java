@@ -115,6 +115,19 @@ public class Cart {
         renumber();
     }
 
+    public Optional<CartLine> findLineById(UUID lineId) {
+        return lines.stream().filter(l -> l.getId().equals(lineId)).findFirst();
+    }
+
+    public void setLineQuantityById(UUID lineId, BigDecimal quantity) {
+        findLineById(lineId).ifPresent(line -> line.setQuantity(quantity));
+    }
+
+    public void removeLineById(UUID lineId) {
+        lines.removeIf(l -> l.getId().equals(lineId));
+        renumber();
+    }
+
     private void renumber() {
         int lineNo = 1;
         for (CartLine line : lines) {

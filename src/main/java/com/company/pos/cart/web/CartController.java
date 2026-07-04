@@ -48,15 +48,15 @@ class CartController {
         return carts.addLine(cartId, body.sku(), body.quantity());
     }
 
-    @PutMapping("/carts/{cartId}/lines/{sku}")
-    CartView updateLine(@PathVariable UUID cartId, @PathVariable String sku,
+    @PutMapping("/carts/{cartId}/lines/{lineId}")
+    CartView updateLine(@PathVariable UUID cartId, @PathVariable UUID lineId,
             @RequestBody QuantityRequest body) {
-        return carts.updateLine(cartId, sku, body.quantity());
+        return carts.updateLine(cartId, lineId, body.quantity());
     }
 
-    @DeleteMapping("/carts/{cartId}/lines/{sku}")
-    CartView removeLine(@PathVariable UUID cartId, @PathVariable String sku) {
-        return carts.removeLine(cartId, sku);
+    @DeleteMapping("/carts/{cartId}/lines/{lineId}")
+    CartView removeLine(@PathVariable UUID cartId, @PathVariable UUID lineId) {
+        return carts.removeLine(cartId, lineId);
     }
 
     @DeleteMapping("/carts/{cartId}/customer")

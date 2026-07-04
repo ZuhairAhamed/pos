@@ -10,9 +10,9 @@ public interface CartService {
 
     CartView addLine(UUID cartId, String sku, BigDecimal quantity);
 
-    CartView updateLine(UUID cartId, String sku, BigDecimal quantity);
+    CartView updateLine(UUID cartId, UUID lineId, BigDecimal quantity);
 
-    CartView removeLine(UUID cartId, String sku);
+    CartView removeLine(UUID cartId, UUID lineId);
 
     CartView getCart(UUID cartId);
 
