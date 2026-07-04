@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -103,6 +104,27 @@ public class Cart {
         findLine(sku).ifPresentOrElse(
                 line -> line.addQuantity(quantity),
                 () -> lines.add(new CartLine(this, lines.size() + 1, sku, name, quantity, unitPrice, currency)));
+    }
+
+    public void addLineWithModifiers(String sku, String name, BigDecimal quantity, BigDecimal basePrice,
+            String currency, java.util.List<com.company.pos.menu.api.ResolvedModifier> mods) {
+        if (this.currencyCode == null) {
+            this.currencyCode = currency;
+        }
+        String key = mods.stream().map(m -> m.optionId().toString()).sorted()
+                .collect(Collectors.joining(","));
+        for (CartLine line : lines) {
+            if (line.getSku().equals(sku) && line.modifierKey().equals(key)) {
+                line.addQuantity(quantity);
+                return;
+            }
+        }
+        CartLine line = new CartLine(this, lines.size() + 1, sku, name, quantity, basePrice, currency);
+        for (com.company.pos.menu.api.ResolvedModifier m : mods) {
+            line.addModifier(m.optionId(), m.name(), m.priceDelta());
+        }
+        line.recomputeUnitPrice();
+        lines.add(line);
     }
 
     public void setLineQuantity(String sku, BigDecimal quantity) {

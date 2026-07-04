@@ -10,6 +10,8 @@ public interface CartService {
 
     CartView addLine(UUID cartId, String sku, BigDecimal quantity);
 
+    CartView addLine(UUID cartId, String sku, BigDecimal quantity, java.util.List<UUID> modifierOptionIds);
+
     CartView updateLine(UUID cartId, UUID lineId, BigDecimal quantity);
 
     CartView removeLine(UUID cartId, UUID lineId);

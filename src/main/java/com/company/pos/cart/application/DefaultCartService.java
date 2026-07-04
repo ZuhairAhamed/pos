@@ -1,5 +1,6 @@
 package com.company.pos.cart.application;
 
+import com.company.pos.cart.api.CartLineModifierView;
 import com.company.pos.cart.api.CartLineView;
 import com.company.pos.cart.api.CartService;
 import com.company.pos.cart.api.CartView;
@@ -9,6 +10,8 @@ import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
 import com.company.pos.configuration.api.ConfigurationService;
 import com.company.pos.configuration.api.SettingKey;
+import com.company.pos.menu.api.MenuService;
+import com.company.pos.menu.api.ModifierResolution;
 import com.company.pos.product.api.ProductCatalog;
 import com.company.pos.product.api.ProductView;
 import java.math.BigDecimal;
@@ -25,11 +28,14 @@ class DefaultCartService implements CartService {
     private final CartRepository carts;
     private final ProductCatalog catalogue;
     private final ConfigurationService config;
+    private final MenuService menu;
 
-    DefaultCartService(CartRepository carts, ProductCatalog catalogue, ConfigurationService config) {
+    DefaultCartService(CartRepository carts, ProductCatalog catalogue, ConfigurationService config,
+            MenuService menu) {
         this.carts = carts;
         this.catalogue = catalogue;
         this.config = config;
+        this.menu = menu;
     }
 
     @Override
@@ -46,6 +52,21 @@ class DefaultCartService implements CartService {
         ProductView product = catalogue.findBySku(sku)
                 .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
         cart.addLine(sku, product.name(), quantity, product.unitPrice(), product.currencyCode());
+        return toView(cart);
+    }
+
+    @Override
+    public CartView addLine(UUID cartId, String sku, BigDecimal quantity, List<UUID> modifierOptionIds) {
+        requirePositive(quantity);
+        if (modifierOptionIds == null || modifierOptionIds.isEmpty()) {
+            return addLine(cartId, sku, quantity); // plain path
+        }
+        Cart cart = openCart(cartId);
+        ProductView product = catalogue.findBySku(sku)
+                .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
+        ModifierResolution resolution = menu.resolveSelections(sku, modifierOptionIds);
+        cart.addLineWithModifiers(sku, product.name(), quantity, product.unitPrice(),
+                product.currencyCode(), resolution.modifiers());
         return toView(cart);
     }
 
@@ -139,7 +160,11 @@ class DefaultCartService implements CartService {
     private CartView toView(Cart cart) {
         List<CartLineView> lines = cart.getLines().stream()
                 .map(l -> new CartLineView(l.getId(), l.getSku(), l.getName(), l.getQuantity(),
-                        l.getUnitPrice(), l.getCurrencyCode()))
+                        l.getBasePrice(), l.getUnitPrice(), l.getCurrencyCode(),
+                        l.getModifiers().stream()
+                                .map(m -> new CartLineModifierView(
+                                        m.getOptionId(), m.getName(), m.getPriceDelta()))
+                                .toList()))
                 .toList();
         return new CartView(cart.getId(), cart.getStatus(), cart.getCurrencyCode(),
                 cart.getCustomerId(), lines);

@@ -26,7 +26,7 @@ class CartController {
         this.carts = carts;
     }
 
-    record CartLineRequest(String sku, BigDecimal quantity) {
+    record CartLineRequest(String sku, BigDecimal quantity, List<UUID> modifierOptionIds) {
     }
 
     record QuantityRequest(BigDecimal quantity) {
@@ -45,6 +45,10 @@ class CartController {
 
     @PostMapping("/carts/{cartId}/lines")
     CartView addLine(@PathVariable UUID cartId, @RequestBody CartLineRequest body) {
+        List<UUID> mods = body.modifierOptionIds();
+        if (mods != null && !mods.isEmpty()) {
+            return carts.addLine(cartId, body.sku(), body.quantity(), mods);
+        }
         return carts.addLine(cartId, body.sku(), body.quantity());
     }
 
