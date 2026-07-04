@@ -1,12 +1,16 @@
 package com.company.pos.dining.web;
 
 import com.company.pos.dining.api.DiningService;
+import com.company.pos.dining.api.OpenOrderCommand;
+import com.company.pos.dining.api.OpenOrderView;
+import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,5 +45,21 @@ class DiningController {
     @GetMapping("/dining/tables")
     List<TableView> listTables() {
         return dining.listTables();
+    }
+
+    @PostMapping("/dining/orders")
+    @ResponseStatus(HttpStatus.CREATED)
+    OrderView openOrder(@RequestBody OpenOrderCommand body, Authentication authentication) {
+        return dining.openOrder(body, authentication.getName());
+    }
+
+    @GetMapping("/dining/orders")
+    List<OpenOrderView> listOpenOrders() {
+        return dining.listOpenOrders();
+    }
+
+    @GetMapping("/dining/orders/{orderId}")
+    OrderView getOrder(@PathVariable UUID orderId) {
+        return dining.getOrder(orderId);
     }
 }

@@ -10,13 +10,19 @@ import com.company.pos.dining.api.CourseTag;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.OpenOrderCommand;
 import com.company.pos.dining.api.OpenOrderView;
+import com.company.pos.dining.api.OrderLineView;
+import com.company.pos.dining.api.OrderStatus;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
+import com.company.pos.dining.api.ServiceType;
 import com.company.pos.dining.api.TableView;
+import com.company.pos.dining.domain.DiningOrder;
 import com.company.pos.dining.domain.DiningTable;
+import com.company.pos.dining.infrastructure.DiningOrderRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
 import com.company.pos.sales.api.SaleView;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -27,10 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
 class DefaultDiningService implements DiningService {
 
     private final DiningTableRepository tables;
+    private final DiningOrderRepository orders;
     private final ConfigurationService config;
 
-    DefaultDiningService(DiningTableRepository tables, ConfigurationService config) {
+    DefaultDiningService(DiningTableRepository tables, DiningOrderRepository orders,
+            ConfigurationService config) {
         this.tables = tables;
+        this.orders = orders;
         this.config = config;
     }
 
@@ -66,17 +75,48 @@ class DefaultDiningService implements DiningService {
     // --- orders (Task 3) ---
     @Override
     public OrderView openOrder(OpenOrderCommand command, String openedBy) {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        DiningTable table = tables.findById(command.tableId())
+                .orElseThrow(() -> DomainException.notFound("No table " + command.tableId()));
+        if (!table.isActive()) {
+            throw DomainException.validation("Table " + table.getLabel() + " is inactive");
+        }
+        if (orders.existsByTableIdAndStatus(table.getId(), OrderStatus.OPEN)) {
+            throw DomainException.conflict("Table " + table.getLabel() + " already has an open order");
+        }
+        ServiceType type = command.serviceType() != null ? command.serviceType() : ServiceType.DINE_IN;
+        DiningOrder order = new DiningOrder(Identifiers.newId(), table.getId(), type, openedBy,
+                Instant.now());
+        return toOrderView(orders.save(order));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderView getOrder(UUID orderId) {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        return toOrderView(load(orderId));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<OpenOrderView> listOpenOrders() {
-        throw new UnsupportedOperationException("Implemented in Task 3");
+        return orders.findByStatus(OrderStatus.OPEN).stream()
+                .map(o -> new OpenOrderView(o.getId(), o.getTableId(),
+                        tables.findById(o.getTableId()).map(DiningTable::getLabel).orElse(null),
+                        o.getOpenedAt(), o.getLines().size()))
+                .toList();
+    }
+
+    DiningOrder load(UUID orderId) {
+        return orders.findById(orderId)
+                .orElseThrow(() -> DomainException.notFound("No order " + orderId));
+    }
+
+    OrderView toOrderView(DiningOrder o) {
+        List<OrderLineView> lineViews = o.getLines().stream()
+                .map(l -> new OrderLineView(l.getId(), l.getSku(), l.getQty(), l.getNote(),
+                        l.getCourse()))
+                .toList();
+        return new OrderView(o.getId(), o.getTableId(), o.getServiceType(), o.getStatus(),
+                o.getOpenedBy(), o.getOpenedAt(), o.getClosedAt(), o.getSaleId(), lineViews);
     }
 
     // --- lines (Task 4) ---
