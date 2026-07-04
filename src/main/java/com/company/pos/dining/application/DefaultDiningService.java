@@ -1,5 +1,6 @@
 package com.company.pos.dining.application;
 
+import com.company.pos.cart.api.CartService;
 import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
 import com.company.pos.configuration.api.ConfigurationService;
@@ -22,10 +23,14 @@ import com.company.pos.dining.domain.OrderLine;
 import com.company.pos.dining.infrastructure.DiningOrderRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
 import com.company.pos.product.api.ProductCatalog;
+import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SaleView;
+import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,13 +43,18 @@ class DefaultDiningService implements DiningService {
     private final DiningOrderRepository orders;
     private final ConfigurationService config;
     private final ProductCatalog products;
+    private final CartService carts;
+    private final SalesService sales;
 
     DefaultDiningService(DiningTableRepository tables, DiningOrderRepository orders,
-            ConfigurationService config, ProductCatalog products) {
+            ConfigurationService config, ProductCatalog products,
+            CartService carts, SalesService sales) {
         this.tables = tables;
         this.orders = orders;
         this.config = config;
         this.products = products;
+        this.carts = carts;
+        this.sales = sales;
     }
 
     @Override
@@ -180,12 +190,37 @@ class DefaultDiningService implements DiningService {
     @Override
     public SaleView closeOrder(UUID orderId, CloseOrderCommand command, String cashierUsername,
             boolean callerIsManager) {
-        throw new UnsupportedOperationException("Implemented in Task 5");
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (order.getLines().isEmpty()) {
+            throw DomainException.validation("Cannot close an empty order");
+        }
+
+        // Aggregate lines by sku so the throwaway cart has one line per sku — this keeps the
+        // cart's one-line-per-sku shape and lets sku-keyed line discounts map cleanly.
+        Map<String, BigDecimal> bySku = new LinkedHashMap<>();
+        for (OrderLine line : order.getLines()) {
+            bySku.merge(line.getSku(), line.getQty(), BigDecimal::add);
+        }
+
+        UUID cartId = carts.createCart();
+        bySku.forEach((sku, qty) -> carts.addLine(cartId, sku, qty));
+
+        SaleView sale = sales.checkout(
+                new CheckoutCommand(cartId, command.tenders(), command.lineDiscounts(),
+                        command.transactionDiscount()),
+                cashierUsername, callerIsManager);
+
+        carts.close(cartId);
+        order.close(sale.id(), Instant.now());
+        return sale;
     }
 
     @Override
     public void voidOrder(UUID orderId, String reason) {
-        throw new UnsupportedOperationException("Implemented in Task 5");
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        order.voidOrder();
     }
 
     private TableView toTableView(DiningTable t) {

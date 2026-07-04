@@ -1,6 +1,7 @@
 package com.company.pos.dining.web;
 
 import com.company.pos.dining.api.AddLineCommand;
+import com.company.pos.dining.api.CloseOrderCommand;
 import com.company.pos.dining.api.CourseTag;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.OpenOrderCommand;
@@ -8,6 +9,7 @@ import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
+import com.company.pos.sales.api.SaleView;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -86,5 +88,22 @@ class DiningController {
     @PreAuthorize("hasRole('MANAGER')")
     OrderView removeLine(@PathVariable UUID orderId, @PathVariable UUID lineId) {
         return dining.removeLine(orderId, lineId);
+    }
+
+    @PostMapping("/dining/orders/{orderId}/close")
+    @ResponseStatus(HttpStatus.CREATED)
+    SaleView closeOrder(@PathVariable UUID orderId, @RequestBody CloseOrderCommand body,
+            Authentication authentication) {
+        boolean isManager = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_MANAGER".equals(a.getAuthority()));
+        return dining.closeOrder(orderId, body, authentication.getName(), isManager);
+    }
+
+    @PostMapping("/dining/orders/{orderId}/void")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('MANAGER')")
+    void voidOrder(@PathVariable UUID orderId,
+            @RequestParam(required = false, defaultValue = "") String reason) {
+        dining.voidOrder(orderId, reason);
     }
 }
