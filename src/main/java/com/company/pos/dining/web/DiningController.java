@@ -1,11 +1,14 @@
 package com.company.pos.dining.web;
 
+import com.company.pos.dining.api.AddLineCommand;
+import com.company.pos.dining.api.CourseTag;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.OpenOrderCommand;
 import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -15,7 +18,9 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -61,5 +66,25 @@ class DiningController {
     @GetMapping("/dining/orders/{orderId}")
     OrderView getOrder(@PathVariable UUID orderId) {
         return dining.getOrder(orderId);
+    }
+
+    @PostMapping("/dining/orders/{orderId}/lines")
+    OrderView addLine(@PathVariable UUID orderId, @RequestBody AddLineCommand body,
+            Authentication authentication) {
+        return dining.addLine(orderId, body, authentication.getName());
+    }
+
+    @PutMapping("/dining/orders/{orderId}/lines/{lineId}")
+    OrderView updateLine(@PathVariable UUID orderId, @PathVariable UUID lineId,
+            @RequestParam BigDecimal qty,
+            @RequestParam(required = false) String note,
+            @RequestParam(required = false) CourseTag course) {
+        return dining.updateLine(orderId, lineId, qty, note, course);
+    }
+
+    @DeleteMapping("/dining/orders/{orderId}/lines/{lineId}")
+    @PreAuthorize("hasRole('MANAGER')")
+    OrderView removeLine(@PathVariable UUID orderId, @PathVariable UUID lineId) {
+        return dining.removeLine(orderId, lineId);
     }
 }

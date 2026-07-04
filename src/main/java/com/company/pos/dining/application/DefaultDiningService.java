@@ -18,8 +18,10 @@ import com.company.pos.dining.api.ServiceType;
 import com.company.pos.dining.api.TableView;
 import com.company.pos.dining.domain.DiningOrder;
 import com.company.pos.dining.domain.DiningTable;
+import com.company.pos.dining.domain.OrderLine;
 import com.company.pos.dining.infrastructure.DiningOrderRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
+import com.company.pos.product.api.ProductCatalog;
 import com.company.pos.sales.api.SaleView;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -35,12 +37,14 @@ class DefaultDiningService implements DiningService {
     private final DiningTableRepository tables;
     private final DiningOrderRepository orders;
     private final ConfigurationService config;
+    private final ProductCatalog products;
 
     DefaultDiningService(DiningTableRepository tables, DiningOrderRepository orders,
-            ConfigurationService config) {
+            ConfigurationService config, ProductCatalog products) {
         this.tables = tables;
         this.orders = orders;
         this.config = config;
+        this.products = products;
     }
 
     @Override
@@ -122,18 +126,54 @@ class DefaultDiningService implements DiningService {
     // --- lines (Task 4) ---
     @Override
     public OrderView addLine(UUID orderId, AddLineCommand command, String addedBy) {
-        throw new UnsupportedOperationException("Implemented in Task 4");
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (command.qty() == null || command.qty().signum() <= 0) {
+            throw DomainException.validation("Line quantity must be positive");
+        }
+        products.findBySku(command.sku())
+                .orElseThrow(() -> DomainException.validation("Unknown sku " + command.sku()));
+        OrderLine line = new OrderLine(Identifiers.newId(), order.getId(), command.sku(),
+                command.qty(), command.note(), command.course(), addedBy, Instant.now());
+        order.addLine(line);
+        return toOrderView(order);
     }
 
     @Override
     public OrderView updateLine(UUID orderId, UUID lineId, BigDecimal qty, String note,
             CourseTag course) {
-        throw new UnsupportedOperationException("Implemented in Task 4");
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (qty == null || qty.signum() <= 0) {
+            throw DomainException.validation("Line quantity must be positive");
+        }
+        OrderLine line = requireLine(order, lineId);
+        line.setQty(qty);
+        line.setNote(note);
+        line.setCourse(course);
+        return toOrderView(order);
     }
 
     @Override
     public OrderView removeLine(UUID orderId, UUID lineId) {
-        throw new UnsupportedOperationException("Implemented in Task 4");
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        OrderLine line = requireLine(order, lineId);
+        order.removeLine(line);
+        return toOrderView(order);
+    }
+
+    private void requireOpen(DiningOrder order) {
+        if (order.getStatus() != OrderStatus.OPEN) {
+            throw DomainException.validation("Order " + order.getId() + " is not open");
+        }
+    }
+
+    private OrderLine requireLine(DiningOrder order, UUID lineId) {
+        return order.getLines().stream()
+                .filter(l -> l.getId().equals(lineId))
+                .findFirst()
+                .orElseThrow(() -> DomainException.notFound("No line " + lineId));
     }
 
     // --- close / void (Task 5) ---
