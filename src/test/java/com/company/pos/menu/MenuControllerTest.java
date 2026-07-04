@@ -63,4 +63,20 @@ class MenuControllerTest {
         mvc.perform(get("/menu/variant-groups").with(cashier()))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void managerCreatesVariantGroup() throws Exception {
+        mvc.perform(post("/menu/variant-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Draft Beer\"}"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void cashierCannotCreateVariantGroup() throws Exception {
+        mvc.perform(post("/menu/variant-groups").with(cashier())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Draft Beer\"}"))
+                .andExpect(status().isForbidden());
+    }
 }
