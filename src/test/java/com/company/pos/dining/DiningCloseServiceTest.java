@@ -131,19 +131,31 @@ class DiningCloseServiceTest {
     }
 
     @Test
+    void closingEmptyOrderIsRejected() {
+        UUID tableId = dining.registerTable(new RegisterTableCommand("C7", 4)).id();
+        UUID orderId = dining.openOrder(new OpenOrderCommand(tableId, null), "alice").id();
+        assertThatThrownBy(() -> dining.closeOrder(orderId,
+                new CloseOrderCommand(
+                        List.of(new TenderInput(PaymentMethod.CASH, null, new BigDecimal("10.00"))),
+                        Map.of(), null),
+                "alice", false))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
     void updateLineRejectedOnVoidedOrder() {
         UUID orderId = openOrderWithTwoBurgers("C5");
         dining.voidOrder(orderId, "walked out");
-        assertThatThrownBy(() -> dining.updateLine(orderId, java.util.UUID.randomUUID(),
-                new java.math.BigDecimal("1"), null, null))
-                .isInstanceOf(com.company.pos.common.exception.DomainException.class);
+        assertThatThrownBy(() -> dining.updateLine(orderId, UUID.randomUUID(),
+                new BigDecimal("1"), null, null))
+                .isInstanceOf(DomainException.class);
     }
 
     @Test
     void removeLineRejectedOnVoidedOrder() {
         UUID orderId = openOrderWithTwoBurgers("C6");
         dining.voidOrder(orderId, "walked out");
-        assertThatThrownBy(() -> dining.removeLine(orderId, java.util.UUID.randomUUID()))
-                .isInstanceOf(com.company.pos.common.exception.DomainException.class);
+        assertThatThrownBy(() -> dining.removeLine(orderId, UUID.randomUUID()))
+                .isInstanceOf(DomainException.class);
     }
 }
