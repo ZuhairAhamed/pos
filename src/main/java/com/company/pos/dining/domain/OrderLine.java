@@ -117,8 +117,4 @@ public class OrderLine {
     public List<OrderLineModifier> getModifiers() {
         return Collections.unmodifiableList(modifiers);
     }
-
-    public List<UUID> getModifierOptionIds() {
-        return modifiers.stream().map(OrderLineModifier::getOptionId).toList();
-    }
 }
