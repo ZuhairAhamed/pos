@@ -111,11 +111,12 @@ public class Cart {
     }
 
     public void addLineWithModifiers(String sku, String name, BigDecimal quantity, BigDecimal basePrice,
-            String currency, java.util.List<com.company.pos.menu.api.ResolvedModifier> mods) {
+            String currency, java.util.List<com.company.pos.cart.api.CartLineModifierInput> mods) {
         if (this.currencyCode == null) {
             this.currencyCode = currency;
         }
-        String key = CartLine.modifierKeyOf(mods.stream().map(com.company.pos.menu.api.ResolvedModifier::optionId));
+        String key = CartLine.modifierKeyOf(
+                mods.stream().map(com.company.pos.cart.api.CartLineModifierInput::optionId));
         for (CartLine line : lines) {
             if (line.getSku().equals(sku) && line.modifierKey().equals(key)) {
                 line.addQuantity(quantity);
@@ -123,7 +124,7 @@ public class Cart {
             }
         }
         CartLine line = new CartLine(this, lines.size() + 1, sku, name, quantity, basePrice, currency);
-        for (com.company.pos.menu.api.ResolvedModifier m : mods) {
+        for (com.company.pos.cart.api.CartLineModifierInput m : mods) {
             line.addModifier(m.optionId(), m.name(), m.priceDelta());
         }
         line.recomputeUnitPrice();

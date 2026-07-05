@@ -65,8 +65,27 @@ class DefaultCartService implements CartService {
         ProductView product = catalogue.findBySku(sku)
                 .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
         ModifierResolution resolution = menu.resolveSelections(sku, modifierOptionIds);
+        List<com.company.pos.cart.api.CartLineModifierInput> mods = resolution.modifiers().stream()
+                .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
+                        m.optionId(), m.name(), m.priceDelta()))
+                .toList();
         cart.addLineWithModifiers(sku, product.name(), quantity, product.unitPrice(),
-                product.currencyCode(), resolution.modifiers());
+                product.currencyCode(), mods);
+        return toView(cart);
+    }
+
+    @Override
+    public CartView addLinePreResolved(UUID cartId, String sku, BigDecimal quantity,
+            List<com.company.pos.cart.api.CartLineModifierInput> modifiers) {
+        requirePositive(quantity);
+        if (modifiers == null || modifiers.isEmpty()) {
+            return addLine(cartId, sku, quantity); // plain path merges by sku
+        }
+        Cart cart = openCart(cartId);
+        ProductView product = catalogue.findBySku(sku)
+                .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
+        cart.addLineWithModifiers(sku, product.name(), quantity, product.unitPrice(),
+                product.currencyCode(), modifiers);
         return toView(cart);
     }
 
