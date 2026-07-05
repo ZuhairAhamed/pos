@@ -73,7 +73,7 @@ class DiningOrderModifierTest {
 
         OrderLineView line = order.lines().get(0);
         assertThat(line.modifiers()).extracting("name").containsExactly("Extra cheese");
-        assertThat(line.modifiers()).extracting("priceDelta").containsExactly(new BigDecimal("2.00"));
+        assertThat(line.modifiers().get(0).priceDelta()).isEqualByComparingTo("2.00");
     }
 
     @Test

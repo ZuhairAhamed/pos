@@ -30,7 +30,6 @@ import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -137,7 +136,7 @@ class DefaultDiningService implements DiningService {
                         l.getModifiers().stream()
                                 .map(m -> new com.company.pos.dining.api.OrderLineModifierView(
                                         m.getOptionId(), m.getName(),
-                                        m.getPriceDelta().setScale(2, RoundingMode.HALF_UP)))
+                                        m.getPriceDelta()))
                                 .toList()))
                 .toList();
         return new OrderView(o.getId(), o.getTableId(), o.getServiceType(), o.getStatus(),
