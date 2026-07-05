@@ -31,9 +31,7 @@ import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -212,15 +210,18 @@ class DefaultDiningService implements DiningService {
             throw DomainException.validation("Cannot close an empty order");
         }
 
-        // Aggregate lines by sku so the throwaway cart has one line per sku — this keeps the
-        // cart's one-line-per-sku shape and lets sku-keyed line discounts map cleanly.
-        Map<String, BigDecimal> bySku = new LinkedHashMap<>();
-        for (OrderLine line : order.getLines()) {
-            bySku.merge(line.getSku(), line.getQty(), BigDecimal::add);
-        }
-
+        // NEW (Phase 11b): one cart line per order line, carrying the modifier deltas
+        // SNAPSHOTTED at add-time (no re-resolve — the guest pays the quoted price). The
+        // cart's own merge collapses identical plain lines; modified lines stay distinct.
         UUID cartId = carts.createCart();
-        bySku.forEach((sku, qty) -> carts.addLine(cartId, sku, qty));
+        for (OrderLine line : order.getLines()) {
+            java.util.List<com.company.pos.cart.api.CartLineModifierInput> mods =
+                    line.getModifiers().stream()
+                            .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
+                                    m.getOptionId(), m.getName(), m.getPriceDelta()))
+                            .toList();
+            carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
+        }
 
         SaleView sale = sales.checkout(
                 new CheckoutCommand(cartId, command.tenders(), command.lineDiscounts(),

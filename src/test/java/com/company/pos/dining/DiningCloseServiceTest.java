@@ -14,6 +14,7 @@ import com.company.pos.dining.api.OrderStatus;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.erp.FakeErpClient;
+import com.company.pos.menu.api.MenuService;
 import com.company.pos.payment.api.PaymentMethod;
 import com.company.pos.product.api.ProductSync;
 import com.company.pos.sales.api.SaleView;
@@ -40,6 +41,7 @@ class DiningCloseServiceTest {
     @Autowired ProductSync productSync;
     @Autowired FakeErpClient fake;
     @Autowired DatabaseCleaner cleaner;
+    @Autowired MenuService menu;
 
     @BeforeEach
     void seed() {
@@ -157,5 +159,30 @@ class DiningCloseServiceTest {
         dining.voidOrder(orderId, "walked out");
         assertThatThrownBy(() -> dining.removeLine(orderId, UUID.randomUUID()))
                 .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void closingCarriesModifierPriceAndDetailToTheSale() {
+        // Arrange: a cheese add-on on BURGER
+        com.company.pos.menu.api.ModifierGroupView addons =
+                menu.createModifierGroup(new com.company.pos.menu.api.CreateModifierGroupCommand("Add-ons", 0, 3));
+        java.util.UUID cheeseId = menu.addOption(addons.id(),
+                new com.company.pos.menu.api.AddOptionCommand("Extra cheese", new java.math.BigDecimal("2.00"))).id();
+        menu.assignGroupToSku(addons.id(), "BURGER");
+
+        UUID tableId = dining.registerTable(new RegisterTableCommand("CM1", 4)).id();
+        UUID orderId = dining.openOrder(new OpenOrderCommand(tableId, null), "alice").id();
+        dining.addLine(orderId, new com.company.pos.dining.api.AddLineCommand(
+                "BURGER", new java.math.BigDecimal("1"), null, null, java.util.List.of(cheeseId)), "alice");
+
+        // Act: close (effective 32.00 +15% = 4.80 → grand 36.80)
+        SaleView sale = dining.closeOrder(orderId,
+                new CloseOrderCommand(java.util.List.of(
+                        new TenderInput(PaymentMethod.CASH, null, new java.math.BigDecimal("40.00"))),
+                        java.util.Map.of(), null), "alice", false);
+
+        assertThat(sale.grandTotal()).isEqualByComparingTo("36.80");
+        assertThat(sale.lines().get(0).unitPrice()).isEqualByComparingTo("32.00");
+        assertThat(sale.lines().get(0).modifiers()).extracting("name").containsExactly("Extra cheese");
     }
 }
