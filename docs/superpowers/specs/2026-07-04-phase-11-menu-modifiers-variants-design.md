@@ -183,15 +183,35 @@ JPA repositories.
   resolve so the ticket shows names and a running line price. `OrderLineView`
   gains the modifier list.
 - **`closeOrder` no longer aggregates by sku.** It adds **one cart line per order
-  line** via `carts.addLine(cartId, sku, qty, optionIds)`. This replaces the
-  Phase-10 `LinkedHashMap` sku-merge (documented there as correct only pre-
-  modifiers).
-- **Resolution happens twice, deliberately.** The order line resolves modifiers
-  at add-time (for the ticket display + running price) and the cart re-resolves
-  from the same `optionIds` at close. The **cart's close-time resolution is the
-  authoritative price** on the Sale; the order line's stored deltas are display
-  data. If an option's `priceDelta` changed mid-meal, the bill reflects the
-  as-of-close price. Acceptable for a single-store MVP; documented, not guarded.
+  line**, carrying the modifier detail already stored on the order line. This
+  replaces the Phase-10 `LinkedHashMap` sku-merge (documented there as correct
+  only pre-modifiers).
+- **Modifier prices are snapshot-at-order-time (the billing contract).** The
+  order line resolves modifiers **once**, at add-time, via `menu.resolveSelections`
+  — this validates the selection and captures each option's `name` + `priceDelta`
+  onto the `OrderLine`. Those captured deltas are the **authoritative** modifier
+  prices on the bill: **the guest pays what was quoted when the item was ordered.**
+  At close the order line's stored modifiers are handed to the cart *pre-resolved*
+  (via `carts.addLinePreResolved(cartId, sku, qty, modifiers)`), which folds them
+  into the effective unit price **without** calling `resolveSelections` again. So:
+  a mid-service price change or an option deactivation **never** re-prices an open
+  check and **never** blocks closing a table. (Rationale: matches restaurant
+  billing norms and the system's offline-first "always able to close" principle;
+  a re-resolve-at-close alternative was rejected because deactivating a modifier
+  would make `resolveSelections` throw and leave the table unclosable.)
+  - *Scope note:* only the **modifier deltas** are snapshotted. The **base**
+    product price is still taken from the current `product` catalog at close (the
+    unchanged Phase-10 behavior — plain dine-in lines already re-price the base at
+    close). Snapshotting the base price is out of scope.
+- **New cart seam.** `cart` gains `addLinePreResolved(cartId, sku, qty,
+  List<CartLineModifierInput>)` alongside the 11a `addLine(…, List<UUID>
+  optionIds)`. `CartLineModifierInput(UUID optionId, String name, BigDecimal
+  priceDelta)` is a new `cart::api` record. As part of adding it, `cart`'s domain
+  `addLineWithModifiers` is refactored to take `CartLineModifierInput` instead of
+  `menu::api`'s `ResolvedModifier`, so the cart **domain** no longer references
+  `menu` at all (the `menu` resolve stays in `cart`'s application layer on the
+  `optionIds` path only). `dining → menu::api` is retained (add-time resolve);
+  `dining` uses `cart::api`'s new pre-resolved seam at close.
 
 ## Data model & migrations
 
