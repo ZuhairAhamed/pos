@@ -23,10 +23,14 @@ import com.company.pos.dining.domain.OrderLine;
 import com.company.pos.dining.infrastructure.DiningOrderRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
 import com.company.pos.product.api.ProductCatalog;
+import com.company.pos.menu.api.MenuService;
+import com.company.pos.menu.api.ModifierResolution;
+import com.company.pos.menu.api.ResolvedModifier;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,16 +49,18 @@ class DefaultDiningService implements DiningService {
     private final ProductCatalog products;
     private final CartService carts;
     private final SalesService sales;
+    private final MenuService menu;
 
     DefaultDiningService(DiningTableRepository tables, DiningOrderRepository orders,
             ConfigurationService config, ProductCatalog products,
-            CartService carts, SalesService sales) {
+            CartService carts, SalesService sales, MenuService menu) {
         this.tables = tables;
         this.orders = orders;
         this.config = config;
         this.products = products;
         this.carts = carts;
         this.sales = sales;
+        this.menu = menu;
     }
 
     @Override
@@ -127,7 +133,12 @@ class DefaultDiningService implements DiningService {
     OrderView toOrderView(DiningOrder o) {
         List<OrderLineView> lineViews = o.getLines().stream()
                 .map(l -> new OrderLineView(l.getId(), l.getSku(), l.getQty(), l.getNote(),
-                        l.getCourse()))
+                        l.getCourse(),
+                        l.getModifiers().stream()
+                                .map(m -> new com.company.pos.dining.api.OrderLineModifierView(
+                                        m.getOptionId(), m.getName(),
+                                        m.getPriceDelta().setScale(2, RoundingMode.HALF_UP)))
+                                .toList()))
                 .toList();
         return new OrderView(o.getId(), o.getTableId(), o.getServiceType(), o.getStatus(),
                 o.getOpenedBy(), o.getOpenedAt(), o.getClosedAt(), o.getSaleId(), lineViews);
@@ -145,6 +156,12 @@ class DefaultDiningService implements DiningService {
                 .orElseThrow(() -> DomainException.validation("Unknown sku " + command.sku()));
         OrderLine line = new OrderLine(Identifiers.newId(), order.getId(), command.sku(),
                 command.qty(), command.note(), command.course(), addedBy, Instant.now());
+        if (!command.modifierOptionIds().isEmpty()) {
+            ModifierResolution res = menu.resolveSelections(command.sku(), command.modifierOptionIds());
+            for (ResolvedModifier m : res.modifiers()) {
+                line.addModifier(m.optionId(), m.name(), m.priceDelta());
+            }
+        }
         order.addLine(line);
         return toOrderView(order);
     }

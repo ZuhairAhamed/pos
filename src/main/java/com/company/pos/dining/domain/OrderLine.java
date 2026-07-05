@@ -1,14 +1,20 @@
 package com.company.pos.dining.domain;
 
+import com.company.pos.common.util.Identifiers;
 import com.company.pos.dining.api.CourseTag;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -44,6 +50,9 @@ public class OrderLine {
 
     @Column(name = "added_at", nullable = false)
     private Instant addedAt;
+
+    @OneToMany(mappedBy = "orderLine", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderLineModifier> modifiers = new ArrayList<>();
 
     protected OrderLine() {
         // JPA
@@ -99,5 +108,17 @@ public class OrderLine {
 
     public Instant getAddedAt() {
         return addedAt;
+    }
+
+    public void addModifier(UUID optionId, String name, BigDecimal priceDelta) {
+        modifiers.add(new OrderLineModifier(Identifiers.newId(), this, optionId, name, priceDelta));
+    }
+
+    public List<OrderLineModifier> getModifiers() {
+        return Collections.unmodifiableList(modifiers);
+    }
+
+    public List<UUID> getModifierOptionIds() {
+        return modifiers.stream().map(OrderLineModifier::getOptionId).toList();
     }
 }
