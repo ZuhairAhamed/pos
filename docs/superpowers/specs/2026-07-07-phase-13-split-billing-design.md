@@ -170,9 +170,12 @@ as-is; `listOrderSaleIds` unions both sources.
 
 ## Module boundaries & migrations
 
-- `dining` `allowedDependencies` are **unchanged** — it already depends on
-  `sales :: api` and `cart :: api`. `quote` / `QuoteView` live in `sales :: api`;
-  the new split DTOs live in `dining :: api`. `ModularityTests` stays green.
+- `dining` `allowedDependencies` gain **`payment :: api`** — the even-split
+  `EvenSplitInput` names `PaymentMethod` (which lives in `payment.api`). By-item
+  needs nothing new (it just forwards `TenderInput`, already reachable via
+  `sales :: api`). The addition is acyclic (`payment` has no `dining` dependency).
+  `quote` / `QuoteView` live in `sales :: api`; the new split DTOs live in
+  `dining :: api`. `ModularityTests` stays green.
 - No new config keys.
 - **Migration V33** (globally sequential; V32 is the latest existing) —
   `dining_order_sale` table in `src/main/resources/db/migration/dining/`
