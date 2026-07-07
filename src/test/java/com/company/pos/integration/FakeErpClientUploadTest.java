@@ -22,7 +22,7 @@ class FakeErpClientUploadTest {
                         new BigDecimal("10.35"), new BigDecimal("9.00"), new BigDecimal("0.00"), null)),
                 List.of(new SaleUpload.Payment("CASH", new BigDecimal("10.35"),
                         new BigDecimal("20.00"), new BigDecimal("9.65"), null)),
-                new BigDecimal("0.00"), new BigDecimal("0.00"), null, null);
+                new BigDecimal("0.00"), new BigDecimal("0.00"), null, null, BigDecimal.ZERO);
     }
 
     @Test

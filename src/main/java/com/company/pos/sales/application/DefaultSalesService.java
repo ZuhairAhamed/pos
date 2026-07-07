@@ -314,7 +314,8 @@ class DefaultSalesService implements SalesService {
             receipts.print(new ReceiptData(sale.getReceiptNumber(), sale.getCashierUsername(),
                     sale.getCreatedAt(), lines, sale.getSubtotal(), sale.getTaxTotal(),
                     sale.getGrandTotal(), pays, sale.getCurrencyCode(), sale.getDiscountTotal(),
-                    sale.getTxnDiscountAmount(), sale.getTxnDiscountReason()));
+                    sale.getTxnDiscountAmount(), sale.getTxnDiscountReason(),
+                    sale.getServiceChargeAmount()));
         } catch (RuntimeException ex) {
             log.warn("Receipt print failed for sale {} ({}) — sale is recorded; reprint available",
                     sale.getId(), sale.getReceiptNumber(), ex);

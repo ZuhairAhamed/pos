@@ -53,7 +53,8 @@ class SaleUploadListener {
         return new SaleUpload(sale.id(), sale.receiptNumber(), event.terminalId(),
                 event.locationCode(), sale.currencyCode(), sale.subtotal(), sale.taxTotal(),
                 sale.grandTotal(), sale.createdAt(), lines, payments, sale.discountTotal(),
-                sale.txnDiscountAmount(), sale.txnDiscountType(), sale.txnDiscountReason());
+                sale.txnDiscountAmount(), sale.txnDiscountType(), sale.txnDiscountReason(),
+                sale.serviceChargeAmount());
     }
 
     private List<StockMovementUpload> toMovements(SaleCompleted event, SaleView sale) {

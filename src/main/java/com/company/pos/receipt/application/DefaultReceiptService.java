@@ -77,6 +77,10 @@ class DefaultReceiptService implements ReceiptService {
             lines.add(new PrintLine("  Transaction discount" + reason + ": -"
                     + money(data.txnDiscountAmount(), currency, locale), false));
         }
+        if (data.serviceChargeAmount() != null && data.serviceChargeAmount().signum() > 0) {
+            lines.add(new PrintLine(config.getString(SettingKey.SERVICE_CHARGE_LABEL) + ": +"
+                    + money(data.serviceChargeAmount(), currency, locale), false));
+        }
         lines.add(new PrintLine("Tax:      " + money(data.taxTotal(), currency, locale), false));
         lines.add(new PrintLine("TOTAL:    " + money(data.grandTotal(), currency, locale), true));
         for (ReceiptPaymentData payment : data.payments()) {
