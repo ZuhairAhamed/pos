@@ -19,6 +19,8 @@ import com.company.pos.receipt.api.ReceiptLineModifierData;
 import com.company.pos.receipt.api.ReceiptPaymentData;
 import com.company.pos.receipt.api.ReceiptService;
 import com.company.pos.sales.api.CheckoutCommand;
+import com.company.pos.sales.api.DiscountInput;
+import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleCompleted;
 import com.company.pos.sales.api.SaleLineModifierView;
 import com.company.pos.sales.api.SaleLineView;
@@ -39,6 +41,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -80,6 +83,40 @@ class DefaultSalesService implements SalesService {
         this.discounts = discounts;
     }
 
+    private record PricedCart(String currency, DiscountResult disc, TaxedCart taxed) {
+    }
+
+    private PricedCart priceDiscountTax(CartView cart, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount, boolean callerIsManager) {
+        // 1. Price the lines
+        List<PricingInput> pricingInputs = cart.lines().stream()
+                .map(l -> new PricingInput(l.sku(), l.name(), l.quantity(), l.unitPrice(), l.currencyCode()))
+                .toList();
+        List<PricedLine> priced = pricing.price(pricingInputs);
+
+        // 2. Apply manual discounts (line, then transaction) BEFORE tax.
+        BigDecimal maxPct = new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_PERCENT));
+        BigDecimal maxAmt = new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_AMOUNT));
+        Set<String> reasonCodes = Arrays.stream(
+                        config.getString(SettingKey.DISCOUNT_REASON_CODES).split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
+        DiscountResult disc = discounts.apply(priced, lineDiscounts, transactionDiscount,
+                callerIsManager, maxPct, maxAmt, reasonCodes);
+
+        // 3. Apply tax on the discounted extended amounts
+        String currency = cart.currencyCode() != null
+                ? cart.currencyCode()
+                : config.getString(SettingKey.CURRENCY_CODE);
+        BigDecimal rate = new BigDecimal(config.getString(SettingKey.VAT_RATE));
+        boolean inclusive = Boolean.parseBoolean(config.getString(SettingKey.TAX_INCLUSIVE));
+        List<TaxLineInput> taxInputs = disc.lines().stream()
+                .map(d -> new TaxLineInput(d.sku(), d.name(), d.quantity(), d.unitPrice(),
+                        d.discountedExtended(), d.currencyCode()))
+                .toList();
+        TaxedCart taxed = tax.applyTax(taxInputs, rate, inclusive, currency);
+        return new PricedCart(currency, disc, taxed);
+    }
+
     @Override
     public SaleView checkout(CheckoutCommand command, String cashierUsername) {
         return checkout(command, cashierUsername, false);
@@ -98,32 +135,11 @@ class DefaultSalesService implements SalesService {
             throw DomainException.validation("At least one tender is required");
         }
 
-        // 1. Price the lines
-        List<PricingInput> pricingInputs = cart.lines().stream()
-                .map(l -> new PricingInput(l.sku(), l.name(), l.quantity(), l.unitPrice(), l.currencyCode()))
-                .toList();
-        List<PricedLine> priced = pricing.price(pricingInputs);
-
-        // 2. Apply manual discounts (line, then transaction) BEFORE tax.
-        BigDecimal maxPct = new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_PERCENT));
-        BigDecimal maxAmt = new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_AMOUNT));
-        Set<String> reasonCodes = Arrays.stream(
-                        config.getString(SettingKey.DISCOUNT_REASON_CODES).split(","))
-                .map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
-        DiscountResult disc = discounts.apply(priced, command.lineDiscounts(),
-                command.transactionDiscount(), callerIsManager, maxPct, maxAmt, reasonCodes);
-
-        // 3. Apply tax on the discounted extended amounts
-        String currency = cart.currencyCode() != null
-                ? cart.currencyCode()
-                : config.getString(SettingKey.CURRENCY_CODE);
-        BigDecimal rate = new BigDecimal(config.getString(SettingKey.VAT_RATE));
-        boolean inclusive = Boolean.parseBoolean(config.getString(SettingKey.TAX_INCLUSIVE));
-        List<TaxLineInput> taxInputs = disc.lines().stream()
-                .map(d -> new TaxLineInput(d.sku(), d.name(), d.quantity(), d.unitPrice(),
-                        d.discountedExtended(), d.currencyCode()))
-                .toList();
-        TaxedCart taxed = tax.applyTax(taxInputs, rate, inclusive, currency);
+        PricedCart pc = priceDiscountTax(cart, command.lineDiscounts(),
+                command.transactionDiscount(), callerIsManager);
+        DiscountResult disc = pc.disc();
+        TaxedCart taxed = pc.taxed();
+        String currency = pc.currency();
         BigDecimal grandTotal = taxed.grandTotal().setScale(2, RoundingMode.HALF_UP);
 
         // 3. Take the tenders (cash computes change; card/wallet go through the terminal).
@@ -210,6 +226,24 @@ class DefaultSalesService implements SalesService {
         printReceipt(sale, recorded);
 
         return toView(sale, recorded);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuoteView quote(UUID cartId) {
+        CartView cart = carts.getCart(cartId);
+        if (!"OPEN".equals(cart.status())) {
+            throw DomainException.conflict("Cart " + cartId + " is not open");
+        }
+        if (cart.lines().isEmpty()) {
+            throw DomainException.validation("Cannot quote an empty cart");
+        }
+        PricedCart pc = priceDiscountTax(cart, Map.of(), null, false);
+        return new QuoteView(pc.currency(),
+                pc.taxed().subtotal().setScale(2, RoundingMode.HALF_UP),
+                pc.disc().discountTotal(),
+                pc.taxed().taxTotal().setScale(2, RoundingMode.HALF_UP),
+                pc.taxed().grandTotal().setScale(2, RoundingMode.HALF_UP));
     }
 
     @Override

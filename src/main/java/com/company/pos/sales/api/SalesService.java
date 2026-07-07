@@ -18,4 +18,11 @@ public interface SalesService {
     SaleView getSale(UUID saleId);
 
     void reprint(UUID saleId);
+
+    /**
+     * Read-only pricing pass: prices the cart with NO discounts, applies tax, returns the totals.
+     * Creates no sale, takes no payment, fires no event. Used to learn a cart's total up front
+     * (e.g. to split it evenly).
+     */
+    QuoteView quote(UUID cartId);
 }
