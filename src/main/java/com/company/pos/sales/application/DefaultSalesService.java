@@ -83,11 +83,12 @@ class DefaultSalesService implements SalesService {
         this.discounts = discounts;
     }
 
-    private record PricedCart(String currency, DiscountResult disc, TaxedCart taxed) {
+    private record PricedCart(String currency, DiscountResult disc, TaxedCart taxed,
+            BigDecimal serviceChargeNet, BigDecimal serviceChargeTax) {
     }
 
     private PricedCart priceDiscountTax(CartView cart, Map<String, DiscountInput> lineDiscounts,
-            DiscountInput transactionDiscount, boolean callerIsManager) {
+            DiscountInput transactionDiscount, boolean callerIsManager, boolean applyServiceCharge) {
         // 1. Price the lines
         List<PricingInput> pricingInputs = cart.lines().stream()
                 .map(l -> new PricingInput(l.sku(), l.name(), l.quantity(), l.unitPrice(), l.currencyCode()))
@@ -114,7 +115,26 @@ class DefaultSalesService implements SalesService {
                         d.discountedExtended(), d.currencyCode()))
                 .toList();
         TaxedCart taxed = tax.applyTax(taxInputs, rate, inclusive, currency);
-        return new PricedCart(currency, disc, taxed);
+
+        // 4. Service charge (taxable) — computed as a separate one-line tax call so it never
+        //    becomes a product line. Only applied when the caller asks AND the store enables it.
+        BigDecimal scNet = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal scTax = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        if (applyServiceCharge && config.getBoolean(SettingKey.SERVICE_CHARGE_ENABLED)) {
+            BigDecimal pct = new BigDecimal(config.getString(SettingKey.SERVICE_CHARGE_PERCENT));
+            if (pct.signum() > 0) {
+                String label = config.getString(SettingKey.SERVICE_CHARGE_LABEL);
+                BigDecimal scInput = taxed.subtotal().multiply(pct)
+                        .divide(new BigDecimal("100"), 2, RoundingMode.HALF_UP);
+                if (scInput.signum() > 0) {
+                    TaxedCart scTaxed = tax.applyTax(List.of(new TaxLineInput("SERVICE_CHARGE", label,
+                            BigDecimal.ONE, scInput, scInput, currency)), rate, inclusive, currency);
+                    scNet = scTaxed.subtotal().setScale(2, RoundingMode.HALF_UP);
+                    scTax = scTaxed.taxTotal().setScale(2, RoundingMode.HALF_UP);
+                }
+            }
+        }
+        return new PricedCart(currency, disc, taxed, scNet, scTax);
     }
 
     @Override
@@ -136,11 +156,15 @@ class DefaultSalesService implements SalesService {
         }
 
         PricedCart pc = priceDiscountTax(cart, command.lineDiscounts(),
-                command.transactionDiscount(), callerIsManager);
+                command.transactionDiscount(), callerIsManager, command.applyServiceCharge());
         DiscountResult disc = pc.disc();
         TaxedCart taxed = pc.taxed();
         String currency = pc.currency();
-        BigDecimal grandTotal = taxed.grandTotal().setScale(2, RoundingMode.HALF_UP);
+        BigDecimal serviceChargeNet = pc.serviceChargeNet();
+        BigDecimal serviceChargeTax = pc.serviceChargeTax();
+        BigDecimal taxTotal = taxed.taxTotal().add(serviceChargeTax).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal grandTotal = taxed.grandTotal().add(serviceChargeNet).add(serviceChargeTax)
+                .setScale(2, RoundingMode.HALF_UP);
 
         // 3. Take the tenders (cash computes change; card/wallet go through the terminal).
         UUID saleId = Identifiers.newId();
@@ -183,10 +207,10 @@ class DefaultSalesService implements SalesService {
         String receiptNumber = numbering.nextReceiptNumber(storeId, terminalId);
         Instant now = Instant.now();
         Sale sale = new Sale(saleId, receiptNumber, storeId, terminalId, cashierUsername,
-                location, currency, taxed.subtotal(), taxed.taxTotal(), taxed.grandTotal(), now,
+                location, currency, taxed.subtotal(), taxTotal, grandTotal, now,
                 disc.txnDiscountAmount(),
                 disc.txnDiscountType() == null ? null : disc.txnDiscountType().name(),
-                disc.txnDiscountReason(), disc.discountTotal(), cart.customerId());
+                disc.txnDiscountReason(), disc.discountTotal(), serviceChargeNet, cart.customerId());
         int lineNo = 1;
         for (int i = 0; i < taxed.lines().size(); i++) {
             TaxedLine t = taxed.lines().get(i);
@@ -216,7 +240,7 @@ class DefaultSalesService implements SalesService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
         events.publish(new SaleCompleted(saleId, receiptNumber, terminalId, location, currency,
-                taxed.grandTotal(), cashTotal, soldLines, cart.customerId(), now));
+                grandTotal, cashTotal, soldLines, cart.customerId(), now));
         for (DiscountOverride o : disc.overrides()) {
             events.publish(new com.company.pos.sales.api.DiscountOverridden(saleId, cashierUsername,
                     o.sku(), o.amount(), o.type() == null ? null : o.type().name(), o.reasonCode()));
@@ -230,7 +254,7 @@ class DefaultSalesService implements SalesService {
 
     @Override
     @Transactional(readOnly = true)
-    public QuoteView quote(UUID cartId) {
+    public QuoteView quote(UUID cartId, boolean applyServiceCharge) {
         CartView cart = carts.getCart(cartId);
         if (!"OPEN".equals(cart.status())) {
             throw DomainException.conflict("Cart " + cartId + " is not open");
@@ -238,12 +262,22 @@ class DefaultSalesService implements SalesService {
         if (cart.lines().isEmpty()) {
             throw DomainException.validation("Cannot quote an empty cart");
         }
-        PricedCart pc = priceDiscountTax(cart, Map.of(), null, false);
+        PricedCart pc = priceDiscountTax(cart, Map.of(), null, false, applyServiceCharge);
+        BigDecimal taxTotal = pc.taxed().taxTotal().add(pc.serviceChargeTax());
+        BigDecimal grandTotal = pc.taxed().grandTotal().add(pc.serviceChargeNet())
+                .add(pc.serviceChargeTax());
         return new QuoteView(pc.currency(),
                 pc.taxed().subtotal().setScale(2, RoundingMode.HALF_UP),
                 pc.disc().discountTotal(),
-                pc.taxed().taxTotal().setScale(2, RoundingMode.HALF_UP),
-                pc.taxed().grandTotal().setScale(2, RoundingMode.HALF_UP));
+                pc.serviceChargeNet().setScale(2, RoundingMode.HALF_UP),
+                taxTotal.setScale(2, RoundingMode.HALF_UP),
+                grandTotal.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuoteView quote(UUID cartId) {
+        return quote(cartId, false);
     }
 
     @Override
@@ -305,6 +339,7 @@ class DefaultSalesService implements SalesService {
         return new SaleView(sale.getId(), sale.getReceiptNumber(), sale.getStatus(),
                 sale.getCurrencyCode(), sale.getSubtotal(), sale.getTaxTotal(), sale.getGrandTotal(),
                 sale.getCreatedAt(), lines, paymentViews, sale.getDiscountTotal(),
-                sale.getTxnDiscountAmount(), sale.getTxnDiscountType(), sale.getTxnDiscountReason());
+                sale.getTxnDiscountAmount(), sale.getTxnDiscountType(), sale.getTxnDiscountReason(),
+                sale.getServiceChargeAmount());
     }
 }

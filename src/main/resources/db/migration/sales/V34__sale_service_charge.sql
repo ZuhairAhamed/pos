@@ -1,0 +1,1 @@
+ALTER TABLE sale ADD COLUMN service_charge_amount NUMERIC(19, 2) NOT NULL DEFAULT 0;

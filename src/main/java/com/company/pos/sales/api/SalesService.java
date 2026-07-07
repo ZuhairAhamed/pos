@@ -25,4 +25,7 @@ public interface SalesService {
      * (e.g. to split it evenly).
      */
     QuoteView quote(UUID cartId);
+
+    /** As {@link #quote(UUID)} but optionally applies the configured service charge. */
+    QuoteView quote(UUID cartId, boolean applyServiceCharge);
 }

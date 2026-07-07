@@ -15,7 +15,10 @@ public enum SettingKey {
     DISCOUNT_CASHIER_MAX_AMOUNT("discount.cashier.max.amount", "20.00"),
     DASHBOARD_REVENUE_WINDOW_DAYS("dashboard.revenue.window.days", "7"),
     DINING_TABLE_DEFAULT_SEATS("dining.table.default.seats", "4"),
-    KITCHEN_DEFAULT_STATION("kitchen.default.station", "Kitchen");
+    KITCHEN_DEFAULT_STATION("kitchen.default.station", "Kitchen"),
+    SERVICE_CHARGE_ENABLED("service.charge.enabled", "false"),
+    SERVICE_CHARGE_PERCENT("service.charge.percent", "0"),
+    SERVICE_CHARGE_LABEL("service.charge.label", "Service Charge");
 
     private final String key;
     private final String defaultValue;

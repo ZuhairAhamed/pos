@@ -8,5 +8,6 @@ import java.util.UUID;
 public record SaleView(UUID id, String receiptNumber, String status, String currencyCode,
         BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal, Instant createdAt,
         List<SaleLineView> lines, List<SalePaymentView> payments, BigDecimal discountTotal,
-        BigDecimal txnDiscountAmount, String txnDiscountType, String txnDiscountReason) {
+        BigDecimal txnDiscountAmount, String txnDiscountType, String txnDiscountReason,
+        BigDecimal serviceChargeAmount) {
 }

@@ -70,6 +70,9 @@ public class Sale {
     @Column(name = "discount_total", nullable = false, precision = 19, scale = 2)
     private BigDecimal discountTotal;
 
+    @Column(name = "service_charge_amount", nullable = false, precision = 19, scale = 2)
+    private BigDecimal serviceChargeAmount;
+
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "customer_id", length = 36)
     private UUID customerId;
@@ -86,7 +89,7 @@ public class Sale {
             String cashierUsername, String locationCode, String currencyCode,
             BigDecimal subtotal, BigDecimal taxTotal, BigDecimal grandTotal, Instant createdAt,
             BigDecimal txnDiscountAmount, String txnDiscountType, String txnDiscountReason,
-            BigDecimal discountTotal, UUID customerId) {
+            BigDecimal discountTotal, BigDecimal serviceChargeAmount, UUID customerId) {
         this.id = id;
         this.receiptNumber = receiptNumber;
         this.storeId = storeId;
@@ -102,6 +105,7 @@ public class Sale {
         this.txnDiscountType = txnDiscountType;
         this.txnDiscountReason = txnDiscountReason;
         this.discountTotal = discountTotal;
+        this.serviceChargeAmount = serviceChargeAmount;
         this.customerId = customerId;
         this.status = "COMPLETED";
     }
@@ -160,6 +164,10 @@ public class Sale {
 
     public BigDecimal getDiscountTotal() {
         return discountTotal;
+    }
+
+    public BigDecimal getServiceChargeAmount() {
+        return serviceChargeAmount;
     }
 
     public UUID getCustomerId() {
