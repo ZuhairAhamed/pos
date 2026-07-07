@@ -27,7 +27,11 @@ class SalesController {
     SaleView checkout(@RequestBody CheckoutCommand command, Authentication authentication) {
         boolean isManager = authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_MANAGER".equals(a.getAuthority()));
-        return sales.checkout(command, authentication.getName(), isManager);
+        // Retail POST /sales must never carry a service charge; force the flag off
+        // regardless of what the request body contains (service charge is DINE_IN only).
+        CheckoutCommand retailCommand = new CheckoutCommand(command.cartId(), command.tenders(),
+                command.lineDiscounts(), command.transactionDiscount(), false);
+        return sales.checkout(retailCommand, authentication.getName(), isManager);
     }
 
     @GetMapping("/sales/{saleId}")
