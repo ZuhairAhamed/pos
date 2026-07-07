@@ -11,11 +11,17 @@ import java.util.Map;
  * may be null.
  */
 public record CloseOrderCommand(List<TenderInput> tenders, Map<String, DiscountInput> lineDiscounts,
-        DiscountInput transactionDiscount) {
+        DiscountInput transactionDiscount, boolean waiveServiceCharge) {
 
     public CloseOrderCommand {
         if (lineDiscounts == null) {
             lineDiscounts = Map.of();
         }
+    }
+
+    /** Convenience: no waiver (used by existing callers/tests). */
+    public CloseOrderCommand(List<TenderInput> tenders, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount) {
+        this(tenders, lineDiscounts, transactionDiscount, false);
     }
 }

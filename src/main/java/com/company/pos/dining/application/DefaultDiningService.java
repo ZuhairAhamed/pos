@@ -278,14 +278,26 @@ class DefaultDiningService implements DiningService {
             carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
         }
 
+        boolean applyServiceCharge = resolveApplyServiceCharge(order,
+                command.waiveServiceCharge(), callerIsManager);
         SaleView sale = sales.checkout(
                 new CheckoutCommand(cartId, command.tenders(), command.lineDiscounts(),
-                        command.transactionDiscount()),
+                        command.transactionDiscount(), applyServiceCharge),
                 cashierUsername, callerIsManager);
 
         carts.close(cartId);
         order.close(sale.id(), Instant.now());
         return sale;
+    }
+
+    private boolean resolveApplyServiceCharge(DiningOrder order, boolean waiveServiceCharge,
+            boolean callerIsManager) {
+        if (waiveServiceCharge && !callerIsManager) {
+            throw DomainException.validation("Only a manager can waive the service charge");
+        }
+        return config.getBoolean(SettingKey.SERVICE_CHARGE_ENABLED)
+                && order.getServiceType() == ServiceType.DINE_IN
+                && !waiveServiceCharge;
     }
 
     @Override
@@ -299,9 +311,13 @@ class DefaultDiningService implements DiningService {
         if (command == null || command.mode() == null) {
             throw DomainException.validation("Split mode is required");
         }
+        boolean applyServiceCharge = resolveApplyServiceCharge(order,
+                command.waiveServiceCharge(), callerIsManager);
         List<SaleView> results = switch (command.mode()) {
-            case BY_ITEM -> closeByItem(order, command.bills(), cashierUsername, callerIsManager);
-            case EVEN -> closeEven(order, command.even(), cashierUsername, callerIsManager);
+            case BY_ITEM -> closeByItem(order, command.bills(), cashierUsername, callerIsManager,
+                    applyServiceCharge);
+            case EVEN -> closeEven(order, command.even(), cashierUsername, callerIsManager,
+                    applyServiceCharge);
         };
         order.close(null, Instant.now()); // CLOSED + closedAt; the N sale ids live in dining_order_sale
         for (SaleView sale : results) {
@@ -311,7 +327,7 @@ class DefaultDiningService implements DiningService {
     }
 
     private List<SaleView> closeByItem(DiningOrder order, List<BillInput> bills,
-            String cashier, boolean isManager) {
+            String cashier, boolean isManager, boolean applyServiceCharge) {
         if (bills == null || bills.isEmpty()) {
             throw DomainException.validation("At least one bill is required for a by-item split");
         }
@@ -350,7 +366,7 @@ class DefaultDiningService implements DiningService {
             }
             SaleView sale = sales.checkout(
                     new CheckoutCommand(cartId, bill.tenders(), bill.lineDiscounts(),
-                            bill.transactionDiscount()),
+                            bill.transactionDiscount(), applyServiceCharge),
                     cashier, isManager);
             carts.close(cartId);
             results.add(sale);
@@ -359,7 +375,7 @@ class DefaultDiningService implements DiningService {
     }
 
     private List<SaleView> closeEven(DiningOrder order, EvenSplitInput even,
-            String cashier, boolean isManager) {
+            String cashier, boolean isManager, boolean applyServiceCharge) {
         if (even == null) {
             throw DomainException.validation("Even split details are required");
         }
@@ -379,7 +395,7 @@ class DefaultDiningService implements DiningService {
             carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
         }
 
-        QuoteView quote = sales.quote(cartId);
+        QuoteView quote = sales.quote(cartId, applyServiceCharge);
         BigDecimal grandTotal = quote.grandTotal();
         if (grandTotal.signum() <= 0) {
             throw DomainException.validation("Cannot evenly split a non-positive total");
@@ -395,7 +411,7 @@ class DefaultDiningService implements DiningService {
             tenders.add(new TenderInput(method, share, share));
         }
 
-        SaleView sale = sales.checkout(new CheckoutCommand(cartId, tenders, Map.of(), null),
+        SaleView sale = sales.checkout(new CheckoutCommand(cartId, tenders, Map.of(), null, applyServiceCharge),
                 cashier, isManager);
         carts.close(cartId);
         return List.of(sale);
