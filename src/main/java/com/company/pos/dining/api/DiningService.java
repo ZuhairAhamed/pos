@@ -21,6 +21,9 @@ public interface DiningService {
 
     List<OpenOrderView> listOpenOrders();
 
+    // --- fire to kitchen ---
+    OrderView fireOrder(UUID orderId, String firedBy);
+
     // --- lines ---
     OrderView addLine(UUID orderId, AddLineCommand command, String addedBy);
 

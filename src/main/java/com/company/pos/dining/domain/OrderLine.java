@@ -51,6 +51,9 @@ public class OrderLine {
     @Column(name = "added_at", nullable = false)
     private Instant addedAt;
 
+    @Column(name = "fired_at")
+    private Instant firedAt;
+
     @OneToMany(mappedBy = "orderLine", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderLineModifier> modifiers = new ArrayList<>();
 
@@ -108,6 +111,18 @@ public class OrderLine {
 
     public Instant getAddedAt() {
         return addedAt;
+    }
+
+    public Instant getFiredAt() {
+        return firedAt;
+    }
+
+    public boolean isFired() {
+        return firedAt != null;
+    }
+
+    public void fire(Instant when) {
+        this.firedAt = when;
     }
 
     public void addModifier(UUID optionId, String name, BigDecimal priceDelta) {

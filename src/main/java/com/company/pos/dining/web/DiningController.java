@@ -90,6 +90,11 @@ class DiningController {
         return dining.removeLine(orderId, lineId);
     }
 
+    @PostMapping("/dining/orders/{orderId}/fire")
+    OrderView fire(@PathVariable UUID orderId, Authentication authentication) {
+        return dining.fireOrder(orderId, authentication.getName());
+    }
+
     @PostMapping("/dining/orders/{orderId}/close")
     @ResponseStatus(HttpStatus.CREATED)
     SaleView closeOrder(@PathVariable UUID orderId, @RequestBody CloseOrderCommand body,

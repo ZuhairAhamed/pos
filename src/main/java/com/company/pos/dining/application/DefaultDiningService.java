@@ -1,6 +1,7 @@
 package com.company.pos.dining.application;
 
 import com.company.pos.cart.api.CartService;
+import com.company.pos.common.events.DomainEvents;
 import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
 import com.company.pos.configuration.api.ConfigurationService;
@@ -9,6 +10,7 @@ import com.company.pos.dining.api.AddLineCommand;
 import com.company.pos.dining.api.CloseOrderCommand;
 import com.company.pos.dining.api.CourseTag;
 import com.company.pos.dining.api.DiningService;
+import com.company.pos.dining.api.KitchenTicketsFired;
 import com.company.pos.dining.api.OpenOrderCommand;
 import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderLineView;
@@ -23,6 +25,7 @@ import com.company.pos.dining.domain.OrderLine;
 import com.company.pos.dining.infrastructure.DiningOrderRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
 import com.company.pos.product.api.ProductCatalog;
+import com.company.pos.product.api.ProductView;
 import com.company.pos.menu.api.MenuService;
 import com.company.pos.menu.api.ModifierResolution;
 import com.company.pos.menu.api.ResolvedModifier;
@@ -31,6 +34,7 @@ import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -47,10 +51,11 @@ class DefaultDiningService implements DiningService {
     private final CartService carts;
     private final SalesService sales;
     private final MenuService menu;
+    private final DomainEvents events;
 
     DefaultDiningService(DiningTableRepository tables, DiningOrderRepository orders,
             ConfigurationService config, ProductCatalog products,
-            CartService carts, SalesService sales, MenuService menu) {
+            CartService carts, SalesService sales, MenuService menu, DomainEvents events) {
         this.tables = tables;
         this.orders = orders;
         this.config = config;
@@ -58,6 +63,7 @@ class DefaultDiningService implements DiningService {
         this.carts = carts;
         this.sales = sales;
         this.menu = menu;
+        this.events = events;
     }
 
     @Override
@@ -130,7 +136,7 @@ class DefaultDiningService implements DiningService {
     OrderView toOrderView(DiningOrder o) {
         List<OrderLineView> lineViews = o.getLines().stream()
                 .map(l -> new OrderLineView(l.getId(), l.getSku(), l.getQty(), l.getNote(),
-                        l.getCourse(),
+                        l.getCourse(), l.getFiredAt(),
                         l.getModifiers().stream()
                                 .map(m -> new com.company.pos.dining.api.OrderLineModifierView(
                                         m.getOptionId(), m.getName(),
@@ -172,6 +178,9 @@ class DefaultDiningService implements DiningService {
             throw DomainException.validation("Line quantity must be positive");
         }
         OrderLine line = requireLine(order, lineId);
+        if (line.isFired()) {
+            throw DomainException.validation("Line " + lineId + " was already sent to the kitchen");
+        }
         line.setQty(qty);
         line.setNote(note);
         line.setCourse(course);
@@ -183,6 +192,9 @@ class DefaultDiningService implements DiningService {
         DiningOrder order = load(orderId);
         requireOpen(order);
         OrderLine line = requireLine(order, lineId);
+        if (line.isFired()) {
+            throw DomainException.validation("Line " + lineId + " was already sent to the kitchen");
+        }
         order.removeLine(line);
         return toOrderView(order);
     }
@@ -198,6 +210,33 @@ class DefaultDiningService implements DiningService {
                 .filter(l -> l.getId().equals(lineId))
                 .findFirst()
                 .orElseThrow(() -> DomainException.notFound("No line " + lineId));
+    }
+
+    // --- fire to kitchen ---
+    @Override
+    public OrderView fireOrder(UUID orderId, String firedBy) {
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        List<OrderLine> toFire = order.getLines().stream().filter(l -> !l.isFired()).toList();
+        if (toFire.isEmpty()) {
+            throw DomainException.validation("Order " + orderId + " has no unfired lines to fire");
+        }
+        Instant now = Instant.now();
+        List<KitchenTicketsFired.FiredLine> firedLines = new ArrayList<>();
+        for (OrderLine line : toFire) {
+            line.fire(now);
+            String name = products.findBySku(line.getSku())
+                    .map(ProductView::name).orElse(line.getSku());
+            List<KitchenTicketsFired.FiredModifier> mods = line.getModifiers().stream()
+                    .map(m -> new KitchenTicketsFired.FiredModifier(m.getName()))
+                    .toList();
+            firedLines.add(new KitchenTicketsFired.FiredLine(line.getSku(), name, line.getQty(),
+                    line.getNote(), line.getCourse(), mods));
+        }
+        String tableLabel = tables.findById(order.getTableId())
+                .map(DiningTable::getLabel).orElse("?");
+        events.publish(new KitchenTicketsFired(order.getId(), tableLabel, now, firedLines));
+        return toOrderView(order);
     }
 
     // --- close / void (Task 5) ---
