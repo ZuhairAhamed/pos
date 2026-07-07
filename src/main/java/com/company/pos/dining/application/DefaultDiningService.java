@@ -7,8 +7,11 @@ import com.company.pos.common.util.Identifiers;
 import com.company.pos.configuration.api.ConfigurationService;
 import com.company.pos.configuration.api.SettingKey;
 import com.company.pos.dining.api.AddLineCommand;
+import com.company.pos.dining.api.BillInput;
 import com.company.pos.dining.api.CloseOrderCommand;
 import com.company.pos.dining.api.CourseTag;
+import com.company.pos.dining.api.EvenSplitInput;
+import com.company.pos.dining.api.SplitCloseCommand;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.KitchenTicketsFired;
 import com.company.pos.dining.api.OpenOrderCommand;
@@ -20,9 +23,11 @@ import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.ServiceType;
 import com.company.pos.dining.api.TableView;
 import com.company.pos.dining.domain.DiningOrder;
+import com.company.pos.dining.domain.DiningOrderSale;
 import com.company.pos.dining.domain.DiningTable;
 import com.company.pos.dining.domain.OrderLine;
 import com.company.pos.dining.infrastructure.DiningOrderRepository;
+import com.company.pos.dining.infrastructure.DiningOrderSaleRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
 import com.company.pos.product.api.ProductCatalog;
 import com.company.pos.product.api.ProductView;
@@ -35,7 +40,11 @@ import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +55,7 @@ class DefaultDiningService implements DiningService {
 
     private final DiningTableRepository tables;
     private final DiningOrderRepository orders;
+    private final DiningOrderSaleRepository orderSales;
     private final ConfigurationService config;
     private final ProductCatalog products;
     private final CartService carts;
@@ -54,10 +64,12 @@ class DefaultDiningService implements DiningService {
     private final DomainEvents events;
 
     DefaultDiningService(DiningTableRepository tables, DiningOrderRepository orders,
+            DiningOrderSaleRepository orderSales,
             ConfigurationService config, ProductCatalog products,
             CartService carts, SalesService sales, MenuService menu, DomainEvents events) {
         this.tables = tables;
         this.orders = orders;
+        this.orderSales = orderSales;
         this.config = config;
         this.products = products;
         this.carts = carts;
@@ -270,6 +282,95 @@ class DefaultDiningService implements DiningService {
         carts.close(cartId);
         order.close(sale.id(), Instant.now());
         return sale;
+    }
+
+    @Override
+    public List<SaleView> closeOrderSplit(UUID orderId, SplitCloseCommand command,
+            String cashierUsername, boolean callerIsManager) {
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (order.getLines().isEmpty()) {
+            throw DomainException.validation("Cannot close an empty order");
+        }
+        if (command == null || command.mode() == null) {
+            throw DomainException.validation("Split mode is required");
+        }
+        List<SaleView> results = switch (command.mode()) {
+            case BY_ITEM -> closeByItem(order, command.bills(), cashierUsername, callerIsManager);
+            case EVEN -> closeEven(order, command.even(), cashierUsername, callerIsManager);
+        };
+        order.close(null, Instant.now()); // CLOSED + closedAt; the N sale ids live in dining_order_sale
+        for (SaleView sale : results) {
+            orderSales.save(new DiningOrderSale(Identifiers.newId(), order.getId(), sale.id()));
+        }
+        return results;
+    }
+
+    private List<SaleView> closeByItem(DiningOrder order, List<BillInput> bills,
+            String cashier, boolean isManager) {
+        if (bills == null || bills.isEmpty()) {
+            throw DomainException.validation("At least one bill is required for a by-item split");
+        }
+        Map<UUID, OrderLine> byId = new LinkedHashMap<>();
+        for (OrderLine line : order.getLines()) {
+            byId.put(line.getId(), line);
+        }
+        Set<UUID> assigned = new HashSet<>();
+        for (BillInput bill : bills) {
+            if (bill.lineIds() == null || bill.lineIds().isEmpty()) {
+                throw DomainException.validation("Each bill must contain at least one line");
+            }
+            for (UUID lineId : bill.lineIds()) {
+                if (!byId.containsKey(lineId)) {
+                    throw DomainException.validation("Line " + lineId + " is not on order " + order.getId());
+                }
+                if (!assigned.add(lineId)) {
+                    throw DomainException.validation("Line " + lineId + " assigned to more than one bill");
+                }
+            }
+        }
+        if (assigned.size() != byId.size()) {
+            throw DomainException.validation("Every order line must be assigned to exactly one bill");
+        }
+
+        List<SaleView> results = new ArrayList<>();
+        for (BillInput bill : bills) {
+            UUID cartId = carts.createCart();
+            for (UUID lineId : bill.lineIds()) {
+                OrderLine line = byId.get(lineId);
+                List<com.company.pos.cart.api.CartLineModifierInput> mods = line.getModifiers().stream()
+                        .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
+                                m.getOptionId(), m.getName(), m.getPriceDelta()))
+                        .toList();
+                carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
+            }
+            SaleView sale = sales.checkout(
+                    new CheckoutCommand(cartId, bill.tenders(), bill.lineDiscounts(),
+                            bill.transactionDiscount()),
+                    cashier, isManager);
+            carts.close(cartId);
+            results.add(sale);
+        }
+        return results;
+    }
+
+    private List<SaleView> closeEven(DiningOrder order, EvenSplitInput even,
+            String cashier, boolean isManager) {
+        throw DomainException.validation("Even split is not yet supported");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UUID> listOrderSaleIds(UUID orderId) {
+        DiningOrder order = load(orderId);
+        List<UUID> ids = new ArrayList<>();
+        if (order.getSaleId() != null) {
+            ids.add(order.getSaleId());
+        }
+        for (DiningOrderSale link : orderSales.findByOrderId(orderId)) {
+            ids.add(link.getSaleId());
+        }
+        return ids;
     }
 
     @Override

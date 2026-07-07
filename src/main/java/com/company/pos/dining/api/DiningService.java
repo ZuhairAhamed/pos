@@ -35,5 +35,10 @@ public interface DiningService {
     SaleView closeOrder(UUID orderId, CloseOrderCommand command, String cashierUsername,
             boolean callerIsManager);
 
+    List<SaleView> closeOrderSplit(UUID orderId, SplitCloseCommand command, String cashierUsername,
+            boolean callerIsManager);
+
+    List<UUID> listOrderSaleIds(UUID orderId);
+
     void voidOrder(UUID orderId, String reason);
 }

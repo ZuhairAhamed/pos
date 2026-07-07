@@ -3,6 +3,7 @@ package com.company.pos.dining.web;
 import com.company.pos.dining.api.AddLineCommand;
 import com.company.pos.dining.api.CloseOrderCommand;
 import com.company.pos.dining.api.CourseTag;
+import com.company.pos.dining.api.SplitCloseCommand;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.OpenOrderCommand;
 import com.company.pos.dining.api.OpenOrderView;
@@ -10,6 +11,7 @@ import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
 import com.company.pos.sales.api.SaleView;
+import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -30,9 +32,11 @@ import org.springframework.web.bind.annotation.RestController;
 class DiningController {
 
     private final DiningService dining;
+    private final SalesService sales;
 
-    DiningController(DiningService dining) {
+    DiningController(DiningService dining, SalesService sales) {
         this.dining = dining;
+        this.sales = sales;
     }
 
     @PostMapping("/dining/tables")
@@ -102,6 +106,20 @@ class DiningController {
         boolean isManager = authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_MANAGER".equals(a.getAuthority()));
         return dining.closeOrder(orderId, body, authentication.getName(), isManager);
+    }
+
+    @PostMapping("/dining/orders/{orderId}/close-split")
+    @ResponseStatus(HttpStatus.CREATED)
+    List<SaleView> closeSplit(@PathVariable UUID orderId, @RequestBody SplitCloseCommand body,
+            Authentication authentication) {
+        boolean isManager = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_MANAGER".equals(a.getAuthority()));
+        return dining.closeOrderSplit(orderId, body, authentication.getName(), isManager);
+    }
+
+    @GetMapping("/dining/orders/{orderId}/sales")
+    List<SaleView> orderSales(@PathVariable UUID orderId) {
+        return dining.listOrderSaleIds(orderId).stream().map(sales::getSale).toList();
     }
 
     @PostMapping("/dining/orders/{orderId}/void")
