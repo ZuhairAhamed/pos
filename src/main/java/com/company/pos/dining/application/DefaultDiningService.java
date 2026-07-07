@@ -37,7 +37,11 @@ import com.company.pos.menu.api.ResolvedModifier;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
+import com.company.pos.payment.api.PaymentMethod;
+import com.company.pos.sales.api.QuoteView;
+import com.company.pos.sales.api.TenderInput;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -356,7 +360,45 @@ class DefaultDiningService implements DiningService {
 
     private List<SaleView> closeEven(DiningOrder order, EvenSplitInput even,
             String cashier, boolean isManager) {
-        throw DomainException.validation("Even split is not yet supported");
+        if (even == null) {
+            throw DomainException.validation("Even split details are required");
+        }
+        if (even.ways() < 2) {
+            throw DomainException.validation("Even split requires at least 2 ways");
+        }
+        if (even.methods() == null || even.methods().size() != even.ways()) {
+            throw DomainException.validation("Even split requires one payment method per share");
+        }
+
+        UUID cartId = carts.createCart();
+        for (OrderLine line : order.getLines()) {
+            List<com.company.pos.cart.api.CartLineModifierInput> mods = line.getModifiers().stream()
+                    .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
+                            m.getOptionId(), m.getName(), m.getPriceDelta()))
+                    .toList();
+            carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
+        }
+
+        QuoteView quote = sales.quote(cartId);
+        BigDecimal grandTotal = quote.grandTotal();
+        if (grandTotal.signum() <= 0) {
+            throw DomainException.validation("Cannot evenly split a non-positive total");
+        }
+        int ways = even.ways();
+        BigDecimal base = grandTotal.divide(new BigDecimal(ways), 2, RoundingMode.HALF_UP);
+        List<TenderInput> tenders = new ArrayList<>();
+        BigDecimal allocated = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        for (int i = 0; i < ways; i++) {
+            BigDecimal share = (i == ways - 1) ? grandTotal.subtract(allocated) : base;
+            allocated = allocated.add(share);
+            PaymentMethod method = even.methods().get(i);
+            tenders.add(new TenderInput(method, share, share));
+        }
+
+        SaleView sale = sales.checkout(new CheckoutCommand(cartId, tenders, Map.of(), null),
+                cashier, isManager);
+        carts.close(cartId);
+        return List.of(sale);
     }
 
     @Override
