@@ -57,11 +57,21 @@ public class Navigator {
         setScene("/fxml/payment.fxml", controller);
     }
 
+    // The controller currently attached to the stage, tracked so its timers/
+    // resources can be released via Screen#onLeave before we swap in the next
+    // screen. Any controller that owns a repeating task (e.g. a polling Timeline)
+    // implements Screen so it is torn down on EVERY navigation-away, not just the
+    // one happy path that thought to call stop itself.
+    private Object current;
+
     void setScene(String fxml, Object controller) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(fxml));
             loader.setController(controller);
             Parent root = loader.load();
+            if (current instanceof Screen s) {
+                s.onLeave();
+            }
             Scene scene = stage.getScene();
             if (scene == null) {
                 scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
@@ -70,8 +80,19 @@ public class Navigator {
             } else {
                 scene.setRoot(root);
             }
+            current = controller;
         } catch (IOException e) {
             throw new IllegalStateException("Cannot load " + fxml, e);
         }
+    }
+
+    /**
+     * Lifecycle hook for a screen controller that owns resources needing release
+     * when the user navigates away (polling timers, subscriptions, …). The
+     * {@link Navigator} calls {@link #onLeave()} on the outgoing controller
+     * before swapping in the next screen, so cleanup runs on every exit path.
+     */
+    public interface Screen {
+        default void onLeave() {}
     }
 }

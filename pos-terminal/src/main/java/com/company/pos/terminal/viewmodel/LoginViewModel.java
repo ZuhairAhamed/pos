@@ -2,18 +2,23 @@ package com.company.pos.terminal.viewmodel;
 
 import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.AuthApi;
+import java.util.function.Consumer;
 import javafx.beans.property.*;
 
 /**
  * ViewModel for the login screen. Holds all login logic and exposes JavaFX
  * observable properties; it is unit-testable without the FX toolkit.
  *
- * <p>{@link #login()} and {@link #pinLogin(String)} run <b>synchronously</b> on
- * the calling thread and side-effect the properties. The controller (Task 11)
- * is responsible for running them off the FX thread inside a {@code Task}.
+ * <p>{@link #login()} and {@link #pinLogin(String)} run the network call on the
+ * <b>calling thread</b>; every write to an observable property is marshalled
+ * through the injected {@code ui} dispatcher. In production {@code ui} is
+ * {@code Platform::runLater}, so the bound controls are only ever mutated on the
+ * FX Application Thread. The default constructor uses a direct executor
+ * ({@code Runnable::run}) so tests observe the writes synchronously.
  */
 public class LoginViewModel {
     private final AuthApi auth;
+    private final Consumer<Runnable> ui;
     private final StringProperty username = new SimpleStringProperty("");
     private final StringProperty passwordOrPin = new SimpleStringProperty("");
     private final BooleanProperty busy = new SimpleBooleanProperty(false);
@@ -21,7 +26,12 @@ public class LoginViewModel {
     private final BooleanProperty loggedIn = new SimpleBooleanProperty(false);
 
     public LoginViewModel(AuthApi auth) {
+        this(auth, Runnable::run);
+    }
+
+    public LoginViewModel(AuthApi auth, Consumer<Runnable> ui) {
         this.auth = auth;
+        this.ui = ui;
     }
 
     public StringProperty username() { return username; }
@@ -39,17 +49,22 @@ public class LoginViewModel {
     }
 
     private void run(Runnable call) {
-        busy.set(true);
-        errorMessage.set("");
-        loggedIn.set(false);
+        ui.accept(() -> {
+            busy.set(true);
+            errorMessage.set("");
+            loggedIn.set(false);
+        });
         try {
             call.run();
-            loggedIn.set(true);
+            ui.accept(() -> loggedIn.set(true));
         } catch (ApiException e) {
-            loggedIn.set(false);
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> {
+                loggedIn.set(false);
+                errorMessage.set(msg);
+            });
         } finally {
-            busy.set(false);
+            ui.accept(() -> busy.set(false));
         }
     }
 

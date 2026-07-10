@@ -11,6 +11,7 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectProperty;
@@ -38,6 +39,7 @@ public class PaymentViewModel {
     private final SalesApi sales;
     private final UUID orderId;
     private final BigDecimal estimatedTotal;
+    private final Consumer<Runnable> ui;
 
     private final ReadOnlyStringWrapper changeText = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper errorMessage = new ReadOnlyStringWrapper("");
@@ -46,10 +48,20 @@ public class PaymentViewModel {
 
     public PaymentViewModel(
             DiningApi dining, SalesApi sales, UUID orderId, BigDecimal estimatedTotal) {
+        this(dining, sales, orderId, estimatedTotal, Runnable::run);
+    }
+
+    public PaymentViewModel(
+            DiningApi dining,
+            SalesApi sales,
+            UUID orderId,
+            BigDecimal estimatedTotal,
+            Consumer<Runnable> ui) {
         this.dining = dining;
         this.sales = sales;
         this.orderId = orderId;
         this.estimatedTotal = estimatedTotal.setScale(2, RoundingMode.HALF_UP);
+        this.ui = ui;
     }
 
     public ReadOnlyStringProperty changeText() {
@@ -76,11 +88,12 @@ public class PaymentViewModel {
     public void payCash(BigDecimal tendered) {
         BigDecimal cash = (tendered == null ? BigDecimal.ZERO : tendered).setScale(2, RoundingMode.HALF_UP);
         if (cash.compareTo(estimatedTotal) < 0) {
-            errorMessage.set("Insufficient cash tendered");
+            ui.accept(() -> errorMessage.set("Insufficient cash tendered"));
             return;
         }
         if (close(new TenderInput("CASH", estimatedTotal, cash))) {
-            changeText.set(cash.subtract(estimatedTotal).toPlainString());
+            String change = cash.subtract(estimatedTotal).toPlainString();
+            ui.accept(() -> changeText.set(change));
         }
     }
 
@@ -97,23 +110,28 @@ public class PaymentViewModel {
         }
         try {
             sales.reprint(current.id());
-            errorMessage.set("");
+            ui.accept(() -> errorMessage.set(""));
         } catch (ApiException e) {
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
         }
     }
 
     /** @return true if the close succeeded (sale set + paid), false if an ApiException surfaced. */
     private boolean close(TenderInput tender) {
-        errorMessage.set("");
+        ui.accept(() -> errorMessage.set(""));
         try {
             CloseOrderRequest req =
                     new CloseOrderRequest(List.of(tender), Map.of(), null, false);
-            sale.set(dining.close(orderId, req));
-            paid.set(true);
+            SaleView closed = dining.close(orderId, req);
+            ui.accept(() -> {
+                sale.set(closed);
+                paid.set(true);
+            });
             return true;
         } catch (ApiException e) {
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
             return false;
         }
     }

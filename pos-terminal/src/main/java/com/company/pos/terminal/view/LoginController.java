@@ -4,6 +4,7 @@ import com.company.pos.terminal.app.FxTasks;
 import com.company.pos.terminal.app.Navigator;
 import com.company.pos.terminal.app.Services;
 import com.company.pos.terminal.viewmodel.LoginViewModel;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -32,7 +33,7 @@ public class LoginController {
     public LoginController(Services services, Navigator navigator) {
         this.services = services;
         this.navigator = navigator;
-        this.vm = new LoginViewModel(services.authApi);
+        this.vm = new LoginViewModel(services.authApi, Platform::runLater);
     }
 
     @FXML

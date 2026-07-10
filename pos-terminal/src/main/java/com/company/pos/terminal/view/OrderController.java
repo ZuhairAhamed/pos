@@ -104,7 +104,7 @@ public class OrderController {
     }
 
     private void afterCatalogLoaded() {
-        vm = new OrderViewModel(services.diningApi, cache);
+        vm = new OrderViewModel(services.diningApi, cache, Platform::runLater);
 
         subtotalLabel
                 .textProperty()
@@ -216,7 +216,7 @@ public class OrderController {
                 return;
             }
             StringBuilder sb = new StringBuilder();
-            sb.append(qtyText(line.qty())).append(" × ").append(nameFor(line.sku()));
+            sb.append(qtyText(line.qty())).append(" × ").append(cache.nameFor(line.sku()));
             if (line.fired()) {
                 sb.append("   [fired]");
                 getStyleClass().add("order-line-fired");
@@ -230,17 +230,6 @@ public class OrderController {
             }
             setText(sb.toString());
         }
-    }
-
-    private String nameFor(String sku) {
-        for (String cat : cache.categories()) {
-            for (ProductView p : cache.productsInCategory(cat)) {
-                if (p.sku().equals(sku)) {
-                    return p.name();
-                }
-            }
-        }
-        return sku;
     }
 
     private static String qtyText(BigDecimal qty) {

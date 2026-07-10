@@ -10,6 +10,7 @@ import com.company.pos.terminal.order.SubtotalCalculator;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -35,14 +36,20 @@ public class OrderViewModel {
 
     private final DiningApi dining;
     private final MenuCache cache;
+    private final Consumer<Runnable> ui;
     private final ObservableList<OrderLineView> lines = FXCollections.observableArrayList();
     private final ReadOnlyStringWrapper subtotalText = new ReadOnlyStringWrapper("0.00");
     private final ReadOnlyStringWrapper errorMessage = new ReadOnlyStringWrapper("");
     private OrderView order;
 
     public OrderViewModel(DiningApi dining, MenuCache cache) {
+        this(dining, cache, Runnable::run);
+    }
+
+    public OrderViewModel(DiningApi dining, MenuCache cache, Consumer<Runnable> ui) {
         this.dining = dining;
         this.cache = cache;
+        this.ui = ui;
     }
 
     public ObservableList<OrderLineView> lines() {
@@ -81,7 +88,7 @@ public class OrderViewModel {
 
     public void updateQty(OrderLineView line, BigDecimal qty) {
         if (!canEdit(line)) {
-            errorMessage.set("Fired lines cannot be changed");
+            ui.accept(() -> errorMessage.set("Fired lines cannot be changed"));
             return;
         }
         apply(() -> dining.updateLine(order.id(), line.id(), qty));
@@ -89,7 +96,7 @@ public class OrderViewModel {
 
     public void removeLine(OrderLineView line) {
         if (!canEdit(line)) {
-            errorMessage.set("Fired lines cannot be changed");
+            ui.accept(() -> errorMessage.set("Fired lines cannot be changed"));
             return;
         }
         apply(() -> dining.removeLine(order.id(), line.id()));
@@ -99,9 +106,10 @@ public class OrderViewModel {
     public void fire() {
         try {
             dining.fire(order.id());
-            errorMessage.set("");
+            ui.accept(() -> errorMessage.set(""));
         } catch (ApiException e) {
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
             return;
         }
         apply(() -> dining.order(order.id()));
@@ -115,11 +123,17 @@ public class OrderViewModel {
         try {
             OrderView refreshed = call.get();
             order = refreshed;
-            lines.setAll(refreshed.lines() == null ? List.of() : refreshed.lines());
-            subtotalText.set(SubtotalCalculator.estimate(refreshed, cache).toPlainString());
-            errorMessage.set("");
+            List<OrderLineView> nextLines =
+                    refreshed.lines() == null ? List.of() : refreshed.lines();
+            String subtotal = SubtotalCalculator.estimate(refreshed, cache).toPlainString();
+            ui.accept(() -> {
+                lines.setAll(nextLines);
+                subtotalText.set(subtotal);
+                errorMessage.set("");
+            });
         } catch (ApiException e) {
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
         }
     }
 

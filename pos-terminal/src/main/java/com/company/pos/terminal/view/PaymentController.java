@@ -8,6 +8,7 @@ import com.company.pos.terminal.viewmodel.PaymentViewModel;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -40,7 +41,6 @@ public class PaymentController {
 
     private static final System.Logger LOG = System.getLogger(PaymentController.class.getName());
 
-    private final Services services;
     private final Navigator navigator;
     private final UUID orderId;
     private final BigDecimal estimatedTotal;
@@ -66,11 +66,11 @@ public class PaymentController {
     @FXML private Button doneButton;
 
     public PaymentController(Services services, Navigator navigator, UUID orderId, BigDecimal estimatedTotal) {
-        this.services = services;
         this.navigator = navigator;
         this.orderId = orderId;
         this.estimatedTotal = estimatedTotal.setScale(2, RoundingMode.HALF_UP);
-        this.vm = new PaymentViewModel(services.diningApi, services.salesApi, orderId, estimatedTotal);
+        this.vm = new PaymentViewModel(
+                services.diningApi, services.salesApi, orderId, estimatedTotal, Platform::runLater);
     }
 
     @FXML

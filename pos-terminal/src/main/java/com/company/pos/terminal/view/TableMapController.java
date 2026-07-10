@@ -6,6 +6,7 @@ import com.company.pos.terminal.app.Services;
 import com.company.pos.terminal.viewmodel.TableCell;
 import com.company.pos.terminal.viewmodel.TableMapViewModel;
 import java.util.UUID;
+import javafx.application.Platform;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.ListChangeListener;
@@ -26,7 +27,7 @@ import javafx.util.Duration;
  * {@code poll.interval.seconds}. The timeline is {@link #stopPolling() stopped} before navigating
  * away on a table tap, so it never polls a dead screen or leaks.
  */
-public class TableMapController {
+public class TableMapController implements Navigator.Screen {
 
     private static final System.Logger LOG = System.getLogger(TableMapController.class.getName());
 
@@ -43,7 +44,7 @@ public class TableMapController {
     public TableMapController(Services services, Navigator navigator) {
         this.services = services;
         this.navigator = navigator;
-        this.vm = new TableMapViewModel(services.diningApi);
+        this.vm = new TableMapViewModel(services.diningApi, Platform::runLater);
     }
 
     @FXML
@@ -98,12 +99,23 @@ public class TableMapController {
                 () -> holder[0] = vm.openOrResume(cell),
                 () -> {
                     if (holder[0] != null) {
-                        stopPolling();
+                        // Navigator#setScene also calls onLeave()->stopPolling() on the way out;
+                        // this is a harmless (idempotent) early stop on the happy path.
                         navigator.toOrder(holder[0]);
                     }
                     // null id → VM already surfaced the error via errorMessage; stay on the map.
                 },
                 err -> LOG.log(System.Logger.Level.ERROR, "Unexpected error in open", err));
+    }
+
+    /**
+     * Screen lifecycle: the {@link Navigator} invokes this on EVERY navigation away
+     * from the table map (table tap, or any future exit), so the polling timeline is
+     * always stopped and never leaks or polls a dead screen.
+     */
+    @Override
+    public void onLeave() {
+        stopPolling();
     }
 
     private void stopPolling() {

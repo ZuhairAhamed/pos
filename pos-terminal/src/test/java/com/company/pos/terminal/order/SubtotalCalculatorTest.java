@@ -90,4 +90,17 @@ class SubtotalCalculatorTest {
         MenuCache cache = cacheWith("BURGER", "Mains", "25.00");
         assertEquals(0, BigDecimal.ZERO.compareTo(cache.basePrice("NOPE")));
     }
+
+    @Test
+    void nameForReturnsProductNameOnHit() {
+        MenuCache cache =
+                new MenuCache(List.of(new ProductView("BURGER", "Cheeseburger", "Mains", new BigDecimal("25.00"))));
+        assertEquals("Cheeseburger", cache.nameFor("BURGER"));
+    }
+
+    @Test
+    void nameForFallsBackToSkuOnMiss() {
+        MenuCache cache = cacheWith("BURGER", "Mains", "25.00");
+        assertEquals("GHOST", cache.nameFor("GHOST"));
+    }
 }

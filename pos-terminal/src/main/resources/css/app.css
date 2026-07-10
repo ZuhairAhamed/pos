@@ -115,6 +115,11 @@
 
 /* ---- PIN pad ------------------------------------------------------------ */
 
+.pin-pad {
+    -fx-hgap: 8;
+    -fx-vgap: 8;
+}
+
 .pin-key {
     -fx-min-width: 88px;
     -fx-pref-width: 88px;

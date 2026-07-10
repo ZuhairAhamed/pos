@@ -39,6 +39,16 @@ public final class MenuCache {
         return (p == null || p.unitPrice() == null) ? BigDecimal.ZERO : p.unitPrice();
     }
 
+    /**
+     * O(1) product-name lookup by sku, backed by the {@code bySku} index. Falls back to the sku
+     * itself for an unknown/absent sku (or a product with a null name) so callers always render
+     * something sensible.
+     */
+    public String nameFor(String sku) {
+        ProductView p = bySku.get(sku);
+        return (p == null || p.name() == null) ? sku : p.name();
+    }
+
     /** Distinct category names in first-encounter order; null/blank collapse to {@code "Other"}. */
     public List<String> categories() {
         return new ArrayList<>(byCategory.keySet());

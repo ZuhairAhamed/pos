@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.FXCollections;
@@ -30,11 +31,17 @@ import javafx.collections.ObservableList;
 public class TableMapViewModel {
 
     private final DiningApi dining;
+    private final Consumer<Runnable> ui;
     private final ObservableList<TableCell> cells = FXCollections.observableArrayList();
     private final ReadOnlyStringWrapper errorMessage = new ReadOnlyStringWrapper("");
 
     public TableMapViewModel(DiningApi dining) {
+        this(dining, Runnable::run);
+    }
+
+    public TableMapViewModel(DiningApi dining, Consumer<Runnable> ui) {
         this.dining = dining;
+        this.ui = ui;
     }
 
     public ObservableList<TableCell> cells() {
@@ -60,10 +67,13 @@ public class TableMapViewModel {
                 UUID orderId = orderByTable.get(t.id());
                 next.add(new TableCell(t.id(), t.label(), orderId != null, orderId));
             }
-            cells.setAll(next);
-            errorMessage.set("");
+            ui.accept(() -> {
+                cells.setAll(next);
+                errorMessage.set("");
+            });
         } catch (ApiException e) {
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
         }
     }
 
@@ -74,15 +84,16 @@ public class TableMapViewModel {
      */
     public UUID openOrResume(TableCell cell) {
         if (cell.occupied()) {
-            errorMessage.set("");
+            ui.accept(() -> errorMessage.set(""));
             return cell.orderId();
         }
         try {
             OrderView opened = dining.openOrder(cell.tableId());
-            errorMessage.set("");
+            ui.accept(() -> errorMessage.set(""));
             return opened.id();
         } catch (ApiException e) {
-            errorMessage.set(messageOf(e));
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
             return null;
         }
     }
