@@ -184,7 +184,9 @@ public class PaymentController {
             changeLabel.setText("Change due: " + change + " " + sale.currencyCode());
         }
 
-        // Swap tender entry out for the confirmation block.
+        // Swap tender entry out for the confirmation block; transfer the scene default button.
+        payCashButton.setDefaultButton(false);
+        doneButton.setDefaultButton(true);
         tenderBox.setVisible(false);
         tenderBox.setManaged(false);
         resultBox.setVisible(true);
