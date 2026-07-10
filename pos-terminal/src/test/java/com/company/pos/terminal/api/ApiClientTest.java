@@ -48,6 +48,28 @@ class ApiClientTest {
     }
 
     @Test
+    void unauthorizedResponseClearsSession() throws Exception {
+        try (StubServer stub = new StubServer(401, "{\"status\":401,\"title\":\"Unauthorized\"}", "application/problem+json")) {
+            SessionManager session = new SessionManager();
+            session.setToken("old-token");
+            ApiClient client = new ApiClient(stub.baseUrl(), session);
+
+            assertThrows(ApiException.class,
+                    () -> client.get("/api/me", new TypeReference<Echo>() {}));
+            assertFalse(session.isAuthenticated(), "session must be cleared after 401");
+        }
+    }
+
+    @Test
+    void noAuthorizationHeaderSentWhenUnauthenticated() throws Exception {
+        try (StubServer stub = new StubServer(200, "{\"token\":\"x\"}", "application/json")) {
+            ApiClient client = new ApiClient(stub.baseUrl(), new SessionManager());
+            client.get("/api/me", new TypeReference<Echo>() {});
+            assertNull(stub.lastAuth, "no Authorization header expected when session has no token");
+        }
+    }
+
+    @Test
     void sessionManagerRolesDriveIsManager() {
         SessionManager s = new SessionManager();
         s.setUser("m", java.util.Set.of("MANAGER"));
