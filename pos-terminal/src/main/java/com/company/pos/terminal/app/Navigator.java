@@ -40,15 +40,18 @@ public class Navigator {
         setScene("/fxml/table-map.fxml", controller);
     }
 
-    // TODO(Task 13): navigate to the dine-in order screen for the given order id.
     // Reached from the table map on a table tap (TableMapController.open); the map
-    // stops its poller before calling this. Left throwing until the order screen exists.
+    // stops its poller before calling this. Builds the order screen for the given order.
     public void toOrder(UUID orderId) {
-        throw new UnsupportedOperationException("toOrder is wired in Task 13");
+        com.company.pos.terminal.view.OrderController controller =
+                new com.company.pos.terminal.view.OrderController(services, this, orderId);
+        setScene("/fxml/order.fxml", controller);
     }
 
+    // TODO(Task 14): navigate to the payment screen for the given order with the
+    // client-side estimated subtotal. Left throwing until the payment screen exists.
     public void toPayment(UUID orderId, BigDecimal estimatedTotal) {
-        throw new UnsupportedOperationException("added in Task 13");
+        throw new UnsupportedOperationException("toPayment is wired in Task 14");
     }
 
     void setScene(String fxml, Object controller) {

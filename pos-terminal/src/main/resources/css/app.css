@@ -192,8 +192,83 @@
     -fx-background: transparent;
 }
 
+/* ---- Order screen ------------------------------------------------------- */
+
+.order-pane {
+    -fx-border-color: transparent -fx-border transparent transparent;
+    -fx-border-width: 1;
+}
+
+.order-lines {
+    -fx-background-color: -fx-card;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-size: 16px;
+}
+
+/* A fired line is locked: shown muted + italic so the badge is not the only cue. */
+.order-lines .list-cell.order-line-fired {
+    -fx-text-fill: -fx-muted;
+    -fx-font-style: italic;
+}
+
+.subtotal {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+    -fx-padding: 8 0 0 0;
+}
+
+/* ---- Menu grid ---------------------------------------------------------- */
+
+.menu-tabs {
+    -fx-font-size: 16px;
+}
+
+.menu-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.menu-grid {
+    -fx-padding: 16 4 16 4;
+}
+
+/* Large touch targets (>= ~96px) showing product name + price. */
 .menu-button {
-    -fx-min-width: 120px;
-    -fx-min-height: 72px;
-    -fx-font-size: 15px;
+    -fx-min-width: 140px;
+    -fx-pref-width: 140px;
+    -fx-min-height: 96px;
+    -fx-pref-height: 96px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-content-display: center;
+    -fx-background-color: -fx-card;
+    -fx-text-fill: -fx-text;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.menu-button:hover { -fx-background-color: derive(-fx-card, -6%); -fx-border-color: -fx-primary; }
+.menu-button:pressed { -fx-background-color: derive(-fx-card, -12%); }
+
+/* ---- Modifier picker dialog --------------------------------------------- */
+
+.modifier-box {
+    -fx-padding: 16;
+}
+
+.modifier-group-label {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+.modifier-option {
+    -fx-font-size: 16px;
+    -fx-padding: 8 0 8 8;
 }
