@@ -1,0 +1,164 @@
+/*
+ * app.css — the single shared stylesheet loaded once onto the Scene by the
+ * Navigator, so every screen inherits the same touch-first design tokens.
+ *
+ * Design tokens (referenced inline below since JavaFX CSS looked-up colors are
+ * declared on .root):
+ *   surface/background : #f4f5f7   card: #ffffff
+ *   primary action     : #1565c0   (hover #0d47a1)
+ *   danger             : #b00020
+ *   success/confirm    : #2e7d32
+ *   text               : #1a1a1a   muted: #5f6368   border: #d0d3d8
+ * Type scale: body 16px · field-label 14px · subtitle 15px · title 30px.
+ * Spacing scale: 8 / 16 / 24 / 32.
+ */
+
+.root {
+    -fx-primary: #1565c0;
+    -fx-primary-hover: #0d47a1;
+    -fx-danger: #b00020;
+    -fx-success: #2e7d32;
+    -fx-surface: #f4f5f7;
+    -fx-card: #ffffff;
+    -fx-text: #1a1a1a;
+    -fx-muted: #5f6368;
+    -fx-border: #d0d3d8;
+    -fx-font-size: 16px;
+    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ---- Screen scaffold ---------------------------------------------------- */
+
+.screen {
+    -fx-background-color: -fx-surface;
+    -fx-padding: 32;
+}
+
+.card {
+    -fx-background-color: -fx-card;
+    -fx-background-radius: 12;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 12;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 24, 0, 0, 4);
+}
+
+/* ---- Typography --------------------------------------------------------- */
+
+.title {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+.subtitle {
+    -fx-font-size: 15px;
+    -fx-text-fill: -fx-muted;
+}
+
+.field-label {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-muted;
+}
+
+/* ---- Form fields -------------------------------------------------------- */
+
+.field .text-field,
+.field .password-field {
+    -fx-font-size: 18px;
+    -fx-pref-height: 52px;
+    -fx-padding: 8 12 8 12;
+    -fx-background-color: -fx-card;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: -fx-text;
+}
+
+.field .text-field:focused,
+.field .password-field:focused {
+    -fx-border-color: -fx-primary;
+    -fx-border-width: 2;
+}
+
+/* ---- Buttons ------------------------------------------------------------ */
+
+.btn-primary {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-min-height: 64px;
+    -fx-pref-height: 64px;
+    -fx-padding: 8 24 8 24;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover  { -fx-background-color: -fx-primary-hover; }
+.btn-primary:focused { -fx-border-color: -fx-text; -fx-border-width: 2; -fx-border-radius: 8; }
+.btn-primary:disabled { -fx-opacity: 0.55; }
+
+.btn-secondary {
+    -fx-background-color: -fx-card;
+    -fx-text-fill: -fx-primary;
+    -fx-font-size: 16px;
+    -fx-min-height: 56px;
+    -fx-padding: 8 20 8 20;
+    -fx-border-color: -fx-primary;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.btn-secondary:hover { -fx-background-color: derive(-fx-primary, 90%); }
+
+/* ---- PIN pad ------------------------------------------------------------ */
+
+.pin-key {
+    -fx-min-width: 88px;
+    -fx-pref-width: 88px;
+    -fx-min-height: 64px;
+    -fx-pref-height: 64px;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-background-color: -fx-surface;
+    -fx-text-fill: -fx-text;
+    -fx-background-radius: 8;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-cursor: hand;
+}
+
+.pin-key:hover { -fx-background-color: derive(-fx-surface, -6%); }
+.pin-key:pressed { -fx-background-color: derive(-fx-surface, -12%); }
+.pin-key:focused { -fx-border-color: -fx-primary; -fx-border-width: 2; }
+
+.pin-key-alt {
+    -fx-font-size: 16px;
+    -fx-text-fill: -fx-primary;
+}
+
+/* ---- Error banner ------------------------------------------------------- */
+
+.error-banner {
+    -fx-background-color: derive(-fx-danger, 88%);
+    -fx-text-fill: -fx-danger;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 16 12 16;
+    -fx-background-radius: 8;
+    -fx-border-color: -fx-danger;
+    -fx-border-radius: 8;
+}
+
+/* ---- Shared screen tokens for later screens (Tasks 12-13) --------------- */
+
+.table-free { -fx-background-color: #e8f5e9; }
+.table-occupied { -fx-background-color: #ffebee; }
+
+.menu-button {
+    -fx-min-width: 120px;
+    -fx-min-height: 72px;
+    -fx-font-size: 15px;
+}

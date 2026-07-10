@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Full-window neutral background; a centered card holds the login form. -->
+<StackPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <VBox alignment="TOP_CENTER" spacing="24" styleClass="card" maxWidth="420" maxHeight="-Infinity">
+    <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+
+    <Label text="POS Terminal" styleClass="title"/>
+    <Label fx:id="storeLabel" styleClass="subtitle"/>
+
+    <!-- Error banner: danger style, hidden when errorMessage is empty. -->
+    <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
+
+    <VBox spacing="6" styleClass="field">
+      <Label text="Username" styleClass="field-label"/>
+      <TextField fx:id="usernameField" promptText="Username" maxWidth="Infinity"/>
+    </VBox>
+
+    <VBox spacing="6" styleClass="field">
+      <Label text="Password / PIN" styleClass="field-label"/>
+      <PasswordField fx:id="passwordField" promptText="Password / PIN" maxWidth="Infinity"/>
+    </VBox>
+
+    <!-- Numeric PIN pad: touch path (0-9, Clear, Enter). -->
+    <GridPane hgap="8" vgap="8" alignment="CENTER" styleClass="pin-pad">
+      <Button text="1" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+      <Button text="2" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+      <Button text="3" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
+      <Button text="4" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+      <Button text="5" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+      <Button text="6" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+      <Button text="7" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+      <Button text="8" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+      <Button text="9" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="2" GridPane.columnIndex="2"/>
+      <Button text="Clear" styleClass="pin-key,pin-key-alt" onAction="#onPinClear" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+      <Button text="0" styleClass="pin-key" onAction="#onPinKey" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+      <Button text="Enter" styleClass="pin-key,pin-key-alt" onAction="#onPinEnter" GridPane.rowIndex="3" GridPane.columnIndex="2"/>
+    </GridPane>
+
+    <HBox alignment="CENTER" maxWidth="Infinity">
+      <Button fx:id="loginButton" text="Sign in" defaultButton="true"
+              styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+    </HBox>
+  </VBox>
+</StackPane>
