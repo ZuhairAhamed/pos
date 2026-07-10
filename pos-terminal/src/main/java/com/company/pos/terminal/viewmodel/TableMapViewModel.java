@@ -74,6 +74,7 @@ public class TableMapViewModel {
      */
     public UUID openOrResume(TableCell cell) {
         if (cell.occupied()) {
+            errorMessage.set("");
             return cell.orderId();
         }
         try {

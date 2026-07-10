@@ -61,6 +61,57 @@ class TableMapViewModelTest {
         assertEquals(openOrderId, vm.openOrResume(occupied));
     }
 
+    /**
+     * Regression: occupied-table fast-path must clear a stale error set by a prior action.
+     *
+     * <p>Arrange: plant a stale error via a failing openOrResume on a free table (t2), while t1 is
+     * occupied. Act: call openOrResume on the occupied t1 cell. Assert: errorMessage is cleared and
+     * the existing order id is returned.
+     */
+    @Test
+    void openOrResumeClearsStaleErrorOnOccupiedTable() {
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public List<TableView> tables() {
+                        return List.of(
+                                new TableView(t1, "T1", 4, true),
+                                new TableView(t2, "T2", 2, true));
+                    }
+
+                    @Override
+                    public List<OpenOrderView> openOrders() {
+                        return List.of(new OpenOrderView(openOrderId, t1, "T1", Instant.now(), 0));
+                    }
+
+                    @Override
+                    public OrderView openOrder(UUID tableId) {
+                        // Always fails — used only to plant the stale error on the free table.
+                        throw new ApiException(
+                                503,
+                                new ProblemDetail("Unavailable", 503, "Server busy"),
+                                "HTTP 503");
+                    }
+                };
+        TableMapViewModel vm = new TableMapViewModel(dining);
+        vm.refresh(); // t1 occupied, t2 free
+
+        // Plant stale error: attempt to open the free table, which fails.
+        TableCell freeCell =
+                vm.cells().stream().filter(c -> c.tableId().equals(t2)).findFirst().orElseThrow();
+        assertNull(vm.openOrResume(freeCell));
+        assertEquals("Server busy", vm.errorMessage().get()); // stale error is set
+
+        // Act: tap the occupied table.
+        TableCell occupiedCell =
+                vm.cells().stream().filter(TableCell::occupied).findFirst().orElseThrow();
+        UUID returnedId = vm.openOrResume(occupiedCell);
+
+        // Assert: stale error cleared, correct order id returned.
+        assertEquals("", vm.errorMessage().get());
+        assertEquals(openOrderId, returnedId);
+    }
+
     @Test
     void openOrResumeOpensNewOrderForFreeTable() {
         UUID newId = UUID.randomUUID();
