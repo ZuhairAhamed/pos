@@ -28,6 +28,8 @@ import javafx.util.Duration;
  */
 public class TableMapController {
 
+    private static final System.Logger LOG = System.getLogger(TableMapController.class.getName());
+
     private final Services services;
     private final Navigator navigator;
     private final TableMapViewModel vm;
@@ -69,7 +71,7 @@ public class TableMapController {
 
     /** Run the VM refresh off the FX thread; the cells listener repaints on completion. */
     private void refresh() {
-        FxTasks.run(vm::refresh, () -> { }, err -> { /* VM surfaces ApiException via errorMessage */ });
+        FxTasks.run(vm::refresh, () -> { }, err -> LOG.log(System.Logger.Level.ERROR, "Unexpected error in refresh", err));
     }
 
     /** Rebuild the tile grid from the current cells. Runs on the FX thread. */
@@ -101,7 +103,7 @@ public class TableMapController {
                     }
                     // null id → VM already surfaced the error via errorMessage; stay on the map.
                 },
-                err -> { /* VM surfaces ApiException via errorMessage */ });
+                err -> LOG.log(System.Logger.Level.ERROR, "Unexpected error in open", err));
     }
 
     private void stopPolling() {
