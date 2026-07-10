@@ -297,3 +297,51 @@
     -fx-border-width: 2;
     -fx-font-weight: bold;
 }
+
+/* ---- Payment screen ----------------------------------------------------- */
+
+/* Estimated total due — big and readable at the top of the tender card. */
+.pay-total {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+/* Live change preview under the cash field (display only). */
+.pay-change-preview {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-success;
+}
+
+/* Confirmation receipt-line rows. */
+.pay-line-label {
+    -fx-font-size: 16px;
+    -fx-text-fill: -fx-muted;
+}
+
+.pay-line-value {
+    -fx-font-size: 16px;
+    -fx-text-fill: -fx-text;
+}
+
+/* Authoritative grand total — the most prominent number on the confirmation. */
+.pay-grand-label {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text;
+}
+
+.pay-grand-value {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-primary;
+}
+
+/* Change due on the confirmation (cash). */
+.pay-change {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-success;
+    -fx-padding: 8 0 0 0;
+}

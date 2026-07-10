@@ -48,10 +48,13 @@ public class Navigator {
         setScene("/fxml/order.fxml", controller);
     }
 
-    // TODO(Task 14): navigate to the payment screen for the given order with the
-    // client-side estimated subtotal. Left throwing until the payment screen exists.
+    // Reached from the order screen's "Pay" action with the client-side estimated
+    // subtotal (pre-tax, pre-service-charge). Builds the payment screen; the VM
+    // closes the order server-side and exposes the authoritative SaleView totals.
     public void toPayment(UUID orderId, BigDecimal estimatedTotal) {
-        throw new UnsupportedOperationException("toPayment is wired in Task 14");
+        com.company.pos.terminal.view.PaymentController controller =
+                new com.company.pos.terminal.view.PaymentController(services, this, orderId, estimatedTotal);
+        setScene("/fxml/payment.fxml", controller);
     }
 
     void setScene(String fxml, Object controller) {

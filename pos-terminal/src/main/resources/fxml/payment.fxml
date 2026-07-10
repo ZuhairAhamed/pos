@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Payment screen: a centered card holds the estimated total, a CASH/CARD tender
+     choice, and (after a successful close) the authoritative SaleView totals with
+     reprint + return-to-floor actions. Money is displayed at scale 2 by the VM/
+     controller. Style classes come from the shared app.css; no inline styling. -->
+<StackPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <VBox alignment="TOP_CENTER" spacing="24" styleClass="card" maxWidth="480" maxHeight="-Infinity">
+    <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
+
+    <Label text="Payment" styleClass="title"/>
+
+    <!-- Estimated total due (pre-service-charge client estimate). -->
+    <Label fx:id="totalLabel" styleClass="pay-total"/>
+
+    <!-- Error banner: danger style, hidden (and not laid out) when empty. -->
+    <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
+
+    <!-- Tender entry: shown until paid, then hidden + unmanaged. -->
+    <VBox fx:id="tenderBox" spacing="16" alignment="TOP_CENTER" maxWidth="Infinity">
+      <VBox spacing="6" styleClass="field" maxWidth="Infinity">
+        <Label text="Cash tendered" styleClass="field-label"/>
+        <TextField fx:id="tenderedField" promptText="0.00" maxWidth="Infinity"/>
+      </VBox>
+
+      <Label fx:id="changePreviewLabel" styleClass="pay-change-preview"/>
+
+      <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
+        <Button fx:id="payCashButton" text="Take cash payment" defaultButton="true"
+                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="payCardButton" text="Take card payment"
+                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+      </HBox>
+
+      <Button fx:id="cancelButton" text="Back to order" styleClass="btn-secondary" maxWidth="Infinity"/>
+    </VBox>
+
+    <!-- Confirmation / receipt: hidden (and not laid out) until a close succeeds. -->
+    <VBox fx:id="resultBox" spacing="10" alignment="TOP_LEFT" visible="false" managed="false" maxWidth="Infinity">
+      <Label fx:id="receiptLabel" styleClass="subtitle"/>
+      <Separator/>
+
+      <HBox maxWidth="Infinity">
+        <Label text="Subtotal" styleClass="pay-line-label"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="subtotalValue" styleClass="pay-line-value"/>
+      </HBox>
+      <HBox maxWidth="Infinity">
+        <Label text="Tax" styleClass="pay-line-label"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="taxValue" styleClass="pay-line-value"/>
+      </HBox>
+      <!-- Service charge row: shown only when serviceChargeAmount > 0. -->
+      <HBox fx:id="serviceChargeRow" visible="false" managed="false" maxWidth="Infinity">
+        <Label text="Service charge" styleClass="pay-line-label"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="serviceChargeValue" styleClass="pay-line-value"/>
+      </HBox>
+      <Separator/>
+      <HBox maxWidth="Infinity">
+        <Label text="Grand total" styleClass="pay-grand-label"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="grandTotalValue" styleClass="pay-grand-value"/>
+      </HBox>
+
+      <Label fx:id="changeLabel" styleClass="pay-change" visible="false" managed="false"/>
+
+      <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
+        <Button fx:id="reprintButton" text="Reprint receipt" styleClass="btn-secondary"
+                maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="doneButton" text="Done — new table" defaultButton="true"
+                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+      </HBox>
+    </VBox>
+  </VBox>
+</StackPane>
