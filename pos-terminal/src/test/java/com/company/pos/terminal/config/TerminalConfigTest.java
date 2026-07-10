@@ -27,4 +27,26 @@ class TerminalConfigTest {
         TerminalConfig cfg = TerminalConfig.from(new Properties());
         assertEquals(5, cfg.pollIntervalSeconds());
     }
+
+    @Test
+    void nonNumericPollIntervalThrowsIllegalArgumentExceptionWithBadValue() {
+        Properties p = new Properties();
+        p.setProperty("poll.interval.seconds", "five");
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class, () -> TerminalConfig.from(p));
+        assertTrue(ex.getMessage().contains("five"),
+                "Exception message should contain the bad value 'five'");
+    }
+
+    @Test
+    void loadRespectsJvmSystemPropertyOverlay() {
+        System.setProperty("terminal.id", "OVERRIDE1");
+        try {
+            TerminalConfig cfg = TerminalConfig.load();
+            assertEquals("OVERRIDE1", cfg.terminalId());
+        } finally {
+            System.clearProperty("terminal.id");
+        }
+    }
 }

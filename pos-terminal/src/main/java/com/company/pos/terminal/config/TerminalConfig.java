@@ -14,7 +14,13 @@ public final class TerminalConfig {
         this.serverBaseUrl = p.getProperty("server.base-url", "http://localhost:8080");
         this.terminalId = p.getProperty("terminal.id", "T01");
         this.storeId = p.getProperty("store.id", "S01");
-        this.pollIntervalSeconds = Integer.parseInt(p.getProperty("poll.interval.seconds", "5"));
+        String rawInterval = p.getProperty("poll.interval.seconds", "5");
+        try {
+            this.pollIntervalSeconds = Integer.parseInt(rawInterval);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "poll.interval.seconds must be an integer, got: " + rawInterval, e);
+        }
     }
 
     public static TerminalConfig from(Properties p) {
