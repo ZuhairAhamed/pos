@@ -11,17 +11,20 @@ import java.util.Set;
 import java.util.UUID;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.VBox;
 
 /**
  * Modal modifier picker for a product with one or more {@link ModifierGroupView modifier groups}.
  * Each group is rendered as a labelled section (with a "required"/"optional" hint) whose options are
- * large toggle buttons showing the option name and its {@code priceDelta}. The chosen option-id set
- * is live-validated against {@link ModifierSelectionValidator} on every toggle; the confirm ("Add")
+ * full-width {@link ToggleButton ToggleButtons} (≥48 px tall, styled via {@code .modifier-option})
+ * showing the option name and its {@code priceDelta}. Toggles are independent — NOT in a JavaFX
+ * {@code ToggleGroup} — so the existing set-based multi-select logic is preserved: toggling a button
+ * adds or removes the option id from the ordered {@code selected} set. The chosen option-id set is
+ * live-validated against {@link ModifierSelectionValidator} on every toggle; the confirm ("Add")
  * button is disabled until every forced group is satisfied and no group exceeds its maximum. The
  * server re-validates authoritatively on {@code addLine} — this only gives fast local feedback.
  *
@@ -55,9 +58,12 @@ public final class ModifierPickerDialog {
             box.getChildren().add(groupLabel);
 
             for (ModifierOptionView opt : g.options()) {
-                CheckBox cb = new CheckBox(labelFor(opt));
-                cb.getStyleClass().add("modifier-option");
-                cb.selectedProperty()
+                ToggleButton tb = new ToggleButton(labelFor(opt));
+                tb.setMaxWidth(Double.MAX_VALUE); // full-width within the group
+                tb.getStyleClass().add("modifier-option");
+                // Selection listener: must be registered BEFORE the revalidate listener so
+                // `selected` is updated before validation reads it (same ordering as before).
+                tb.selectedProperty()
                         .addListener(
                                 (obs, was, now) -> {
                                     if (now) {
@@ -66,7 +72,7 @@ public final class ModifierPickerDialog {
                                         selected.remove(opt.id());
                                     }
                                 });
-                box.getChildren().add(cb);
+                box.getChildren().add(tb);
             }
         }
 
@@ -77,10 +83,10 @@ public final class ModifierPickerDialog {
         // Live-validate: disable "Add" until the selection satisfies every group.
         javafx.scene.Node okNode = dialog.getDialogPane().lookupButton(ok);
         Runnable revalidate = () -> okNode.setDisable(ModifierSelectionValidator.validate(groups, selected) != null);
-        // Re-run validation whenever any checkbox toggles.
+        // Re-run validation whenever any toggle button toggles.
         for (javafx.scene.Node node : box.getChildren()) {
-            if (node instanceof CheckBox cb) {
-                cb.selectedProperty().addListener((obs, was, now) -> revalidate.run());
+            if (node instanceof ToggleButton tb) {
+                tb.selectedProperty().addListener((obs, was, now) -> revalidate.run());
             }
         }
         revalidate.run(); // initial state (forced groups start invalid)

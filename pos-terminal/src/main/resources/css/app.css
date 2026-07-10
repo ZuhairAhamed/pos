@@ -268,7 +268,32 @@
     -fx-text-fill: -fx-text;
 }
 
+/* Full-width ToggleButtons for modifier options — touch target >= 48 px.
+   Independent (no ToggleGroup) so multi-select semantics are set-based. */
 .modifier-option {
     -fx-font-size: 16px;
-    -fx-padding: 8 0 8 8;
+    -fx-font-weight: normal;
+    -fx-min-height: 48px;
+    -fx-pref-height: 56px;
+    -fx-padding: 12 16 12 16;
+    -fx-alignment: center-left;
+    -fx-background-color: -fx-card;
+    -fx-text-fill: -fx-text;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+
+.modifier-option:hover {
+    -fx-background-color: derive(-fx-card, -6%);
+    -fx-border-color: -fx-primary;
+}
+
+.modifier-option:selected {
+    -fx-background-color: derive(-fx-primary, 88%);
+    -fx-text-fill: -fx-primary;
+    -fx-border-color: -fx-primary;
+    -fx-border-width: 2;
+    -fx-font-weight: bold;
 }
