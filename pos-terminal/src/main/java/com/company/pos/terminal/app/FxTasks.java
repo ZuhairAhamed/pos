@@ -2,6 +2,9 @@ package com.company.pos.terminal.app;
 
 import javafx.concurrent.Task;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -11,9 +14,21 @@ import java.util.function.Consumer;
  * the {@link Task}'s success/failure handlers, which JavaFX always invokes back
  * on the FX Application Thread. This keeps network I/O off the UI thread while
  * letting callbacks touch scene-graph nodes safely.
+ *
+ * <p>All tasks share a single cached-thread-pool executor so threads are reused
+ * across calls and each thread carries a unique name (e.g. {@code api-call-1})
+ * that is visible in thread dumps. All threads are daemon threads so the JVM
+ * can exit cleanly without waiting for in-flight API calls.
  */
 public final class FxTasks {
     private FxTasks() {}
+
+    private static final AtomicInteger SEQ = new AtomicInteger();
+    private static final ExecutorService EXEC = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "api-call-" + SEQ.incrementAndGet());
+        t.setDaemon(true);
+        return t;
+    });
 
     public static void run(Runnable work, Runnable onDone, Consumer<Throwable> onError) {
         Task<Void> task = new Task<>() {
@@ -26,8 +41,6 @@ public final class FxTasks {
         // setOnSucceeded / setOnFailed handlers are invoked on the FX thread.
         task.setOnSucceeded(e -> onDone.run());
         task.setOnFailed(e -> onError.accept(task.getException()));
-        Thread t = new Thread(task, "api-call");
-        t.setDaemon(true);
-        t.start();
+        EXEC.execute(task);
     }
 }

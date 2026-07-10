@@ -76,6 +76,7 @@ public class LoginController {
     /** PIN-pad "Enter": same action as the Sign in button. */
     @FXML
     private void onPinEnter() {
+        if (vm.busy().get()) return;
         doLogin();
     }
 
