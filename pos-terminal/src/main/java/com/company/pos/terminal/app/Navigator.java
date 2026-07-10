@@ -1,6 +1,7 @@
 package com.company.pos.terminal.app;
 
 import com.company.pos.terminal.view.LoginController;
+import com.company.pos.terminal.view.TableMapController;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -34,13 +35,16 @@ public class Navigator {
         setScene("/fxml/login.fxml", controller);
     }
 
-    // toTableMap(), toOrder(UUID), toPayment(UUID, BigDecimal) are wired in Tasks 12-13.
     public void toTableMap() {
-        throw new UnsupportedOperationException("added in Task 12");
+        TableMapController controller = new TableMapController(services, this);
+        setScene("/fxml/table-map.fxml", controller);
     }
 
+    // TODO(Task 13): navigate to the dine-in order screen for the given order id.
+    // Reached from the table map on a table tap (TableMapController.open); the map
+    // stops its poller before calling this. Left throwing until the order screen exists.
     public void toOrder(UUID orderId) {
-        throw new UnsupportedOperationException("added in Task 12");
+        throw new UnsupportedOperationException("toOrder is wired in Task 13");
     }
 
     public void toPayment(UUID orderId, BigDecimal estimatedTotal) {

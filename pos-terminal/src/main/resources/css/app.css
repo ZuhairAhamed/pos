@@ -152,10 +152,45 @@
     -fx-border-radius: 8;
 }
 
-/* ---- Shared screen tokens for later screens (Tasks 12-13) --------------- */
+/* ---- Table map ---------------------------------------------------------- */
 
-.table-free { -fx-background-color: #e8f5e9; }
-.table-occupied { -fx-background-color: #ffebee; }
+/* Large square touch targets; free vs occupied differ by fill, border AND the
+   status word rendered in the tile text ("Open" / "In use") — never colour alone. */
+.table-cell {
+    -fx-min-width: 128px;
+    -fx-pref-width: 128px;
+    -fx-min-height: 112px;
+    -fx-pref-height: 112px;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-text-alignment: center;
+    -fx-content-display: center;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-width: 2;
+    -fx-cursor: hand;
+}
+
+.table-free {
+    -fx-background-color: #e8f5e9;
+    -fx-text-fill: -fx-success;
+    -fx-border-color: -fx-success;
+}
+.table-free:hover { -fx-background-color: derive(#e8f5e9, -6%); }
+
+.table-occupied {
+    -fx-background-color: #ffebee;
+    -fx-text-fill: -fx-danger;
+    -fx-border-color: -fx-danger;
+}
+.table-occupied:hover { -fx-background-color: derive(#ffebee, -6%); }
+
+.table-cell:focused { -fx-border-color: -fx-text; }
+
+.table-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
 
 .menu-button {
     -fx-min-width: 120px;
