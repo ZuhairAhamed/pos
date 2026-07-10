@@ -1,6 +1,7 @@
 package com.company.pos.terminal.api;
 
 import com.company.pos.terminal.api.dto.*;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,6 +40,13 @@ class AuthApiTest {
             assertEquals("Bearer jwt-xyz", stub.lastAuth);
             assertTrue(stub.pathsHit().contains("/auth/login"));
             assertFalse(session.isManager());
+
+            // Assert POST /auth/login body serializes the correct field names and values.
+            StubServer.RecordedRequest loginReq = stub.requestTo("POST", "/auth/login");
+            assertNotNull(loginReq, "POST /auth/login was not recorded");
+            JsonNode loginBody = ApiClient.defaultMapper().readTree(loginReq.body());
+            assertEquals("alice", loginBody.get("username").asText(), "login body must use field name 'username'");
+            assertEquals("pw", loginBody.get("password").asText(), "login body must use field name 'password'");
         }
     }
 
