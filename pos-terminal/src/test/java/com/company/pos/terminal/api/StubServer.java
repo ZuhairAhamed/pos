@@ -12,10 +12,10 @@ import java.util.List;
 final class StubServer implements AutoCloseable {
 
     /** Immutable snapshot of one recorded HTTP request. */
-    record RecordedRequest(String method, String path, String body, String authorization) {}
+    record RecordedRequest(String method, String path, String query, String body, String authorization) {}
 
     private final HttpServer server;
-    String lastMethod, lastPath, lastBody, lastAuth;
+    String lastMethod, lastPath, lastQuery, lastBody, lastAuth;
     private final List<String> pathsHit = new ArrayList<>();
 
     /** Full ordered log of every request received by this stub. */
@@ -26,10 +26,11 @@ final class StubServer implements AutoCloseable {
         server.createContext("/", ex -> {
             lastMethod = ex.getRequestMethod();
             lastPath = ex.getRequestURI().getPath();
+            lastQuery = ex.getRequestURI().getQuery();
             pathsHit.add(lastPath);
             lastAuth = ex.getRequestHeaders().getFirst("Authorization");
             lastBody = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-            requests.add(new RecordedRequest(lastMethod, lastPath, lastBody, lastAuth));
+            requests.add(new RecordedRequest(lastMethod, lastPath, lastQuery, lastBody, lastAuth));
             byte[] out = responseBody == null ? new byte[0] : responseBody.getBytes(StandardCharsets.UTF_8);
             if (contentType != null) ex.getResponseHeaders().add("Content-Type", contentType);
             ex.sendResponseHeaders(status, out.length == 0 ? -1 : out.length);
