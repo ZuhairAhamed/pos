@@ -1,8 +1,10 @@
 # POS Application — Combined Architecture Plan
 
-**Stack:** Java 21 + Spring Boot 3.x · **Terminal:** Windows desktop (JavaFX) · **Topology:** Single store · **Mode:** Offline-first with ERP sync
+**Stack:** Java 21 + Spring Boot 3.x · **Terminal:** Windows desktop (JavaFX — planned, ⚠️ not yet built) · **Topology:** Single store · **Mode:** Offline-first with ERP sync
 
-> **Scope:** Single-industry, single-store POS. This plan consolidates the engineering architecture (`pos-architecture-plan-1.md`) with the complete module/feature inventory from the requirement documents (`pos-requirement.md`, `pos-requirement-1.md`). The multi-industry platform / feature-flag / licensing vision is intentionally **out of scope** for this plan; the modular boundaries below keep that path open for the future without building it now.
+> **Status (reconciled 2026-07-10):** This plan has been revised **in place** to match what has actually been built. The retail MVP (branches for Phases 0–9) **and** a restaurant dine-in track (Phases 10–13b) are implemented and tested; the headless backend is complete but no UI exists yet, and several production-hardening items remain. See §14 for the phase-by-phase status and §15 for the state of the original open questions. Status markers used below: ✅ built & tested · 🍽️ restaurant-track extension (beyond original scope) · ⏳ deferred (not built) · ⚠️ planned but unbuilt.
+
+> **Scope:** Single-**store** POS that now serves **two service formats in one deployment** — retail quick-service checkout *and* restaurant dine-in (tables, open orders, menu modifiers/variants, kitchen station routing, split billing, taxable service charge). It remains a single-store, single-deployment product: the multi-industry **platform** vision (feature-flag / licensing / config-driven UI SPI) is still intentionally **out of scope**. Notably, the restaurant capability was added **directly on the retail module seams** (reusing `cart`/`sales`/`pricing`/`tax`/`receipt`), *not* through an industry-plugin layer — so the code covers two formats without becoming the licensable platform. This plan consolidates the engineering architecture with the module/feature inventory from `pos-requirement.md`.
 
 ---
 
@@ -89,19 +91,21 @@ Package layout under `com.company.pos`, grouped by tier. Arrows = allowed depend
 
 ```
 TIER 1 — Edge / UI orchestration
-  sales · dashboard · reporting
+  sales ✅ · dining 🍽️ · dashboard ✅ · reporting ✅
         │
 TIER 2 — Domain capabilities
-  cart · pricing · promotion · tax · payment · receipt · loyalty
-  inventory · product · customer · supplier · purchasing
-  cashdrawer · employee · shift · barcode
+  cart ✅ · pricing ✅ · tax ✅ · payment ✅ · receipt ✅ · menu 🍽️ · kitchen 🍽️
+  inventory ✅ · product ✅ · customer ✅ · cashdrawer ✅ · shift ✅
+  promotion ⏳ · loyalty ⏳ · supplier ⏳ · purchasing ⏳ · employee ⏳ · barcode ⏳
         │
 TIER 3 — Platform services
-  auth · sync · integration(erp/payment/fiscal) · notification · device · configuration · audit
+  auth ✅ · sync ✅ · integration(erp ✅ · payment ⚠️ · fiscal ⏳) · notification ✅ · device ✅ · configuration ✅ · audit ✅
         │
 TIER 0 — Shared kernel (no business logic)
-  common(config·exception·security·util·events) · database
+  common ✅ (config·exception·security·util·events) · database ✅
 ```
+
+Legend: ✅ built & tested · 🍽️ restaurant-track extension (Phases 10–13b) · ⏳ deferred, not built · ⚠️ port defined but only an in-memory fake adapter exists.
 
 Guidelines:
 - **`sales` is the orchestrator** of the checkout use case — it composes `cart`, `pricing`, `promotion`, `tax`, `payment`, `receipt`. Those capability modules don't call back up.
@@ -119,24 +123,27 @@ Guidelines:
 | `product` | 2 | Product catalog (ERP-mastered) | Catalog · categories · brands · variants · SKU mgmt · barcode mapping · unit of measure · price lists · product images |
 | `inventory` | 2 | Stock control | Stock levels · warehouse/location · stock transfer · stock adjustment · stock count · goods receipt · reorder levels · movement ledger |
 | `customer` | 2 | Customer master | Registration · search · groups · purchase history · credit customers · loyalty linkage |
-| `payment` | 2 | Tender handling | Cash · credit/debit card (semi-integrated) · QR payment · mobile wallet · gift card · store credit · mixed/split payment · refunds |
-| `receipt` | 2 | Receipt production | Templates · thermal print · reprint · email · SMS · PDF |
-| `pricing` | 2 | Price resolution | Discounts · coupons · customer-specific pricing · happy-hour pricing · buy-X-get-Y |
-| `promotion` | 2 | Promotion engine | BOGO · bundle promotions · time-based discounts · category discounts · customer discounts |
-| `tax` | 2 | Tax calculation | VAT · multiple rates · inclusive/exclusive tax · tax exemptions |
-| `loyalty` | 2 | Rewards | Points accrual/redemption · rewards · membership levels · loyalty coupons |
+| `payment` | 2 | Tender handling | Cash ✅ · card ✅ · mobile wallet ✅ · mixed/split payment ✅ · refunds ✅ — QR ⏳ · gift card ⏳ · store credit ⏳ (card/wallet via **fake** terminal — see `integration/payment`) |
+| `receipt` | 2 | Receipt production | Thermal print ✅ · reprint ✅ · itemized discounts/modifiers/service-charge ✅ — templates ⏳ · email ⏳ · SMS ⏳ · PDF ⏳ |
+| `pricing` | 2 | Price resolution | Discounts ✅ · coupons ⏳ · customer-specific pricing ⏳ · happy-hour pricing ⏳ · buy-X-get-Y ⏳ (only manual line/transaction discounts built) |
+| `promotion` ⏳ | 2 | Promotion engine | BOGO · bundle promotions · time-based discounts · category discounts · customer discounts — **deferred, not built** |
+| `tax` | 2 | Tax calculation | Single-rate VAT ✅ · inclusive/exclusive ✅ — multiple rates ⏳ · tax exemptions ⏳ (runs KSA 15% flat today) |
+| `loyalty` ⏳ | 2 | Rewards | Points accrual/redemption · rewards · membership levels · loyalty coupons — **deferred** (only a `loyaltyCode` string is stored on the customer; no engine) |
 | `cashdrawer` | 2 | Till operations | Open/close drawer · cash in · cash out · cash count · cash reconciliation |
-| `shift` | 2 | Shift lifecycle | Shift open/close · shift summary · break management · cash handover |
-| `employee` | 2 | Staff records | Cashier records · attendance · role assignment (consumes `auth`) |
-| `supplier` | 2 | Supplier master | Supplier mgmt · supplier payments · goods receiving link |
-| `purchasing` | 2 | Procurement | Purchase orders · receive inventory · purchase returns · vendor invoices |
-| `barcode` | 2 | Barcode ops | Barcode generation · barcode printing · barcode lookup |
+| `shift` | 2 | Shift lifecycle | Shift open/close · shift summary — break management ⏳ · cash handover ✅ |
+| `employee` ⏳ | 2 | Staff records | Cashier records · attendance · role assignment — **deferred** (auth provides generic RBAC only) |
+| `supplier` ⏳ | 2 | Supplier master | Supplier mgmt · supplier payments · goods receiving link — **deferred, not built** |
+| `purchasing` ⏳ | 2 | Procurement | Purchase orders · receive inventory · purchase returns · vendor invoices — **deferred, not built** |
+| `barcode` ⏳ | 2 | Barcode ops | Barcode generation · barcode printing · barcode lookup — **deferred** (SKU-based only) |
 | `reporting` | 1 | Business reports | Sales · product performance · hourly sales · cashier · inventory · profit · tax · payment reports |
 | `dashboard` | 1 | Operational insight | Today's sales · best sellers · low-stock items · active cashiers · open shifts · revenue summary |
+| `dining` 🍽️ | 1 | Restaurant floor orchestration | Table registry · shared store-wide open dine-in orders (tickets) · course tags & prep notes · close via existing checkout · single / by-item / even split billing · manager-waivable **taxable** service charge |
+| `menu` 🍽️ | 2 | Menu modifiers & variants | Forced/optional modifier groups with priced options · size variants · SKU→group assignment · effective-price folding into the unchanged pricing→tax pipeline |
+| `kitchen` 🍽️ | 2 | Kitchen station routing | Incremental fire · per-line fired/locked state · SKU→station overlay · station-grouped ticket printing (`KitchenPrinter` port) · async resilient routing |
 | `sync` | 3 | Offline sync engine | Transactional outbox · queue mgmt · retry/backoff · conflict resolution · delta sync · background + manual sync |
-| `integration/erp` | 3 | ERP adapter | Product/price/inventory/customer down-sync · sales/purchase upload · master-data sync · idempotent delivery |
-| `integration/payment` | 3 | Payment terminal adapter | Semi-integrated terminal SDK · tokenized auth/capture/void/refund |
-| `integration/fiscal` | 3 | Fiscal/e-invoice adapter | (Reserved) jurisdiction-specific fiscalization / signed receipts |
+| `integration/erp` | 3 | ERP adapter | Product/price/inventory down-sync ✅ · sales/movement upload ✅ · idempotent delivery ✅ — **but only `FakeErpClient`; no real vendor adapter** ⚠️. Customer sync ⏳, purchase upload ⏳ |
+| `integration/payment` | 3 | Payment terminal adapter | Semi-integrated terminal SDK · tokenized auth/capture/void/refund — ⚠️ **port only; `InMemoryPaymentTerminal` fake, no real SDK** |
+| `integration/fiscal` | 3 | Fiscal/e-invoice adapter | ⏳ Reserved, **not built**. **KSA deployment ⇒ ZATCA/Fatoora e-invoicing is a legal requirement** (see §15.5) |
 | `notification` | 3 | Alerts & messaging | SMS · email · push · low-stock alerts · sync-error alerts |
 | `device` | 3 | Hardware ports | Barcode scanner · thermal printer · cash drawer · card reader · customer display · weighing scale |
 | `configuration` | 3 | Typed settings store | Store · tax · printer · payment · POS settings · user preferences · localization · currency |
@@ -301,36 +308,59 @@ Why it matters: this keeps card data out of your application and database, dropp
 
 ---
 
-## 14. Build phasing / MVP roadmap
+## 14. Build phasing / roadmap — actual status (reconciled 2026-07-10)
 
-Sequenced by dependency. The MVP scope reconciles both requirement docs' MVP lists — every Phase-1 MVP item from `pos-requirement.md` / `pos-requirement-1.md` lands by the end of Phase 4.
+The original plan sketched five phases (0–4 MVP, then 5+ incremental). Delivery subdivided those into finer branches, then added a **restaurant track** in place of the planned "Phase 5+" retail-incremental work. Status legend: ✅ built & tested · 🍽️ restaurant extension · ⏳ deferred · ⚠️ planned, not built.
 
-**Phase 0 — Foundation (no business value, but everything rests on it)**
-`common` · `database` · `configuration` · `device` ports · module skeleton + Modulith boundary tests · CI · packaging for both run modes.
+> **Integration note:** all work below lives on cumulative `phase-*` branches; `main` currently holds only the plan/requirement docs. **Nothing has been merged to trunk yet.**
 
-**Phase 1 — Identity & master data (down-sync first)**
-`auth` (login, RBAC, PIN, shift login) → `product` + `inventory` baseline → `integration/erp` **down-sync** (products, prices, stock). Goal: a terminal that authenticates and shows the live catalog from ERP.
+### Retail MVP — ✅ delivered (original Phases 0–4, built as branches 0–9)
 
-**Phase 2 — Checkout core**
-`cart` → `pricing` + `tax` → `payment` (cash + semi-integrated card + QR/wallet) → `receipt` → `sales` orchestration → `cashdrawer`/`shift`. Goal: ring up and complete a sale offline (incl. hold/resume, void, returns/exchanges, split payment), print a receipt, reconcile the till.
+- **Phase 0 — Foundation** ✅ `common` · `database` · `configuration` · `device` ports · Modulith boundary tests · dual run-mode packaging (PostgreSQL store-server / embedded SQLite).
+- **Phase 1 — Identity & master data** ✅ `auth` (JWT login, RBAC, PIN) · `product` + `inventory` baseline · `integration/erp` **down-sync** (against the fake ERP adapter).
+- **Phase 2 (a/b/c) — Checkout core** ✅ `cart` → `pricing` + `tax` → `payment` (cash + card/wallet via **fake** terminal) → `receipt` (thermal) → `sales` → `cashdrawer`/`shift`. Hold/resume, void, mixed/split tender. *QR tender not built (§5).*
+- **Phase 3 (a/b/c) — Sync up & resilience** ✅ `sync` transactional outbox → idempotent ERP **upload** of sales/movements → `notification` (sync-error, low-stock alerts).
+- **Phase 4 — Returns & refunds** ✅ receipted returns, proportional refund, mirror-tender refund (its own branch, beyond the original Phase-2 sketch). *Exchanges & blind returns deferred.*
+- **Phase 5 — Manual discounts** ✅ line & transaction discounts, reason codes, role-based caps.
+- **Phase 6 — Audit trail** ✅ append-only, hash-chained audit log + `verify` endpoint.
+- **Phase 7 — Customer** ✅ registration/search/history/cart-attach. *No customer groups or credit accounts (§5).*
+- **Phase 8 — Reporting** ✅ sales / payments / tax / cashier / product reports (JSON + CSV). *No profit/COGS or hourly breakdown.*
+- **Phase 9 — Dashboard** ✅ today's sales, revenue, best sellers, low stock, open shifts.
 
-**Phase 3 — Sync up & resilience**
-`sync` outbox + worker → ERP **upload** of sales/movements (idempotent) → conflict handling → `notification` (sync-error, low-stock alerts). Goal: trade fully offline; drain cleanly when the link returns.
+### Restaurant dine-in track — 🍽️ delivered (Phases 10–13b, beyond original scope)
 
-**Phase 4 — Visibility & ops (completes the MVP)**
-`customer` (registration/search/history) → `reporting` (sales, product, cashier, tax, payment) → `dashboard` → `audit` hardening → backup/restore runbook. Goal: a production-ready, operable single-store POS matching the requirement-doc MVP.
+Added directly on the retail seams (reusing `cart`/`sales`/`pricing`/`tax`), *not* via an industry-plugin layer:
 
-**Phase 5+ — Incremental (no core changes, thanks to event seams)**
-`loyalty` · `promotion` engine · `supplier` · `purchasing` · `barcode` printing · `employee` attendance/breaks · advanced analytics · `integration/fiscal` (if jurisdiction requires).
+- **Phase 10 — Dining floor** 🍽️ `dining`: table registry, shared store-wide open orders, close via existing checkout.
+- **Phase 11 — Menu modifiers & variants** 🍽️ `menu`: forced/optional modifier groups, size variants, effective-price folding; line-id-keyed cart lines.
+- **Phase 12 — Kitchen station routing** 🍽️ `kitchen`: incremental fire, fired-line locking, SKU→station overlay, per-station ticket printing.
+- **Phase 13 — Split billing** 🍽️ by-item (N itemized sales) and even (one sale, N payments) split, atomic; adds read-only `sales.quote(cartId)`.
+- **Phase 13b — Service charge** 🍽️ config-driven, taxable, DINE_IN-only, manager-waivable auto-gratuity (current branch).
+
+### Deferred retail-incremental modules — ⏳ not built
+
+The original "Phase 5+" retail list was **not** built (the restaurant track took its place): `promotion` engine (BOGO/bundle/time-based) · `loyalty` (points/rewards/tiers) · `supplier` · `purchasing` (PO/receiving/returns) · `barcode` printing/generation · `employee` (attendance/breaks).
+
+### Production-hardening backlog — ⚠️ planned but unbuilt
+
+Called for in this plan but not yet implemented — the gap between "backend works" and "shippable":
+
+- **UI** — the JavaFX desktop terminal (§3, §13). Only a headless REST backend exists today. *(Largest missing layer.)*
+- **`integration/fiscal`** — reserved (§5, §15.5). **The store runs KSA / SAR / 15% VAT, so ZATCA e-invoicing (Fatoora) is a legal requirement, not optional.**
+- **Real hardware & payment adapters** — only in-memory fakes; JavaPOS/ESC-POS printers and the semi-integrated payment-terminal SDK (§9, §10) are unbuilt.
+- **Real ERP adapter** — still `FakeErpClient` (§15.2).
+- **Security at rest / in transit** — DB encryption (SQLCipher/TDE) and TLS (§11) not configured.
+- **Platform services** — file-storage abstraction, backup/restore tooling, localization/i18n (§7, §12) not built (multi-currency *is* wired).
+- **Outbox hardening** — retry cap/dead-letter, bounded async executor, idempotent local listeners (see `docs/run-modes.md`).
 
 ---
 
 ## 15. Open questions / risks to confirm
 
-1. **Payment integration model** — Is a semi-integrated/P2PE terminal acceptable? This is the single biggest scope decision (PCI-DSS). If you must do in-app card capture, the security architecture changes substantially.
-2. **Which ERP?** (SAP B1, Odoo, Dynamics, custom…) Its API style (REST/SOAP/file/DB), rate limits, and idempotency support shape the `integration/erp` adapter and conflict strategy.
-3. **Inventory ownership** — Does the store decrement its own stock authoritatively, or must the ERP confirm? Affects whether we can sell when stock data is stale.
-4. **Number of registers** in the target store → confirms Mode A vs Mode B as the primary path.
-5. **Fiscal/compliance** — Any government fiscalization, e-invoicing, or signed-receipt requirements? (`integration/fiscal` is reserved.) These are jurisdiction-specific and can be hard requirements.
-6. **Returns/refunds offline** — Allowed without the original sale present, or must the original be locally available?
-7. **Future multi-industry direction** — This plan is deliberately single-industry. If a multi-industry/licensable platform becomes a goal later, the module seams support it, but an industry-plugin SPI, feature-flag/licensing layer, and config-driven UI would be added as a separate initiative.
+1. **Payment integration model** — ⚠️ **still open.** The code assumes semi-integrated/P2PE (masked PAN + token, no in-app card capture — good for PCI scope), but only the `InMemoryPaymentTerminal` fake exists. A real certified-terminal SDK must be integrated before go-live.
+2. **Which ERP?** — ⚠️ **still open.** Sync is built against `FakeErpClient`; no real vendor (SAP B1/Odoo/Dynamics/custom) has been chosen or adapted. API style, rate limits, and idempotency support still shape the eventual `integration/erp` adapter.
+3. **Inventory ownership** — ✅ **resolved in code:** the store decrements its own stock authoritatively and syncs **movements** (not absolute counts) up to the ERP; it keeps selling on stale stock data.
+4. **Number of registers** — ⚠️ **partially settled.** Both run modes are built and the tested/default path is **embedded SQLite (Mode B, single register, pool=1)**; the multi-register store-server (Mode A) path is implemented but is not the exercised default.
+5. **Fiscal/compliance** — 🔴 **RESOLVED as a hard requirement, UNADDRESSED in code.** The store operates in **KSA (SAR, 15% VAT)**, so **ZATCA/Fatoora e-invoicing** is legally mandatory, yet `integration/fiscal` is still an empty reserved slot. This is now a **go-live blocker**, not an open question.
+6. **Returns/refunds offline** — ✅ **resolved:** only **receipted** returns are supported (the original sale must be locally available). Blind/unreferenced returns are explicitly deferred.
+7. **Future multi-industry direction** — 🔶 **partially realized, but not as the platform.** A second service format (restaurant dine-in) now ships in the same deployment (Phases 10–13b), added on the existing module seams. The multi-industry **platform** (industry-plugin SPI, feature-flag/licensing, config-driven UI) remains out of scope and unbuilt.
