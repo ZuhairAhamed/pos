@@ -29,6 +29,8 @@ class AppCssTest {
         assertTrue(css.contains("-fx-accent: #E8A32C"), "amber accent token");
         assertTrue(css.contains("-fx-canvas: #F6F4EF"), "warm canvas token");
         assertTrue(css.contains("-fx-ink: #16202E"), "ink token");
+        assertTrue(css.contains("-fx-surface:"), "alias token for existing screens");
+        assertTrue(css.contains("-fx-primary-hover:"), "alias token for existing screens");
     }
 
     @Test

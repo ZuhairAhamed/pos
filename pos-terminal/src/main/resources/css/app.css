@@ -451,7 +451,7 @@
 /* The total bar emerges from the bottom: top radius 0, bottom radius 12 so it
    reads as a pinned footer rather than a floating card. The amber pulse flips the
    palette — grand total becomes ink-on-amber — signalling a moment of change. */
-.total-bar { -fx-background-color: -fx-ink; -fx-background-radius: 12; -fx-padding: 16 20 16 20; }
+.total-bar { -fx-background-color: -fx-ink; -fx-background-radius: 0 0 12 12; -fx-padding: 16 20 16 20; }
 .total-bar .pay-line-label, .total-bar .field-label { -fx-text-fill: derive(-fx-card, -20%); }
 .total-bar-grand { -fx-font-size: 44px; -fx-font-weight: bold; -fx-text-fill: -fx-card; }
 /* Static reduced-motion / peak-of-pulse highlight. */
