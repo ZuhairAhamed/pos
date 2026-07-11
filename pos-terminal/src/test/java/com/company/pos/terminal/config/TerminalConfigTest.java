@@ -49,4 +49,17 @@ class TerminalConfigTest {
             System.clearProperty("terminal.id");
         }
     }
+
+    @Test
+    void reducedMotionDefaultsFalse() {
+        java.util.Properties p = new java.util.Properties();
+        assertFalse(com.company.pos.terminal.config.TerminalConfig.from(p).reducedMotion());
+    }
+
+    @Test
+    void reducedMotionReadsTrue() {
+        java.util.Properties p = new java.util.Properties();
+        p.setProperty("ui.reduced-motion", "true");
+        assertTrue(com.company.pos.terminal.config.TerminalConfig.from(p).reducedMotion());
+    }
 }

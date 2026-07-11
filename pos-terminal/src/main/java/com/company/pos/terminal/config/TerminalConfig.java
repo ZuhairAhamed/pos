@@ -9,6 +9,7 @@ public final class TerminalConfig {
     private final String terminalId;
     private final String storeId;
     private final int pollIntervalSeconds;
+    private final boolean reducedMotion;
 
     private TerminalConfig(Properties p) {
         this.serverBaseUrl = p.getProperty("server.base-url", "http://localhost:8080");
@@ -21,6 +22,7 @@ public final class TerminalConfig {
             throw new IllegalArgumentException(
                     "poll.interval.seconds must be an integer, got: " + rawInterval, e);
         }
+        this.reducedMotion = Boolean.parseBoolean(p.getProperty("ui.reduced-motion", "false"));
     }
 
     public static TerminalConfig from(Properties p) {
@@ -35,7 +37,7 @@ public final class TerminalConfig {
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read pos-terminal.properties", e);
         }
-        for (String key : new String[]{"server.base-url", "terminal.id", "store.id", "poll.interval.seconds"}) {
+        for (String key : new String[]{"server.base-url", "terminal.id", "store.id", "poll.interval.seconds", "ui.reduced-motion"}) {
             String override = System.getProperty(key);
             if (override != null) p.setProperty(key, override);
         }
@@ -46,4 +48,5 @@ public final class TerminalConfig {
     public String terminalId() { return terminalId; }
     public String storeId() { return storeId; }
     public int pollIntervalSeconds() { return pollIntervalSeconds; }
+    public boolean reducedMotion() { return reducedMotion; }
 }

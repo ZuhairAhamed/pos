@@ -15,4 +15,9 @@ public class ProductApi {
     public List<ProductView> list() {
         return client.get("/products", new TypeReference<List<ProductView>>() {});
     }
+
+    public List<ProductView> search(String q) {
+        return client.get("/products?q=" + java.net.URLEncoder.encode(q, java.nio.charset.StandardCharsets.UTF_8),
+                new TypeReference<List<ProductView>>() {});
+    }
 }

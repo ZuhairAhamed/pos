@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Two-zone retail sale: CENTER ~65% = category-tabbed menu grid; RIGHT ~35% = live cart
+     with quantity steppers and the pinned ink total bar. Fast entry (search + barcode) sits
+     above the grid. Style classes come from app.css. -->
+<BorderPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <top>
+    <HBox spacing="16" alignment="CENTER_LEFT" styleClass="top-nav">
+      <padding><Insets top="12" right="16" bottom="12" left="16"/></padding>
+      <Label text="Retail sale" styleClass="title"/>
+      <Pane HBox.hgrow="ALWAYS"/>
+      <TextField fx:id="searchField" promptText="Search products…" styleClass="search-field" prefWidth="240"/>
+      <TextField fx:id="barcodeField" promptText="Scan barcode" styleClass="search-field" prefWidth="200"/>
+      <Button fx:id="homeButton" text="Home" styleClass="btn-secondary"/>
+    </HBox>
+  </top>
+
+  <center>
+    <VBox spacing="12">
+      <padding><Insets top="12" right="16" bottom="0" left="0"/></padding>
+      <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
+      <TabPane fx:id="categoryTabs" VBox.vgrow="ALWAYS" styleClass="menu-tabs"/>
+    </VBox>
+  </center>
+
+  <right>
+    <VBox spacing="12" prefWidth="420" styleClass="cart-pane">
+      <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+      <Label text="Cart" styleClass="subtitle"/>
+
+      <StackPane VBox.vgrow="ALWAYS">
+        <VBox fx:id="cartLines" spacing="0" maxWidth="Infinity"/>
+        <Label fx:id="emptyCartLabel" text="Scan or tap an item to start"
+               styleClass="empty-cart" maxWidth="Infinity"/>
+      </StackPane>
+
+      <!-- Pinned signature total bar. -->
+      <HBox fx:id="totalBar" alignment="CENTER_LEFT" styleClass="total-bar" maxWidth="Infinity">
+        <Label text="Total (est.)" styleClass="field-label"/>
+        <Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="totalValue" styleClass="total-bar-grand,money"/>
+      </HBox>
+
+      <Button fx:id="chargeButton" text="Charge / Pay" defaultButton="true"
+              styleClass="btn-primary" maxWidth="Infinity"/>
+    </VBox>
+  </right>
+</BorderPane>

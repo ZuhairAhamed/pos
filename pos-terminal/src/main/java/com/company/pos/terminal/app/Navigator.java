@@ -66,7 +66,12 @@ public class Navigator {
     }
 
     public void toHome() { toTableMap(); }   // TEMP: replaced by real Home in Task 9
-    public void toRetail() { toTableMap(); }  // TEMP: replaced in Task 9
+
+    public void toRetail() {
+        com.company.pos.terminal.view.RetailController controller =
+                new com.company.pos.terminal.view.RetailController(services, this);
+        setScene("/fxml/retail.fxml", controller);
+    }
 
     // The controller currently attached to the stage, tracked so its timers/
     // resources can be released via Screen#onLeave before we swap in the next
