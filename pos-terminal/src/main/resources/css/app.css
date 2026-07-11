@@ -1,36 +1,91 @@
 /*
- * app.css — the single shared stylesheet loaded once onto the Scene by the
- * Navigator, so every screen inherits the same touch-first design tokens.
+ * app.css — single shared stylesheet. Semantic emerald design system: hue encodes
+ * meaning (category edges, tender colours, status), professionalism from restraint.
+ * No gradients on chrome, no decorative colour. Money uses tabular figures so columns
+ * align. Fonts: a system stack now; drop real Space Grotesk/Inter .ttf into
+ * resources/fonts/ and load via Font.loadFont to upgrade with no code change.
  *
- * Design tokens (referenced inline below since JavaFX CSS looked-up colors are
- * declared on .root):
- *   surface/background : #f4f5f7   card: #ffffff
- *   primary action     : #1565c0   (hover #0d47a1)
- *   danger             : #b00020
- *   success/confirm    : #2e7d32
- *   text               : #1a1a1a   muted: #5f6368   border: #d0d3d8
- * Type scale: body 16px · field-label 14px · subtitle 15px · title 30px.
- * Spacing scale: 8 / 16 / 24 / 32.
+ * Token system (all declared on .root as looked-up colors):
+ *   canvas  #F6F4EF  warm off-white background
+ *   card    #FFFFFF  elevated surface
+ *   ink     #16202E  dark charcoal — navigation bar, total bar, body text
+ *   primary #0E7C66  emerald — action, brand, focus rings
+ *   primary-press #0A5E4D  pressed state for primary
+ *   accent  #E8A32C  amber — monetary emphasis, pulse highlight
+ *   success #1E7A46  confirmation, positive status
+ *   danger  #C0362C  error, refund, occupied-table
+ *   muted   #5F6B7A  supporting labels, secondary text
+ *   border  #E2DED5  subtle warm dividers
+ *
+ * Category hues are far apart in hue-angle and close in chroma — they read as a
+ * system without competing with the emerald action colour:
+ *   drinks #1B8A9E  cool teal     food   #C0653A  warm terracotta
+ *   merch  #7A4FB5  deep violet   sides  #6B8E23  olive
+ *
+ * Tender button colours encode payment method identity — all share the same form
+ * language (64px height, 8-radius, bold 18px, white label):
+ *   cash   #1E7A46  card   #2340C4  wallet #B0338C
+ *
+ * Type scale: 13 / 16 / 20 / 34 / 44 px.
+ * Spacing: multiples of 8. Tap targets: minimum 48px.
  */
 
+/* ---- Design tokens ------------------------------------------------------- */
+
 .root {
-    -fx-primary: #1565c0;
-    -fx-primary-hover: #0d47a1;
-    -fx-danger: #b00020;
-    -fx-success: #2e7d32;
-    -fx-surface: #f4f5f7;
-    -fx-card: #ffffff;
-    -fx-text: #1a1a1a;
-    -fx-muted: #5f6368;
-    -fx-border: #d0d3d8;
+    -fx-canvas: #F6F4EF;
+    -fx-card: #FFFFFF;
+    -fx-ink: #16202E;
+    -fx-primary: #0E7C66;
+    -fx-primary-press: #0A5E4D;
+    -fx-accent: #E8A32C;
+    -fx-success: #1E7A46;
+    -fx-danger: #C0362C;
+    -fx-text: #16202E;
+    -fx-muted: #5F6B7A;
+    -fx-border: #E2DED5;
+    /* Aliases so the existing screens' -fx-surface/-fx-primary-hover refs keep working. */
+    -fx-surface: #F6F4EF;
+    -fx-primary-hover: #0A5E4D;
     -fx-font-size: 16px;
-    -fx-font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    -fx-font-family: "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
-/* ---- Screen scaffold ---------------------------------------------------- */
+/* ---- Type faces ---------------------------------------------------------- */
+
+/* Display face for titles/prices/totals; system fallback until .ttf is bundled. */
+.display, .title, .total-bar-grand, .pay-grand-value {
+    -fx-font-family: "Space Grotesk", "Archivo", "Segoe UI Semibold", "Inter", sans-serif;
+}
+
+/* Tabular figures for money so columns line up. */
+.money { -fx-font-family: "Inter", "Segoe UI", monospace; }
+
+/* ---- Type scale ---------------------------------------------------------- */
+
+.text-xs    { -fx-font-size: 13px; }
+.text-body  { -fx-font-size: 16px; }
+.text-lg    { -fx-font-size: 20px; }
+.text-xl    { -fx-font-size: 34px; }
+.text-2xl   { -fx-font-size: 44px; }
+
+/* ---- Top navigation bar -------------------------------------------------- */
+
+.top-nav {
+    -fx-background-color: -fx-ink;
+    -fx-padding: 0 24 0 24;
+    -fx-min-height: 64px;
+    -fx-pref-height: 64px;
+}
+
+.top-nav .label, .top-nav .title {
+    -fx-text-fill: -fx-card;
+}
+
+/* ---- Screen scaffold ----------------------------------------------------- */
 
 .screen {
-    -fx-background-color: -fx-surface;
+    -fx-background-color: -fx-canvas;
     -fx-padding: 32;
 }
 
@@ -39,15 +94,15 @@
     -fx-background-radius: 12;
     -fx-border-color: -fx-border;
     -fx-border-radius: 12;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 24, 0, 0, 4);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 16, 0, 0, 2);
 }
 
-/* ---- Typography --------------------------------------------------------- */
+/* ---- Typography ---------------------------------------------------------- */
 
 .title {
     -fx-font-size: 30px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
 }
 
 .subtitle {
@@ -61,7 +116,7 @@
     -fx-text-fill: -fx-muted;
 }
 
-/* ---- Form fields -------------------------------------------------------- */
+/* ---- Form fields --------------------------------------------------------- */
 
 .field .text-field,
 .field .password-field {
@@ -72,7 +127,7 @@
     -fx-border-color: -fx-border;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
 }
 
 .field .text-field:focused,
@@ -81,7 +136,7 @@
     -fx-border-width: 2;
 }
 
-/* ---- Buttons ------------------------------------------------------------ */
+/* ---- Buttons ------------------------------------------------------------- */
 
 .btn-primary {
     -fx-background-color: -fx-primary;
@@ -95,8 +150,10 @@
     -fx-cursor: hand;
 }
 
-.btn-primary:hover  { -fx-background-color: -fx-primary-hover; }
-.btn-primary:focused { -fx-border-color: -fx-text; -fx-border-width: 2; -fx-border-radius: 8; }
+/* Hover kept for mouse but pressed/focused are the authoritative states. */
+.btn-primary:hover   { -fx-background-color: -fx-primary-hover; }
+.btn-primary:pressed { -fx-background-color: -fx-primary-press; }
+.btn-primary:focused { -fx-border-color: -fx-ink; -fx-border-width: 2; -fx-border-radius: 8; }
 .btn-primary:disabled { -fx-opacity: 0.55; }
 
 .btn-secondary {
@@ -111,9 +168,11 @@
     -fx-cursor: hand;
 }
 
-.btn-secondary:hover { -fx-background-color: derive(-fx-primary, 90%); }
+.btn-secondary:hover    { -fx-background-color: derive(-fx-primary, 90%); }
+.btn-secondary:pressed  { -fx-background-color: derive(-fx-primary, 80%); }
+.btn-secondary:focused  { -fx-border-width: 2; }
 
-/* ---- PIN pad ------------------------------------------------------------ */
+/* ---- PIN pad ------------------------------------------------------------- */
 
 .pin-pad {
     -fx-hgap: 8;
@@ -127,16 +186,16 @@
     -fx-pref-height: 64px;
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-background-color: -fx-surface;
-    -fx-text-fill: -fx-text;
+    -fx-background-color: -fx-canvas;
+    -fx-text-fill: -fx-ink;
     -fx-background-radius: 8;
     -fx-border-color: -fx-border;
     -fx-border-radius: 8;
     -fx-cursor: hand;
 }
 
-.pin-key:hover { -fx-background-color: derive(-fx-surface, -6%); }
-.pin-key:pressed { -fx-background-color: derive(-fx-surface, -12%); }
+.pin-key:hover   { -fx-background-color: derive(-fx-canvas, -6%); }
+.pin-key:pressed { -fx-background-color: derive(-fx-canvas, -12%); }
 .pin-key:focused { -fx-border-color: -fx-primary; -fx-border-width: 2; }
 
 .pin-key-alt {
@@ -144,7 +203,7 @@
     -fx-text-fill: -fx-primary;
 }
 
-/* ---- Error banner ------------------------------------------------------- */
+/* ---- Error banner -------------------------------------------------------- */
 
 .error-banner {
     -fx-background-color: derive(-fx-danger, 88%);
@@ -157,7 +216,7 @@
     -fx-border-radius: 8;
 }
 
-/* ---- Table map ---------------------------------------------------------- */
+/* ---- Table map ----------------------------------------------------------- */
 
 /* Large square touch targets; free vs occupied differ by fill, border AND the
    status word rendered in the tile text ("Open" / "In use") — never colour alone. */
@@ -177,27 +236,29 @@
 }
 
 .table-free {
-    -fx-background-color: #e8f5e9;
+    -fx-background-color: derive(-fx-success, 90%);
     -fx-text-fill: -fx-success;
     -fx-border-color: -fx-success;
 }
-.table-free:hover { -fx-background-color: derive(#e8f5e9, -6%); }
+.table-free:hover   { -fx-background-color: derive(-fx-success, 80%); }
+.table-free:pressed { -fx-background-color: derive(-fx-success, 70%); }
 
 .table-occupied {
-    -fx-background-color: #ffebee;
+    -fx-background-color: derive(-fx-danger, 90%);
     -fx-text-fill: -fx-danger;
     -fx-border-color: -fx-danger;
 }
-.table-occupied:hover { -fx-background-color: derive(#ffebee, -6%); }
+.table-occupied:hover   { -fx-background-color: derive(-fx-danger, 80%); }
+.table-occupied:pressed { -fx-background-color: derive(-fx-danger, 70%); }
 
-.table-cell:focused { -fx-border-color: -fx-text; }
+.table-cell:focused { -fx-border-color: -fx-ink; }
 
 .table-scroll {
     -fx-background-color: transparent;
     -fx-background: transparent;
 }
 
-/* ---- Order screen ------------------------------------------------------- */
+/* ---- Order screen -------------------------------------------------------- */
 
 .order-pane {
     -fx-border-color: transparent -fx-border transparent transparent;
@@ -221,11 +282,11 @@
 .subtotal {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
     -fx-padding: 8 0 0 0;
 }
 
-/* ---- Menu grid ---------------------------------------------------------- */
+/* ---- Menu grid ----------------------------------------------------------- */
 
 .menu-tabs {
     -fx-font-size: 16px;
@@ -251,17 +312,18 @@
     -fx-text-alignment: center;
     -fx-content-display: center;
     -fx-background-color: -fx-card;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
     -fx-border-color: -fx-border;
     -fx-border-radius: 10;
     -fx-background-radius: 10;
     -fx-cursor: hand;
 }
 
-.menu-button:hover { -fx-background-color: derive(-fx-card, -6%); -fx-border-color: -fx-primary; }
-.menu-button:pressed { -fx-background-color: derive(-fx-card, -12%); }
+.menu-button:hover    { -fx-background-color: derive(-fx-card, -4%); -fx-border-color: -fx-primary; }
+.menu-button:pressed  { -fx-background-color: derive(-fx-card, -10%); }
+.menu-button:focused  { -fx-border-color: -fx-primary; -fx-border-width: 2; }
 
-/* ---- Modifier picker dialog --------------------------------------------- */
+/* ---- Modifier picker dialog ---------------------------------------------- */
 
 .modifier-box {
     -fx-padding: 16;
@@ -270,7 +332,7 @@
 .modifier-group-label {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
 }
 
 /* Full-width ToggleButtons for modifier options — touch target >= 48 px.
@@ -283,7 +345,7 @@
     -fx-padding: 12 16 12 16;
     -fx-alignment: center-left;
     -fx-background-color: -fx-card;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
     -fx-border-color: -fx-border;
     -fx-border-radius: 8;
     -fx-background-radius: 8;
@@ -291,7 +353,7 @@
 }
 
 .modifier-option:hover {
-    -fx-background-color: derive(-fx-card, -6%);
+    -fx-background-color: derive(-fx-card, -4%);
     -fx-border-color: -fx-primary;
 }
 
@@ -303,13 +365,13 @@
     -fx-font-weight: bold;
 }
 
-/* ---- Payment screen ----------------------------------------------------- */
+/* ---- Payment screen ------------------------------------------------------ */
 
 /* Estimated total due — big and readable at the top of the tender card. */
 .pay-total {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
 }
 
 /* Live change preview under the cash field (display only). */
@@ -327,14 +389,14 @@
 
 .pay-line-value {
     -fx-font-size: 16px;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
 }
 
 /* Authoritative grand total — the most prominent number on the confirmation. */
 .pay-grand-label {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-text;
+    -fx-text-fill: -fx-ink;
 }
 
 .pay-grand-value {
@@ -350,3 +412,64 @@
     -fx-text-fill: -fx-success;
     -fx-padding: 8 0 0 0;
 }
+
+/* ---- Home mode picker ---------------------------------------------------- */
+
+.home-tile {
+    -fx-min-width: 280px; -fx-min-height: 200px;
+    -fx-background-color: -fx-card; -fx-background-radius: 16;
+    -fx-border-color: -fx-border; -fx-border-radius: 16; -fx-border-width: 2;
+    -fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: -fx-ink;
+    -fx-cursor: hand;
+}
+.home-tile:focused, .home-tile:pressed { -fx-border-color: -fx-primary; -fx-border-width: 3; }
+
+/* ---- Category edges on white tiles (4px coloured edge) ------------------- */
+
+/* Each hue is categorically different in temperature — none derives from the
+   emerald primary, so category identity never competes with action identity. */
+.cat-drinks { -fx-border-color: transparent transparent transparent #1B8A9E; -fx-border-width: 0 0 0 4; }
+.cat-food   { -fx-border-color: transparent transparent transparent #C0653A; -fx-border-width: 0 0 0 4; }
+.cat-merch  { -fx-border-color: transparent transparent transparent #7A4FB5; -fx-border-width: 0 0 0 4; }
+.cat-sides  { -fx-border-color: transparent transparent transparent #6B8E23; -fx-border-width: 0 0 0 4; }
+.cat-other  { -fx-border-color: transparent transparent transparent -fx-border; -fx-border-width: 0 0 0 4; }
+
+/* ---- Live cart ----------------------------------------------------------- */
+
+.cart-pane { -fx-background-color: -fx-card; -fx-background-radius: 12; -fx-border-color: -fx-border; -fx-border-radius: 12; }
+.cart-line { -fx-padding: 12 8 12 8; -fx-border-color: transparent transparent -fx-border transparent; -fx-border-width: 0 0 1 0; }
+.qty-stepper {
+    -fx-min-width: 48px; -fx-min-height: 48px; -fx-font-size: 22px; -fx-font-weight: bold;
+    -fx-background-color: -fx-canvas; -fx-text-fill: -fx-ink; -fx-background-radius: 8;
+    -fx-border-color: -fx-border; -fx-border-radius: 8; -fx-cursor: hand;
+}
+.empty-cart { -fx-font-size: 16px; -fx-text-fill: -fx-muted; -fx-alignment: center; -fx-padding: 48 16 48 16; }
+.search-field { -fx-font-size: 16px; -fx-pref-height: 52px; }
+
+/* ---- Signature total bar (pinned, ink) ----------------------------------- */
+
+/* The total bar emerges from the bottom: top radius 0, bottom radius 12 so it
+   reads as a pinned footer rather than a floating card. The amber pulse flips the
+   palette — grand total becomes ink-on-amber — signalling a moment of change. */
+.total-bar { -fx-background-color: -fx-ink; -fx-background-radius: 12; -fx-padding: 16 20 16 20; }
+.total-bar .pay-line-label, .total-bar .field-label { -fx-text-fill: derive(-fx-card, -20%); }
+.total-bar-grand { -fx-font-size: 44px; -fx-font-weight: bold; -fx-text-fill: -fx-card; }
+/* Static reduced-motion / peak-of-pulse highlight. */
+.total-bar-pulse { -fx-background-color: -fx-accent; }
+.total-bar-pulse .total-bar-grand { -fx-text-fill: -fx-ink; }
+
+/* ---- Tender buttons (colour = method) ------------------------------------ */
+
+/* Each colour encodes payment method globally (cash green, card blue,
+   wallet purple). Shared form language makes them a system; colour is the only
+   variable, and that variable carries information. */
+.tender-cash   { -fx-background-color: #1E7A46; -fx-text-fill: white; }
+.tender-card   { -fx-background-color: #2340C4; -fx-text-fill: white; }
+.tender-wallet { -fx-background-color: #B0338C; -fx-text-fill: white; }
+.tender-cash, .tender-card, .tender-wallet {
+    -fx-font-size: 18px; -fx-font-weight: bold; -fx-min-height: 64px; -fx-background-radius: 8; -fx-cursor: hand;
+}
+.tender-cash:pressed   { -fx-background-color: derive(#1E7A46, -15%); }
+.tender-card:pressed   { -fx-background-color: derive(#2340C4, -15%); }
+.tender-wallet:pressed { -fx-background-color: derive(#B0338C, -15%); }
+.tender-chip { -fx-background-color: -fx-canvas; -fx-text-fill: -fx-ink; -fx-padding: 8 12 8 12; -fx-background-radius: 8; }
