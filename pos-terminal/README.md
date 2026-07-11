@@ -10,6 +10,19 @@ totals come from the server; the terminal only computes a client-side
 Package root: `com.company.pos.terminal`. Money is `BigDecimal` at scale 2.
 There is one shared stylesheet, `src/main/resources/css/app.css`.
 
+## Screens
+
+After login the terminal shows a **Home** mode picker:
+
+- **Dine-in** → table map → order → payment (seat-to-payment).
+- **Retail sale** → a two-zone quick-service screen (category menu grid + live cart
+  with a pinned estimated-total bar) → multi-tender payment → receipt.
+
+The cart shows a client-side **estimated** pre-tax subtotal; tax, service charge, and
+the grand total are authoritative only from the server's `SaleView` at checkout.
+Barcode entry matches the cached catalogue client-side (the server search covers
+name + SKU only).
+
 ## Prerequisites
 
 - **JDK 21** (the repo default toolchain is 17 — set `JAVA_HOME` first).

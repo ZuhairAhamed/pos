@@ -65,7 +65,11 @@ public class Navigator {
         setScene("/fxml/payment.fxml", controller);
     }
 
-    public void toHome() { toTableMap(); }   // TEMP: replaced by real Home in Task 9
+    public void toHome() {
+        com.company.pos.terminal.view.HomeController controller =
+                new com.company.pos.terminal.view.HomeController(services, this);
+        setScene("/fxml/home.fxml", controller);
+    }
 
     public void toRetail() {
         com.company.pos.terminal.view.RetailController controller =

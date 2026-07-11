@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Post-login mode picker. Two large tiles route to the dine-in floor or a new retail sale. -->
+<StackPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <VBox alignment="CENTER" spacing="32" maxWidth="-Infinity">
+    <HBox spacing="16" alignment="CENTER" maxWidth="Infinity">
+      <Label text="Choose a mode" styleClass="title"/>
+      <Pane HBox.hgrow="ALWAYS"/>
+      <Label fx:id="userLabel" styleClass="subtitle"/>
+      <Button fx:id="signOutButton" text="Sign out" styleClass="btn-secondary"/>
+    </HBox>
+
+    <HBox spacing="32" alignment="CENTER">
+      <Button fx:id="dineInButton" text="Dine-in" styleClass="home-tile"/>
+      <Button fx:id="retailButton" text="Retail sale" styleClass="home-tile"/>
+    </HBox>
+  </VBox>
+</StackPane>

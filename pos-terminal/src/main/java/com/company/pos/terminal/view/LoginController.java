@@ -86,7 +86,7 @@ public class LoginController {
         FxTasks.run(
                 vm::login,
                 () -> {
-                    if (vm.loggedIn().get()) navigator.toTableMap();
+                    if (vm.loggedIn().get()) navigator.toHome();
                 },
                 err -> { /* VM already surfaced ApiException text via errorMessage */ });
     }
