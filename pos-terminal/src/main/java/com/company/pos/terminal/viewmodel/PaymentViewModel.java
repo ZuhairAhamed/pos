@@ -43,7 +43,7 @@ public class PaymentViewModel {
     private final Consumer<Runnable> ui;
 
     private final ObservableList<TenderInput> tenders = FXCollections.observableArrayList();
-    private final ReadOnlyStringWrapper remainingText = new ReadOnlyStringWrapper("");
+    private final ReadOnlyStringWrapper remainingText;
     private final ReadOnlyStringWrapper changeText = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper errorMessage = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<SaleView> sale = new ReadOnlyObjectWrapper<>(null);
@@ -59,7 +59,7 @@ public class PaymentViewModel {
         this.sales = sales;
         this.estimatedTotal = estimatedTotal.setScale(2, RoundingMode.HALF_UP);
         this.ui = ui;
-        this.remainingText.set(this.estimatedTotal.toPlainString());
+        this.remainingText = new ReadOnlyStringWrapper(this.estimatedTotal.toPlainString());
     }
 
     public ObservableList<TenderInput> tenders() { return tenders; }

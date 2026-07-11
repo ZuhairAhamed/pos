@@ -116,4 +116,18 @@ class PaymentViewModelTest {
         assertEquals(1, reprinted.size());
         assertEquals(vm.sale().get().id(), reprinted.get(0));
     }
+
+    @Test
+    void reprintFailureSurfacesError() {
+        RecordingGateway gw = new RecordingGateway();
+        SalesApi sales = new SalesApi(null) {
+            @Override public void reprint(java.util.UUID saleId) {
+                throw new ApiException(500, null, "printer offline");
+            }
+        };
+        PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        vm.payFull("CARD", null);
+        vm.reprint();
+        assertEquals("printer offline", vm.errorMessage().get());
+    }
 }
