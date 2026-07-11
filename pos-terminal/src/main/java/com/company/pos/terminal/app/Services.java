@@ -2,6 +2,7 @@ package com.company.pos.terminal.app;
 
 import com.company.pos.terminal.api.ApiClient;
 import com.company.pos.terminal.api.AuthApi;
+import com.company.pos.terminal.api.CartApi;
 import com.company.pos.terminal.api.DiningApi;
 import com.company.pos.terminal.api.MenuApi;
 import com.company.pos.terminal.api.ProductApi;
@@ -24,6 +25,7 @@ public final class Services {
     public final MenuApi menuApi;
     public final DiningApi diningApi;
     public final SalesApi salesApi;
+    public final CartApi cartApi;
 
     public Services() {
         this.config = TerminalConfig.load();
@@ -34,5 +36,6 @@ public final class Services {
         this.menuApi = new MenuApi(apiClient);
         this.diningApi = new DiningApi(apiClient);
         this.salesApi = new SalesApi(apiClient);
+        this.cartApi = new CartApi(apiClient);
     }
 }
