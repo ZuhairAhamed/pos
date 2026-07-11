@@ -22,6 +22,7 @@ class CatalogApiTest {
             assertEquals("Burger", products.get(0).name());
             assertEquals("Mains", products.get(0).categoryName());
             assertEquals(0, new BigDecimal("25.00").compareTo(products.get(0).unitPrice()));
+            assertEquals("123", products.get(0).barcode());
             assertEquals("/products", stub.lastPath);
             assertEquals("GET", stub.lastMethod);
         }

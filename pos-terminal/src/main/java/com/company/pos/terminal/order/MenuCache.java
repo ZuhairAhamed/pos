@@ -19,6 +19,7 @@ public final class MenuCache {
 
     private final Map<String, ProductView> bySku = new LinkedHashMap<>();
     private final Map<String, List<ProductView>> byCategory = new LinkedHashMap<>();
+    private final Map<String, ProductView> byBarcode = new LinkedHashMap<>();
 
     public MenuCache(List<ProductView> products) {
         if (products != null) {
@@ -29,6 +30,9 @@ public final class MenuCache {
                 bySku.put(p.sku(), p);
                 String cat = (p.categoryName() == null || p.categoryName().isBlank()) ? OTHER : p.categoryName();
                 byCategory.computeIfAbsent(cat, k -> new ArrayList<>()).add(p);
+                if (p.barcode() != null && !p.barcode().isBlank()) {
+                    byBarcode.put(p.barcode(), p);
+                }
             }
         }
     }
@@ -56,5 +60,14 @@ public final class MenuCache {
 
     public List<ProductView> productsInCategory(String category) {
         return Collections.unmodifiableList(byCategory.getOrDefault(category, List.of()));
+    }
+
+    /** Sku for an exact barcode, or {@code null} for unknown/blank input. */
+    public String skuForBarcode(String barcode) {
+        if (barcode == null || barcode.isBlank()) {
+            return null;
+        }
+        ProductView p = byBarcode.get(barcode);
+        return p == null ? null : p.sku();
     }
 }

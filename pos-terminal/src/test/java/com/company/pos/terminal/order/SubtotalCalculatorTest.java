@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class SubtotalCalculatorTest {
 
     private MenuCache cacheWith(String sku, String cat, String price) {
-        return new MenuCache(List.of(new ProductView(sku, sku, cat, new BigDecimal(price))));
+        return new MenuCache(List.of(new ProductView(sku, sku, cat, null, new BigDecimal(price))));
     }
 
     private OrderView orderWith(OrderLineView... lines) {
@@ -64,9 +64,9 @@ class SubtotalCalculatorTest {
     @Test
     void categoriesAreDistinctInOrderWithOtherFallback() {
         MenuCache cache = new MenuCache(List.of(
-                new ProductView("A", "A", "Mains", new BigDecimal("1")),
-                new ProductView("B", "B", "Mains", new BigDecimal("1")),
-                new ProductView("C", "C", null, new BigDecimal("1"))));
+                new ProductView("A", "A", "Mains", null, new BigDecimal("1")),
+                new ProductView("B", "B", "Mains", null, new BigDecimal("1")),
+                new ProductView("C", "C", null, null, new BigDecimal("1"))));
         assertEquals(List.of("Mains", "Other"), cache.categories());
         assertEquals(2, cache.productsInCategory("Mains").size());
     }
@@ -74,7 +74,7 @@ class SubtotalCalculatorTest {
     @Test
     void blankCategoryMapsToOther() {
         MenuCache cache = new MenuCache(List.of(
-                new ProductView("A", "A", "  ", new BigDecimal("1"))));
+                new ProductView("A", "A", "  ", null, new BigDecimal("1"))));
         assertEquals(List.of("Other"), cache.categories());
         assertEquals(1, cache.productsInCategory("Other").size());
     }
@@ -94,7 +94,7 @@ class SubtotalCalculatorTest {
     @Test
     void nameForReturnsProductNameOnHit() {
         MenuCache cache =
-                new MenuCache(List.of(new ProductView("BURGER", "Cheeseburger", "Mains", new BigDecimal("25.00"))));
+                new MenuCache(List.of(new ProductView("BURGER", "Cheeseburger", "Mains", null, new BigDecimal("25.00"))));
         assertEquals("Cheeseburger", cache.nameFor("BURGER"));
     }
 
