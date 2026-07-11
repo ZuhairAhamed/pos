@@ -13,7 +13,6 @@ import com.company.pos.terminal.viewmodel.PaymentViewModel;
 import com.company.pos.terminal.viewmodel.PaymentViewModel.CheckoutGateway;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -184,6 +183,9 @@ public class PaymentController {
         payCardButton.setDisable(busy);
         payWalletButton.setDisable(busy);
         addTenderButton.setDisable(busy);
+        amountField.setDisable(busy);
+        tenderedField.setDisable(busy);
+        panField.setDisable(busy);
     }
 
     private void updateChangePreview(String raw) {
@@ -193,7 +195,7 @@ public class PaymentController {
         }
         try {
             BigDecimal cash = new BigDecimal(raw.trim()).setScale(2, RoundingMode.HALF_UP);
-            BigDecimal due = estimatedTotal; // preview against the full estimate
+            BigDecimal due = parseMoney(vm.remainingText().get());
             if (cash.compareTo(due) >= 0) {
                 changePreviewLabel.setText("Change: " + cash.subtract(due).toPlainString());
             } else {
@@ -201,6 +203,18 @@ public class PaymentController {
             }
         } catch (NumberFormatException ex) {
             changePreviewLabel.setText("");
+        }
+    }
+
+    /** Parse a plain-number string defensively (blank/invalid → ZERO). */
+    private static BigDecimal parseMoney(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(raw.trim());
+        } catch (NumberFormatException ex) {
+            return BigDecimal.ZERO;
         }
     }
 
@@ -249,7 +263,7 @@ public class PaymentController {
         }
 
         String change = vm.changeText().get();
-        boolean showChange = change != null && !change.isBlank() && new BigDecimal(change).signum() > 0;
+        boolean showChange = parseMoney(change).signum() > 0;
         changeLabel.setVisible(showChange);
         changeLabel.setManaged(showChange);
         if (showChange) {
