@@ -19,7 +19,8 @@ class PaymentViewModelTest {
 
     private static SaleView sale28_75() {
         return new SaleView(UUID.randomUUID(), "S01-T01-1", new BigDecimal("25.00"),
-                new BigDecimal("3.75"), BigDecimal.ZERO, new BigDecimal("28.75"), "SAR");
+                new BigDecimal("3.75"), BigDecimal.ZERO, new BigDecimal("28.75"), "SAR",
+                BigDecimal.ZERO, java.util.List.of(), java.util.List.of());
     }
 
     @Test
