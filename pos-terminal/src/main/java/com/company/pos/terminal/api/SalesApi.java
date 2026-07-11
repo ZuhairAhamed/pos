@@ -1,5 +1,7 @@
 package com.company.pos.terminal.api;
 
+import com.company.pos.terminal.api.dto.CheckoutRequest;
+import com.company.pos.terminal.api.dto.SaleView;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.UUID;
 
@@ -10,6 +12,11 @@ public class SalesApi {
 
     public SalesApi(ApiClient client) {
         this.client = client;
+    }
+
+    /** POST /sales — retail checkout of a cart; returns the authoritative SaleView. */
+    public SaleView checkout(CheckoutRequest req) {
+        return client.post("/sales", req, new TypeReference<SaleView>() {});
     }
 
     /** {@code POST /sales/{id}/reprint} — 204 No Content. */
