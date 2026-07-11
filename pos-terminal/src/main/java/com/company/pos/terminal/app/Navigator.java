@@ -49,13 +49,24 @@ public class Navigator {
     }
 
     // Reached from the order screen's "Pay" action with the client-side estimated
-    // subtotal (pre-tax, pre-service-charge). Builds the payment screen; the VM
-    // closes the order server-side and exposes the authoritative SaleView totals.
+    // subtotal (pre-tax, pre-service-charge). Builds the payment screen for dine-in;
+    // the VM closes the order server-side and exposes the authoritative SaleView totals.
     public void toPayment(UUID orderId, BigDecimal estimatedTotal) {
         com.company.pos.terminal.view.PaymentController controller =
-                new com.company.pos.terminal.view.PaymentController(services, this, orderId, estimatedTotal);
+                new com.company.pos.terminal.view.PaymentController(services, this,
+                        com.company.pos.terminal.view.PaymentController.Mode.DINE_IN, orderId, estimatedTotal);
         setScene("/fxml/payment.fxml", controller);
     }
+
+    public void toRetailPayment(UUID cartId, BigDecimal estimatedTotal) {
+        com.company.pos.terminal.view.PaymentController controller =
+                new com.company.pos.terminal.view.PaymentController(services, this,
+                        com.company.pos.terminal.view.PaymentController.Mode.RETAIL, cartId, estimatedTotal);
+        setScene("/fxml/payment.fxml", controller);
+    }
+
+    public void toHome() { toTableMap(); }   // TEMP: replaced by real Home in Task 9
+    public void toRetail() { toTableMap(); }  // TEMP: replaced in Task 9
 
     // The controller currently attached to the stage, tracked so its timers/
     // resources can be released via Screen#onLeave before we swap in the next

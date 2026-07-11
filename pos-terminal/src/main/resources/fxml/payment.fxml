@@ -10,76 +10,84 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Payment screen: a centered card holds the estimated total, a CASH/CARD tender
-     choice, and (after a successful close) the authoritative SaleView totals with
-     reprint + return-to-floor actions. Money is displayed at scale 2 by the VM/
-     controller. Style classes come from the shared app.css; no inline styling. -->
+<!-- Payment: estimated total + tender entry (Cash/Card/Wallet, multi-tender) until covered,
+     then the authoritative SaleView receipt. Style classes come from app.css; no inline styling. -->
 <StackPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
-  <VBox alignment="TOP_CENTER" spacing="24" styleClass="card" maxWidth="480" maxHeight="-Infinity">
+  <VBox alignment="TOP_CENTER" spacing="20" styleClass="card" maxWidth="520" maxHeight="-Infinity">
     <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
 
     <Label text="Payment" styleClass="title"/>
+    <Label fx:id="totalLabel" styleClass="pay-total,money"/>
+    <Label fx:id="remainingLabel" styleClass="pay-total,money"/>
 
-    <!-- Estimated total due (pre-service-charge client estimate). -->
-    <Label fx:id="totalLabel" styleClass="pay-total"/>
-
-    <!-- Error banner: danger style, hidden (and not laid out) when empty. -->
     <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
 
-    <!-- Tender entry: shown until paid, then hidden + unmanaged. -->
-    <VBox fx:id="tenderBox" spacing="16" alignment="TOP_CENTER" maxWidth="Infinity">
+    <!-- Tender entry: shown until paid. -->
+    <VBox fx:id="tenderBox" spacing="14" alignment="TOP_CENTER" maxWidth="Infinity">
+      <VBox fx:id="tenderChips" spacing="6" maxWidth="Infinity"/>
+
       <VBox spacing="6" styleClass="field" maxWidth="Infinity">
-        <Label text="Cash tendered" styleClass="field-label"/>
-        <TextField fx:id="tenderedField" promptText="0.00" maxWidth="Infinity"/>
+        <Label text="Amount for this tender (blank = full remaining)" styleClass="field-label"/>
+        <TextField fx:id="amountField" promptText="0.00" styleClass="money" maxWidth="Infinity"/>
       </VBox>
 
-      <Label fx:id="changePreviewLabel" styleClass="pay-change-preview"/>
+      <VBox spacing="6" styleClass="field" maxWidth="Infinity">
+        <Label text="Cash tendered (cash only)" styleClass="field-label"/>
+        <TextField fx:id="tenderedField" promptText="0.00" styleClass="money" maxWidth="Infinity"/>
+      </VBox>
+
+      <VBox spacing="6" styleClass="field" maxWidth="Infinity">
+        <Label text="Card number (card only)" styleClass="field-label"/>
+        <TextField fx:id="panField" promptText="•••• •••• •••• ••••" maxWidth="Infinity"/>
+      </VBox>
+
+      <Label fx:id="changePreviewLabel" styleClass="pay-change-preview,money"/>
 
       <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
-        <Button fx:id="payCashButton" text="Take cash payment" defaultButton="true"
-                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
-        <Button fx:id="payCardButton" text="Take card payment"
-                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="payCashButton" text="Cash" styleClass="tender-cash" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="payCardButton" text="Card" styleClass="tender-card" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="payWalletButton" text="Wallet" styleClass="tender-wallet" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
       </HBox>
 
-      <Button fx:id="cancelButton" text="Back to order" styleClass="btn-secondary" maxWidth="Infinity"/>
+      <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
+        <Button fx:id="addTenderButton" text="Add partial tender" styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="cancelButton" text="Cancel" styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+      </HBox>
     </VBox>
 
-    <!-- Confirmation / receipt: hidden (and not laid out) until a close succeeds. -->
-    <VBox fx:id="resultBox" spacing="10" alignment="TOP_LEFT" visible="false" managed="false" maxWidth="Infinity">
+    <!-- Receipt: hidden until a checkout succeeds. -->
+    <VBox fx:id="resultBox" spacing="8" alignment="TOP_LEFT" visible="false" managed="false" maxWidth="Infinity">
       <Label fx:id="receiptLabel" styleClass="subtitle"/>
       <Separator/>
-
+      <VBox fx:id="receiptLines" spacing="4" maxWidth="Infinity"/>
+      <Separator/>
       <HBox maxWidth="Infinity">
-        <Label text="Subtotal" styleClass="pay-line-label"/>
-        <Pane HBox.hgrow="ALWAYS"/>
-        <Label fx:id="subtotalValue" styleClass="pay-line-value"/>
+        <Label text="Subtotal" styleClass="pay-line-label"/><Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="subtotalValue" styleClass="pay-line-value,money"/>
+      </HBox>
+      <HBox fx:id="discountRow" visible="false" managed="false" maxWidth="Infinity">
+        <Label text="Discount" styleClass="pay-line-label"/><Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="discountValue" styleClass="pay-line-value,money"/>
       </HBox>
       <HBox maxWidth="Infinity">
-        <Label text="Tax" styleClass="pay-line-label"/>
-        <Pane HBox.hgrow="ALWAYS"/>
-        <Label fx:id="taxValue" styleClass="pay-line-value"/>
+        <Label text="Tax" styleClass="pay-line-label"/><Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="taxValue" styleClass="pay-line-value,money"/>
       </HBox>
-      <!-- Service charge row: shown only when serviceChargeAmount > 0. -->
       <HBox fx:id="serviceChargeRow" visible="false" managed="false" maxWidth="Infinity">
-        <Label text="Service charge" styleClass="pay-line-label"/>
-        <Pane HBox.hgrow="ALWAYS"/>
-        <Label fx:id="serviceChargeValue" styleClass="pay-line-value"/>
+        <Label text="Service charge" styleClass="pay-line-label"/><Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="serviceChargeValue" styleClass="pay-line-value,money"/>
       </HBox>
       <Separator/>
       <HBox maxWidth="Infinity">
-        <Label text="Grand total" styleClass="pay-grand-label"/>
-        <Pane HBox.hgrow="ALWAYS"/>
-        <Label fx:id="grandTotalValue" styleClass="pay-grand-value"/>
+        <Label text="Grand total" styleClass="pay-grand-label"/><Pane HBox.hgrow="ALWAYS"/>
+        <Label fx:id="grandTotalValue" styleClass="pay-grand-value,money"/>
       </HBox>
-
-      <Label fx:id="changeLabel" styleClass="pay-change" visible="false" managed="false"/>
+      <VBox fx:id="paymentsBox" spacing="4" maxWidth="Infinity"/>
+      <Label fx:id="changeLabel" styleClass="pay-change,money" visible="false" managed="false"/>
 
       <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
-        <Button fx:id="reprintButton" text="Reprint receipt" styleClass="btn-secondary"
-                maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
-        <Button fx:id="doneButton" text="Done — new table"
-                styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="reprintButton" text="Reprint receipt" styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="doneButton" text="Done" styleClass="btn-primary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
       </HBox>
     </VBox>
   </VBox>
