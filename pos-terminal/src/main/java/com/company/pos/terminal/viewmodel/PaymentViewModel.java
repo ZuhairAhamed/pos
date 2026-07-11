@@ -1,16 +1,13 @@
 package com.company.pos.terminal.viewmodel;
 
 import com.company.pos.terminal.api.ApiException;
-import com.company.pos.terminal.api.DiningApi;
 import com.company.pos.terminal.api.SalesApi;
-import com.company.pos.terminal.api.dto.CloseOrderRequest;
 import com.company.pos.terminal.api.dto.SaleView;
 import com.company.pos.terminal.api.dto.TenderInput;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
@@ -18,88 +15,155 @@ import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 /**
- * ViewModel that takes payment on an open dining order by closing it server-side, then exposes the
- * authoritative {@link SaleView} the server returns. Unit-testable without the FX toolkit; every
- * call runs <b>synchronously</b> on the calling thread (the controller runs it off the FX thread).
+ * ViewModel that takes payment against an estimated total and exposes the authoritative
+ * {@link SaleView}. It is checkout-mechanism agnostic: a {@link CheckoutGateway} performs
+ * the actual server call (dine-in close or retail /sales), so this class holds only tender
+ * accumulation, the short-cash guard, and change/remaining math. Unit-testable without FX;
+ * every method runs synchronously on the caller (the controller runs it off the FX thread).
  *
- * <p>The terminal pays the <b>estimated</b> total supplied at construction (the pre-close client
- * estimate). For this slice the store default has service charge off and no discounts are sent, so
- * the server's computed {@link SaleView#grandTotal()} equals the estimate; the {@code SaleView} is
- * still the authoritative source once {@link #paid()} is set.
- *
- * <p>Cash short-tender guard: {@link #payCash(BigDecimal)} rejects {@code tendered < estimatedTotal}
- * <b>before any server call</b> (sets {@link #errorMessage()}, makes no {@code close} call). Change
- * is {@code tendered - estimatedTotal}. Card ({@link #payCard()}) has no short-tender concept.
+ * <p>Multiple tenders per sale are supported: {@link #addTender} appends a tender and updates
+ * {@link #remainingText()}; {@link #finalizeSale()} refuses while any amount remains due.
+ * {@link #payFull} is the one-tap path (tender the whole remaining amount, then finalize).
  */
 public class PaymentViewModel {
 
-    private final DiningApi dining;
+    /** Performs the actual checkout for the collected tenders and returns the authoritative sale. */
+    @FunctionalInterface
+    public interface CheckoutGateway {
+        SaleView checkout(List<TenderInput> tenders);
+    }
+
+    private final CheckoutGateway gateway;
     private final SalesApi sales;
-    private final UUID orderId;
     private final BigDecimal estimatedTotal;
     private final Consumer<Runnable> ui;
 
+    private final ObservableList<TenderInput> tenders = FXCollections.observableArrayList();
+    private final ReadOnlyStringWrapper remainingText = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper changeText = new ReadOnlyStringWrapper("");
     private final ReadOnlyStringWrapper errorMessage = new ReadOnlyStringWrapper("");
     private final ReadOnlyObjectWrapper<SaleView> sale = new ReadOnlyObjectWrapper<>(null);
     private final ReadOnlyBooleanWrapper paid = new ReadOnlyBooleanWrapper(false);
 
-    public PaymentViewModel(
-            DiningApi dining, SalesApi sales, UUID orderId, BigDecimal estimatedTotal) {
-        this(dining, sales, orderId, estimatedTotal, Runnable::run);
+    public PaymentViewModel(CheckoutGateway gateway, SalesApi sales, BigDecimal estimatedTotal) {
+        this(gateway, sales, estimatedTotal, Runnable::run);
     }
 
-    public PaymentViewModel(
-            DiningApi dining,
-            SalesApi sales,
-            UUID orderId,
-            BigDecimal estimatedTotal,
+    public PaymentViewModel(CheckoutGateway gateway, SalesApi sales, BigDecimal estimatedTotal,
             Consumer<Runnable> ui) {
-        this.dining = dining;
+        this.gateway = gateway;
         this.sales = sales;
-        this.orderId = orderId;
         this.estimatedTotal = estimatedTotal.setScale(2, RoundingMode.HALF_UP);
         this.ui = ui;
+        this.remainingText.set(this.estimatedTotal.toPlainString());
     }
 
-    public ReadOnlyStringProperty changeText() {
-        return changeText.getReadOnlyProperty();
-    }
+    public ObservableList<TenderInput> tenders() { return tenders; }
+    public ReadOnlyStringProperty remainingText() { return remainingText.getReadOnlyProperty(); }
+    public ReadOnlyStringProperty changeText() { return changeText.getReadOnlyProperty(); }
+    public ReadOnlyStringProperty errorMessage() { return errorMessage.getReadOnlyProperty(); }
+    public ReadOnlyObjectProperty<SaleView> sale() { return sale.getReadOnlyProperty(); }
+    public ReadOnlyBooleanProperty paid() { return paid.getReadOnlyProperty(); }
 
-    public ReadOnlyStringProperty errorMessage() {
-        return errorMessage.getReadOnlyProperty();
-    }
-
-    public ReadOnlyObjectProperty<SaleView> sale() {
-        return sale.getReadOnlyProperty();
-    }
-
-    public ReadOnlyBooleanProperty paid() {
-        return paid.getReadOnlyProperty();
+    public BigDecimal remaining() {
+        BigDecimal covered = BigDecimal.ZERO;
+        for (TenderInput t : tenders) {
+            covered = covered.add(t.amount());
+        }
+        BigDecimal rem = estimatedTotal.subtract(covered);
+        return rem.signum() < 0 ? BigDecimal.ZERO : rem;
     }
 
     /**
-     * Closes the order with a single CASH tender. Rejects a short tender before any server call. On
-     * success, exposes the returned {@link SaleView}, marks {@link #paid()}, and sets
-     * {@link #changeText()} to {@code tendered - estimatedTotal}.
+     * Appends one tender toward the total. {@code amount} is what this tender covers;
+     * for CASH, {@code cashTendered} is the money handed over and must be ≥ amount.
+     * Rejects (no append) on non-positive amount or short cash.
      */
-    public void payCash(BigDecimal tendered) {
-        BigDecimal cash = (tendered == null ? BigDecimal.ZERO : tendered).setScale(2, RoundingMode.HALF_UP);
-        if (cash.compareTo(estimatedTotal) < 0) {
-            ui.accept(() -> errorMessage.set("Insufficient cash tendered"));
+    public void addTender(String method, BigDecimal amount, BigDecimal cashTendered) {
+        BigDecimal amt = (amount == null ? BigDecimal.ZERO : amount).setScale(2, RoundingMode.HALF_UP);
+        if (amt.signum() <= 0) {
+            ui.accept(() -> errorMessage.set("Enter a tender amount"));
             return;
         }
-        if (close(new TenderInput("CASH", estimatedTotal, cash))) {
-            String change = cash.subtract(estimatedTotal).toPlainString();
-            ui.accept(() -> changeText.set(change));
+        BigDecimal tendered = null;
+        if ("CASH".equals(method)) {
+            tendered = (cashTendered == null ? BigDecimal.ZERO : cashTendered).setScale(2, RoundingMode.HALF_UP);
+            if (tendered.compareTo(amt) < 0) {
+                ui.accept(() -> errorMessage.set("Insufficient cash tendered"));
+                return;
+            }
+        }
+        TenderInput t = new TenderInput(method, amt, tendered);
+        String rem = estimatedTotal.subtract(coveredIncluding(amt)).max(BigDecimal.ZERO).toPlainString();
+        ui.accept(() -> {
+            tenders.add(t);
+            remainingText.set(rem);
+            errorMessage.set("");
+        });
+    }
+
+    private BigDecimal coveredIncluding(BigDecimal extra) {
+        BigDecimal covered = extra;
+        for (TenderInput t : tenders) {
+            covered = covered.add(t.amount());
+        }
+        return covered;
+    }
+
+    /** One-tap path: tender the whole remaining amount with {@code method}, then finalize. */
+    public void payFull(String method, BigDecimal cashTendered) {
+        BigDecimal due = remaining();
+        if (due.signum() <= 0) {
+            finalizeSale();
+            return;
+        }
+        int before = tenders.size();
+        addTender(method, due, cashTendered);
+        if (tenders.size() == before) {
+            return; // addTender rejected (e.g. short cash); error already set
+        }
+        finalizeSale();
+    }
+
+    /** Runs the gateway checkout once the full amount is tendered; else surfaces remaining due. */
+    public void finalizeSale() {
+        BigDecimal due = remaining();
+        if (due.signum() > 0) {
+            ui.accept(() -> errorMessage.set("Remaining due: " + due.toPlainString()));
+            return;
+        }
+        if (tenders.isEmpty()) {
+            ui.accept(() -> errorMessage.set("Add a tender first"));
+            return;
+        }
+        ui.accept(() -> errorMessage.set(""));
+        try {
+            SaleView closed = gateway.checkout(new ArrayList<>(tenders));
+            String change = totalChange().toPlainString();
+            ui.accept(() -> {
+                sale.set(closed);
+                paid.set(true);
+                changeText.set(change);
+            });
+        } catch (ApiException e) {
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
         }
     }
 
-    /** Closes the order with a single CARD tender (no short-tender concept, {@code tendered} null). */
-    public void payCard() {
-        close(new TenderInput("CARD", estimatedTotal, null));
+    /** Overall change = Σ over cash tenders of (tendered − amount), never negative. */
+    private BigDecimal totalChange() {
+        BigDecimal change = BigDecimal.ZERO;
+        for (TenderInput t : tenders) {
+            if (t.tendered() != null) {
+                change = change.add(t.tendered().subtract(t.amount()));
+            }
+        }
+        return change.max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
     }
 
     /** Reprints the closed sale's receipt. No-op if nothing has been paid yet. */
@@ -117,26 +181,6 @@ public class PaymentViewModel {
         }
     }
 
-    /** @return true if the close succeeded (sale set + paid), false if an ApiException surfaced. */
-    private boolean close(TenderInput tender) {
-        ui.accept(() -> errorMessage.set(""));
-        try {
-            CloseOrderRequest req =
-                    new CloseOrderRequest(List.of(tender), Map.of(), null, false);
-            SaleView closed = dining.close(orderId, req);
-            ui.accept(() -> {
-                sale.set(closed);
-                paid.set(true);
-            });
-            return true;
-        } catch (ApiException e) {
-            String msg = messageOf(e);
-            ui.accept(() -> errorMessage.set(msg));
-            return false;
-        }
-    }
-
-    /** Prefer the server's ProblemDetail (detail, then title), else the exception message. */
     private String messageOf(ApiException e) {
         if (e.problem() != null) {
             if (e.problem().detail() != null && !e.problem().detail().isBlank()) {

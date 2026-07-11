@@ -1,5 +1,6 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.dto.CloseOrderRequest;
 import com.company.pos.terminal.api.dto.SaleView;
 import com.company.pos.terminal.app.FxTasks;
 import com.company.pos.terminal.app.Navigator;
@@ -7,6 +8,8 @@ import com.company.pos.terminal.app.Services;
 import com.company.pos.terminal.viewmodel.PaymentViewModel;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -69,8 +72,11 @@ public class PaymentController {
         this.navigator = navigator;
         this.orderId = orderId;
         this.estimatedTotal = estimatedTotal.setScale(2, RoundingMode.HALF_UP);
-        this.vm = new PaymentViewModel(
-                services.diningApi, services.salesApi, orderId, estimatedTotal, Platform::runLater);
+        // TODO(Task 7): full multi-tender controller rewrite — replace this shim with the
+        // proper gateway selection (dine-in vs retail) and multi-tender UI wiring.
+        PaymentViewModel.CheckoutGateway shimGateway = tenders ->
+                services.diningApi.close(orderId, new CloseOrderRequest(List.copyOf(tenders), Map.of(), null, false));
+        this.vm = new PaymentViewModel(shimGateway, services.salesApi, estimatedTotal, Platform::runLater);
     }
 
     @FXML
@@ -86,8 +92,9 @@ public class PaymentController {
         tenderedField.textProperty().addListener((o, was, now) -> updateChangePreview(now));
         updateChangePreview(tenderedField.getText());
 
+        // TODO(Task 7): wire up multi-tender UI; shim uses payFull for both methods.
         payCashButton.setOnAction(e -> payCash());
-        payCardButton.setOnAction(e -> pay(vm::payCard));
+        payCardButton.setOnAction(e -> pay(() -> vm.payFull("CARD", null)));
         cancelButton.setOnAction(e -> navigator.toOrder(orderId));
         reprintButton.setOnAction(e -> reprint());
         doneButton.setOnAction(e -> navigator.toTableMap());
@@ -102,7 +109,8 @@ public class PaymentController {
 
     /** Parse the cash field (empty/invalid → ZERO so the VM's short-tender guard rejects it). */
     private void payCash() {
-        pay(() -> vm.payCash(parseTendered()));
+        // TODO(Task 7): replace with multi-tender addTender/finalizeSale UI flow.
+        pay(() -> vm.payFull("CASH", parseTendered()));
     }
 
     private BigDecimal parseTendered() {
