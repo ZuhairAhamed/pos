@@ -2,6 +2,7 @@ package com.company.pos.terminal.view;
 
 import com.company.pos.terminal.api.dto.CheckoutRequest;
 import com.company.pos.terminal.api.dto.CloseOrderRequest;
+import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleLineModifierView;
 import com.company.pos.terminal.api.dto.SaleLineView;
 import com.company.pos.terminal.api.dto.SalePaymentView;
@@ -45,6 +46,7 @@ public class PaymentController {
     private final UUID id; // orderId (DINE_IN) or cartId (RETAIL)
     private final BigDecimal estimatedTotal;
     private final PaymentViewModel vm;
+    private boolean quoteLoaded = false;
 
     @FXML private Label totalLabel;
     @FXML private Label remainingLabel;
@@ -125,6 +127,7 @@ public class PaymentController {
     }
 
     private void setTendersEnabled(boolean enabled) {
+        this.quoteLoaded = enabled;
         payCashButton.setDisable(!enabled);
         payCardButton.setDisable(!enabled);
         payWalletButton.setDisable(!enabled);
@@ -133,7 +136,7 @@ public class PaymentController {
 
     /** Fetch the authoritative quote off the FX thread (retail cart or dine-in order). */
     private void loadQuote() {
-        final com.company.pos.terminal.api.dto.QuoteView[] holder = new com.company.pos.terminal.api.dto.QuoteView[1];
+        final QuoteView[] holder = new QuoteView[1];
         FxTasks.run(
                 () -> holder[0] = (mode == Mode.RETAIL)
                         ? services.salesApi.quote(id)
@@ -145,7 +148,7 @@ public class PaymentController {
                 });
     }
 
-    private void onQuoteLoaded(com.company.pos.terminal.api.dto.QuoteView q) {
+    private void onQuoteLoaded(QuoteView q) {
         String cur = q.currencyCode();
         totalLabel.setText("Total due: " + money(q.grandTotal(), cur));
         vm.setAuthoritativeTotal(q.grandTotal());
@@ -212,10 +215,10 @@ public class PaymentController {
     }
 
     private void setBusy(boolean busy) {
-        payCashButton.setDisable(busy);
-        payCardButton.setDisable(busy);
-        payWalletButton.setDisable(busy);
-        addTenderButton.setDisable(busy);
+        payCashButton.setDisable(busy || !quoteLoaded);
+        payCardButton.setDisable(busy || !quoteLoaded);
+        payWalletButton.setDisable(busy || !quoteLoaded);
+        addTenderButton.setDisable(busy || !quoteLoaded);
         amountField.setDisable(busy);
         tenderedField.setDisable(busy);
         panField.setDisable(busy);
