@@ -112,6 +112,22 @@ Service-charge display on the entry screen is deferred; the confirmation screen
 *does* show the authoritative `serviceChargeAmount` line when it is greater than
 zero, sourced from the returned `SaleView`.
 
+## Slice 4 — shift, denominations, quote clarity, success state
+
+- **Start shift**: on the first arrival at Home with no open shift on this terminal
+  (`GET /shifts/open` → 404), a modal prompts for the opening cash float (numeric pad
+  + optional count-by-denomination helper) and opens the shift via `POST /shifts`.
+  Skipping is remembered for the session and shown as "No shift open" in the toolbar.
+- **Denomination fast-cash**: Exact / 50 / 100 / 200 / 500 chips on the payment screen
+  fill "Cash tendered" in one tap; the change preview reacts and Cash commits. Chips
+  stay disabled until the server quote loads.
+- **Estimate vs quote**: the client estimate renders as a muted "Estimate at order"
+  line; the prominent total is only ever the server quote, marked with a "✓ server"
+  badge ("Fetching total…" while it loads).
+- **Success state**: the receipt opens with a success-tinted "Paid · <amount>" banner
+  (checkmark scale-in honours `ui.reduced-motion`), and Done is labelled with its
+  destination ("Done ▸ Tables" / "Done ▸ Home").
+
 ## Manual end-to-end walkthrough
 
 With a backend running and seeded per above, launch the terminal (`javafx:run`)
