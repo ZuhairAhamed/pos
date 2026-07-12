@@ -3,6 +3,7 @@ package com.company.pos.terminal.api;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.company.pos.terminal.api.dto.CheckoutRequest;
+import com.company.pos.terminal.api.dto.DiscountInput;
 import com.company.pos.terminal.api.dto.SaleView;
 import com.company.pos.terminal.api.dto.TenderInput;
 import java.math.BigDecimal;
@@ -35,6 +36,20 @@ class SalesApiTest {
             assertTrue(stub.lastBody.contains("\"cartId\":\"11111111-1111-1111-1111-111111111111\""));
             assertTrue(stub.lastBody.contains("\"method\":\"CASH\""));
             assertTrue(stub.lastBody.contains("tenders"));
+        }
+    }
+
+    @Test
+    void checkoutSerializesTypedTransactionDiscount() throws Exception {
+        try (StubServer stub = new StubServer(201, SALE_JSON, "application/json")) {
+            SalesApi api = new SalesApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            api.checkout(new CheckoutRequest(CART_ID,
+                    List.of(new TenderInput("CARD", new BigDecimal("62.10"), null)),
+                    Map.of(),
+                    new DiscountInput("PERCENT", new BigDecimal("10"), "LOYALTY"),
+                    false));
+            assertTrue(stub.lastBody.contains("\"transactionDiscount\":{"));
+            assertTrue(stub.lastBody.contains("\"reasonCode\":\"LOYALTY\""));
         }
     }
 }

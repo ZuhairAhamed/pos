@@ -1,6 +1,9 @@
 package com.company.pos.terminal.api;
 
 import com.company.pos.terminal.api.dto.CheckoutRequest;
+import com.company.pos.terminal.api.dto.DiscountInput;
+import com.company.pos.terminal.api.dto.DiscountPolicyView;
+import com.company.pos.terminal.api.dto.QuoteRequest;
 import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleView;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -23,8 +26,18 @@ public class SalesApi {
 
     /** POST /sales/quote — authoritative totals for a retail cart (service charge off). */
     public QuoteView quote(UUID cartId) {
-        return client.post("/sales/quote", Map.of("cartId", cartId),
-                new com.fasterxml.jackson.core.type.TypeReference<QuoteView>() {});
+        return quote(cartId, null);
+    }
+
+    /** As {@link #quote(UUID)} but priced with a whole-sale discount ({@code null} = none). */
+    public QuoteView quote(UUID cartId, DiscountInput transactionDiscount) {
+        return client.post("/sales/quote", new QuoteRequest(cartId, Map.of(), transactionDiscount),
+                new TypeReference<QuoteView>() {});
+    }
+
+    /** GET /sales/discount-policy — cashier caps + reason codes for the discount dialog. */
+    public DiscountPolicyView discountPolicy() {
+        return client.get("/sales/discount-policy", new TypeReference<DiscountPolicyView>() {});
     }
 
     /** {@code POST /sales/{id}/reprint} — 204 No Content. */

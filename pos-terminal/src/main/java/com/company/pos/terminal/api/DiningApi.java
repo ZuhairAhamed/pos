@@ -2,15 +2,18 @@ package com.company.pos.terminal.api;
 
 import com.company.pos.terminal.api.dto.AddLineRequest;
 import com.company.pos.terminal.api.dto.CloseOrderRequest;
+import com.company.pos.terminal.api.dto.DiscountInput;
 import com.company.pos.terminal.api.dto.OpenOrderRequest;
 import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.OrderView;
+import com.company.pos.terminal.api.dto.QuoteOrderRequest;
 import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleView;
 import com.company.pos.terminal.api.dto.TableView;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /** Typed client for the store server's {@code /dining} seat-to-payment endpoints. */
@@ -63,6 +66,13 @@ public class DiningApi {
     /** GET /dining/orders/{id}/quote — authoritative totals for a dine-in order (incl service charge). */
     public QuoteView quoteOrder(UUID orderId) {
         return client.get("/dining/orders/" + orderId + "/quote", new TypeReference<QuoteView>() {});
+    }
+
+    /** POST /dining/orders/{id}/quote — quote priced with a whole-sale discount ({@code null} = none). */
+    public QuoteView quoteOrder(UUID orderId, DiscountInput transactionDiscount) {
+        return client.post("/dining/orders/" + orderId + "/quote",
+                new QuoteOrderRequest(Map.of(), transactionDiscount),
+                new TypeReference<QuoteView>() {});
     }
 
     public SaleView close(UUID orderId, CloseOrderRequest req) {
