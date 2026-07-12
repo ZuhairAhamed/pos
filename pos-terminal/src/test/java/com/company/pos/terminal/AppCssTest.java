@@ -50,7 +50,7 @@ class AppCssTest {
     void definesSliceFourClasses() throws Exception {
         String css = css();
         for (String cls : new String[] {
-            ".denom-row", ".denom-line-total",
+            ".denom-line-total",
             ".estimate-line", ".quote-badge",
             ".denom-chip",
             ".success-banner", ".success-check"

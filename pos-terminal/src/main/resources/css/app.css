@@ -476,8 +476,6 @@
 
 /* ---- Start shift modal ---------------------------------------------------- */
 
-/* One stepper row per SAR note in the optional counting helper. */
-.denom-row { -fx-padding: 0 0 0 0; }
 .denom-line-total { -fx-font-size: 16px; -fx-text-fill: -fx-muted; }
 
 /* ---- Denomination fast-cash chips ----------------------------------------- */

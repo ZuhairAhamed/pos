@@ -20,6 +20,8 @@ class ShiftApiTest {
             ShiftView v = api.findOpenShift();
             assertNotNull(v);
             assertEquals("T01", v.terminalId());
+            assertEquals(java.util.UUID.fromString("88888888-8888-8888-8888-888888888888"), v.shiftId());
+            assertNotNull(v.openedAt());
             assertEquals("OPEN", v.status());
             assertEquals("SAR", v.currencyCode());
             assertEquals("GET", stub.lastMethod);

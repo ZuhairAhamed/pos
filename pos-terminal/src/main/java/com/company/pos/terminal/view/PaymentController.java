@@ -343,6 +343,8 @@ public class PaymentController {
         resultBox.setVisible(true);
         resultBox.setManaged(true);
 
+        // FX-thread only: showResult's sole caller is the vm.sale() listener, which fires
+        // inside the VM's Platform::runLater dispatch — a ScaleTransition off-thread would throw.
         if (!services.config.reducedMotion()) {
             ScaleTransition pop = new ScaleTransition(Duration.millis(200), successCheck);
             pop.setFromX(0.6);
