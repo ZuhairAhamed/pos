@@ -1,6 +1,7 @@
 package com.company.pos.sales.web;
 
 import com.company.pos.sales.api.CheckoutCommand;
+import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.util.UUID;
@@ -32,6 +33,16 @@ class SalesController {
         CheckoutCommand retailCommand = new CheckoutCommand(command.cartId(), command.tenders(),
                 command.lineDiscounts(), command.transactionDiscount(), false);
         return sales.checkout(retailCommand, authentication.getName(), isManager);
+    }
+
+    /** Retail cart quote body. */
+    record QuoteRequest(java.util.UUID cartId) {
+    }
+
+    @PostMapping("/sales/quote")
+    QuoteView quote(@RequestBody QuoteRequest body) {
+        // Retail quote: service charge is DINE_IN only, so quote(cartId) applies none.
+        return sales.quote(body.cartId());
     }
 
     @GetMapping("/sales/{saleId}")
