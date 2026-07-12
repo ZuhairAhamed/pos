@@ -1,5 +1,6 @@
 package com.company.pos.sales.api;
 
+import java.util.Map;
 import java.util.UUID;
 
 public interface SalesService {
@@ -28,4 +29,13 @@ public interface SalesService {
 
     /** As {@link #quote(UUID)} but optionally applies the configured service charge. */
     QuoteView quote(UUID cartId, boolean applyServiceCharge);
+
+    /**
+     * As {@link #quote(UUID, boolean)} but priced WITH the given manual discounts, exactly as
+     * checkout would apply them. Pure calculator: the cashier discount cap is NOT enforced here
+     * (quote commits nothing; checkout is the sole enforcement point) but reason codes are still
+     * validated. Null discount arguments mean "none".
+     */
+    QuoteView quote(UUID cartId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount, boolean applyServiceCharge);
 }

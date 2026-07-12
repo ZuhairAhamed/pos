@@ -1,9 +1,11 @@
 package com.company.pos.sales.web;
 
 import com.company.pos.sales.api.CheckoutCommand;
+import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -35,14 +37,15 @@ class SalesController {
         return sales.checkout(retailCommand, authentication.getName(), isManager);
     }
 
-    /** Retail cart quote body. */
-    record QuoteRequest(java.util.UUID cartId) {
+    /** Retail cart quote body. Discount fields are optional; nulls mean "no discount". */
+    record QuoteRequest(java.util.UUID cartId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount) {
     }
 
     @PostMapping("/sales/quote")
     QuoteView quote(@RequestBody QuoteRequest body) {
-        // Retail quote: service charge is DINE_IN only, so quote(cartId) applies none.
-        return sales.quote(body.cartId());
+        // Retail quote: service charge is DINE_IN only, so applyServiceCharge is false.
+        return sales.quote(body.cartId(), body.lineDiscounts(), body.transactionDiscount(), false);
     }
 
     @GetMapping("/sales/{saleId}")

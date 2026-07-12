@@ -255,6 +255,13 @@ class DefaultSalesService implements SalesService {
     @Override
     @Transactional(readOnly = true)
     public QuoteView quote(UUID cartId, boolean applyServiceCharge) {
+        return quote(cartId, Map.of(), null, applyServiceCharge);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuoteView quote(UUID cartId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount, boolean applyServiceCharge) {
         CartView cart = carts.getCart(cartId);
         if (!"OPEN".equals(cart.status())) {
             throw DomainException.conflict("Cart " + cartId + " is not open");
@@ -262,7 +269,12 @@ class DefaultSalesService implements SalesService {
         if (cart.lines().isEmpty()) {
             throw DomainException.validation("Cannot quote an empty cart");
         }
-        PricedCart pc = priceDiscountTax(cart, Map.of(), null, false, applyServiceCharge);
+        // Pure calculator: callerIsManager=true so the cashier cap never rejects a quote —
+        // checkout is the sole enforcement point. Reason codes ARE validated (fail fast on a
+        // typo at quote time rather than at tender time). Any DiscountOverride entries the
+        // calculator records are discarded; only checkout publishes DiscountOverridden.
+        PricedCart pc = priceDiscountTax(cart, lineDiscounts == null ? Map.of() : lineDiscounts,
+                transactionDiscount, true, applyServiceCharge);
         BigDecimal taxTotal = pc.taxed().taxTotal().add(pc.serviceChargeTax());
         BigDecimal grandTotal = pc.taxed().grandTotal().add(pc.serviceChargeNet())
                 .add(pc.serviceChargeTax());

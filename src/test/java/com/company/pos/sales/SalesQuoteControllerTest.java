@@ -59,4 +59,18 @@ class SalesQuoteControllerTest {
         mvc.perform(post("/sales/quote").contentType("application/json").content("{}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void quoteAppliesTransactionDiscountFromBody() throws Exception {
+        UUID cart = carts.createCart();
+        carts.addLine(cart, "BURGER", new BigDecimal("2"));
+
+        mvc.perform(post("/sales/quote").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"cartId\":\"" + cart + "\",\"transactionDiscount\":"
+                                + "{\"type\":\"PERCENT\",\"value\":10,\"reasonCode\":\"LOYALTY\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discountTotal").value(6.00))
+                .andExpect(jsonPath("$.grandTotal").value(62.10));
+    }
 }
