@@ -299,7 +299,7 @@ class DefaultDiningService implements DiningService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public QuoteView quoteOrder(UUID orderId) {
         DiningOrder order = load(orderId);
         requireOpen(order);
