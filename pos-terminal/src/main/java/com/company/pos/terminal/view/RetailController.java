@@ -28,7 +28,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 
 /**
  * Thin controller for the retail sales screen. Binds FXML to a {@link RetailViewModel}
@@ -89,7 +88,7 @@ public class RetailController implements Navigator.Screen {
         vm.lines().addListener((ListChangeListener<CartLineView>) c -> renderCart());
         vm.itemAddedCount().addListener((o, was, now) -> pulseTotalBar());
 
-        buildMenu(cache.categories());
+        buildMenuFrom(cache);
         renderCart();
 
         FxTasks.run(
@@ -98,12 +97,12 @@ public class RetailController implements Navigator.Screen {
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to create cart", err));
     }
 
-    private void buildMenu(List<String> categories) {
+    private void buildMenuFrom(MenuCache source) {
         categoryTabs.getTabs().clear();
-        for (String category : categories) {
+        for (String category : source.categories()) {
             FlowPane grid = new FlowPane(12, 12);
             grid.getStyleClass().add("menu-grid");
-            for (ProductView p : cache.productsInCategory(category)) {
+            for (ProductView p : source.productsInCategory(category)) {
                 Button b = new Button(p.name() + "\n" + priceText(p));
                 b.getStyleClass().addAll("menu-button", categoryClass(category));
                 b.setWrapText(true);
@@ -168,17 +167,14 @@ public class RetailController implements Navigator.Screen {
     private void onSearch() {
         String q = searchField.getText();
         if (q == null || q.isBlank()) {
-            buildMenu(cache.categories());
+            buildMenuFrom(cache);  // restore the immutable full-catalogue cache
             return;
         }
         FxTasks.run(
                 () -> {
                     List<ProductView> hits = services.productApi.search(q);
                     MenuCache resultCache = new MenuCache(hits);
-                    Platform.runLater(() -> {
-                        this.cache = resultCache;
-                        buildMenu(resultCache.categories());
-                    });
+                    Platform.runLater(() -> buildMenuFrom(resultCache));  // never clobbers this.cache
                 },
                 () -> {},
                 err -> LOG.log(System.Logger.Level.ERROR, "Search failed", err));
@@ -237,16 +233,17 @@ public class RetailController implements Navigator.Screen {
         navigator.toRetailPayment(cartId, vm.estimatedTotal());
     }
 
-    /** Amber pulse on item-add; static highlight when reduced-motion is configured. */
+    /** Amber pulse on item-add; shorter hold in reduced-motion mode but still a per-add flash. */
     private void pulseTotalBar() {
-        if (services.config.reducedMotion()) {
+        if (!totalBar.getStyleClass().contains("total-bar-pulse")) {
             totalBar.getStyleClass().add("total-bar-pulse");
-            return;
         }
-        totalBar.getStyleClass().add("total-bar-pulse");
-        javafx.animation.PauseTransition hold = new javafx.animation.PauseTransition(Duration.millis(220));
-        hold.setOnFinished(e -> totalBar.getStyleClass().remove("total-bar-pulse"));
-        hold.play();
+        // reduced-motion: shorter hold, no smooth animation, but still a per-add flash (not permanent).
+        javafx.util.Duration hold = services.config.reducedMotion()
+                ? javafx.util.Duration.millis(120) : javafx.util.Duration.millis(220);
+        javafx.animation.PauseTransition pause = new javafx.animation.PauseTransition(hold);
+        pause.setOnFinished(e -> totalBar.getStyleClass().remove("total-bar-pulse"));
+        pause.play();
     }
 
     @Override

@@ -31,10 +31,18 @@ class RetailViewModelTest {
     private static final class StubCartApi extends CartApi {
         CartView next;
         String addedSku;
+        UUID removedLineId;
+        boolean updateCalled;
         StubCartApi() { super(null); }
         @Override public UUID createCart() { return CART_ID; }
         @Override public CartView addLine(UUID cartId, String sku, BigDecimal qty, List<UUID> ids) {
             addedSku = sku; return next;
+        }
+        @Override public CartView updateLine(UUID cartId, UUID lineId, BigDecimal qty) {
+            updateCalled = true; return next;
+        }
+        @Override public CartView removeLine(UUID cartId, UUID lineId) {
+            removedLineId = lineId; return next;
         }
     }
 
@@ -81,5 +89,19 @@ class RetailViewModelTest {
         assertNull(sku);
         assertNull(api.addedSku);
         assertTrue(vm.errorMessage().get().toLowerCase().contains("barcode"));
+    }
+
+    @Test
+    void updateQtyToZeroRemovesLineInsteadOfUpdating() {
+        StubCartApi api = new StubCartApi();
+        api.next = cartWith("LATTE", "1", "14.00");
+        RetailViewModel vm = new RetailViewModel(api, cache());
+        vm.start();
+        vm.addBySku("LATTE", BigDecimal.ONE, List.of());
+        CartLineView line = vm.lines().get(0);
+        api.next = new CartView(CART_ID, "OPEN", "SAR", null, List.of()); // cart after removal
+        vm.updateQty(line, BigDecimal.ZERO);
+        assertFalse(api.updateCalled, "qty 0 must not call updateLine");
+        assertEquals(line.lineId(), api.removedLineId, "qty 0 must remove the line");
     }
 }

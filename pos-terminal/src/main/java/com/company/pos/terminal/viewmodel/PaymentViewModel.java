@@ -42,6 +42,7 @@ public class PaymentViewModel {
     private final BigDecimal estimatedTotal;
     private final Consumer<Runnable> ui;
 
+    private final java.util.List<TenderInput> committed = new java.util.ArrayList<>();
     private final ObservableList<TenderInput> tenders = FXCollections.observableArrayList();
     private final ReadOnlyStringWrapper remainingText;
     private final ReadOnlyStringWrapper changeText = new ReadOnlyStringWrapper("");
@@ -71,7 +72,7 @@ public class PaymentViewModel {
 
     public BigDecimal remaining() {
         BigDecimal covered = BigDecimal.ZERO;
-        for (TenderInput t : tenders) {
+        for (TenderInput t : committed) {
             covered = covered.add(t.amount());
         }
         BigDecimal rem = estimatedTotal.subtract(covered);
@@ -81,37 +82,29 @@ public class PaymentViewModel {
     /**
      * Appends one tender toward the total. {@code amount} is what this tender covers;
      * for CASH, {@code cashTendered} is the money handed over and must be ≥ amount.
-     * Rejects (no append) on non-positive amount or short cash.
+     * Rejects (no append) on non-positive amount or short cash. Returns {@code true} on
+     * success so callers do not need to inspect list size (which may be deferred under an
+     * async UI dispatcher such as {@code Platform::runLater}).
      */
-    public void addTender(String method, BigDecimal amount, BigDecimal cashTendered) {
+    public boolean addTender(String method, BigDecimal amount, BigDecimal cashTendered) {
         BigDecimal amt = (amount == null ? BigDecimal.ZERO : amount).setScale(2, RoundingMode.HALF_UP);
         if (amt.signum() <= 0) {
             ui.accept(() -> errorMessage.set("Enter a tender amount"));
-            return;
+            return false;
         }
         BigDecimal tendered = null;
         if ("CASH".equals(method)) {
             tendered = (cashTendered == null ? BigDecimal.ZERO : cashTendered).setScale(2, RoundingMode.HALF_UP);
             if (tendered.compareTo(amt) < 0) {
                 ui.accept(() -> errorMessage.set("Insufficient cash tendered"));
-                return;
+                return false;
             }
         }
         TenderInput t = new TenderInput(method, amt, tendered);
-        String rem = estimatedTotal.subtract(coveredIncluding(amt)).max(BigDecimal.ZERO).toPlainString();
-        ui.accept(() -> {
-            tenders.add(t);
-            remainingText.set(rem);
-            errorMessage.set("");
-        });
-    }
-
-    private BigDecimal coveredIncluding(BigDecimal extra) {
-        BigDecimal covered = extra;
-        for (TenderInput t : tenders) {
-            covered = covered.add(t.amount());
-        }
-        return covered;
+        committed.add(t);                                        // SYNCHRONOUS — control-flow state
+        String rem = remaining().toPlainString();                // reflects the just-added tender
+        ui.accept(() -> { tenders.setAll(committed); remainingText.set(rem); errorMessage.set(""); });
+        return true;
     }
 
     /** One-tap path: tender the whole remaining amount with {@code method}, then finalize. */
@@ -121,10 +114,8 @@ public class PaymentViewModel {
             finalizeSale();
             return;
         }
-        int before = tenders.size();
-        addTender(method, due, cashTendered);
-        if (tenders.size() == before) {
-            return; // addTender rejected (e.g. short cash); error already set
+        if (!addTender(method, due, cashTendered)) {
+            return; // rejected (e.g. short cash) — error already set
         }
         finalizeSale();
     }
@@ -136,13 +127,13 @@ public class PaymentViewModel {
             ui.accept(() -> errorMessage.set("Remaining due: " + due.toPlainString()));
             return;
         }
-        if (tenders.isEmpty()) {
+        if (committed.isEmpty()) {
             ui.accept(() -> errorMessage.set("Add a tender first"));
             return;
         }
         ui.accept(() -> errorMessage.set(""));
         try {
-            SaleView closed = gateway.checkout(new ArrayList<>(tenders));
+            SaleView closed = gateway.checkout(new ArrayList<>(committed));
             String change = totalChange().toPlainString();
             ui.accept(() -> {
                 sale.set(closed);
@@ -158,7 +149,7 @@ public class PaymentViewModel {
     /** Overall change = Σ over cash tenders of (tendered − amount), never negative. */
     private BigDecimal totalChange() {
         BigDecimal change = BigDecimal.ZERO;
-        for (TenderInput t : tenders) {
+        for (TenderInput t : committed) {
             if (t.tendered() != null) {
                 change = change.add(t.tendered().subtract(t.amount()));
             }

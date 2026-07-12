@@ -130,4 +130,20 @@ class PaymentViewModelTest {
         vm.reprint();
         assertEquals("printer offline", vm.errorMessage().get());
     }
+
+    @Test
+    void payFullFinalizesUnderDeferredDispatcher() {
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        java.util.function.Consumer<Runnable> deferred = queue::add;   // defer, don't run
+        RecordingGateway gw = new RecordingGateway();
+        PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"), deferred);
+        vm.payFull("CARD", null);                 // runs "off-thread": observable writes are queued
+        // Gateway MUST have been called even though no queued UI runnable has executed yet:
+        assertEquals(1, gw.calls, "payFull must finalize using synchronous committed state, not deferred observable");
+        assertEquals(new BigDecimal("28.75"), gw.received.get(0).amount());
+        // Drain the UI queue and confirm observable state caught up:
+        while (!queue.isEmpty()) queue.poll().run();
+        assertTrue(vm.paid().get());
+        assertEquals(1, vm.tenders().size());
+    }
 }
