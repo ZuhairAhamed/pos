@@ -117,6 +117,39 @@ public class PaymentController {
 
         vm.tenders().addListener((javafx.collections.ListChangeListener<Object>) c -> renderChips());
         vm.sale().addListener((o, was, now) -> { if (now != null) showResult(now); });
+
+        // Tenders are disabled until the authoritative total loads (never tender a stale estimate).
+        setTendersEnabled(false);
+        totalLabel.setText("Total due: loading…");
+        loadQuote();
+    }
+
+    private void setTendersEnabled(boolean enabled) {
+        payCashButton.setDisable(!enabled);
+        payCardButton.setDisable(!enabled);
+        payWalletButton.setDisable(!enabled);
+        addTenderButton.setDisable(!enabled);
+    }
+
+    /** Fetch the authoritative quote off the FX thread (retail cart or dine-in order). */
+    private void loadQuote() {
+        final com.company.pos.terminal.api.dto.QuoteView[] holder = new com.company.pos.terminal.api.dto.QuoteView[1];
+        FxTasks.run(
+                () -> holder[0] = (mode == Mode.RETAIL)
+                        ? services.salesApi.quote(id)
+                        : services.diningApi.quoteOrder(id),
+                () -> onQuoteLoaded(holder[0]),
+                err -> {
+                    vm.setError("Couldn't load the total — go back and try again");
+                    LOG.log(System.Logger.Level.ERROR, "Quote fetch failed", err);
+                });
+    }
+
+    private void onQuoteLoaded(com.company.pos.terminal.api.dto.QuoteView q) {
+        String cur = q.currencyCode();
+        totalLabel.setText("Total due: " + money(q.grandTotal(), cur));
+        vm.setAuthoritativeTotal(q.grandTotal());
+        setTendersEnabled(true);
     }
 
     /** "Add partial tender": tender the typed amount with the chosen method, without finalizing. */
