@@ -268,15 +268,7 @@ class DefaultDiningService implements DiningService {
         // NEW (Phase 11b): one cart line per order line, carrying the modifier deltas
         // SNAPSHOTTED at add-time (no re-resolve — the guest pays the quoted price). The
         // cart's own merge collapses identical plain lines; modified lines stay distinct.
-        UUID cartId = carts.createCart();
-        for (OrderLine line : order.getLines()) {
-            java.util.List<com.company.pos.cart.api.CartLineModifierInput> mods =
-                    line.getModifiers().stream()
-                            .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
-                                    m.getOptionId(), m.getName(), m.getPriceDelta()))
-                            .toList();
-            carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
-        }
+        UUID cartId = priceCartFor(order);
 
         boolean applyServiceCharge = resolveApplyServiceCharge(order,
                 command.waiveServiceCharge(), callerIsManager);
@@ -288,6 +280,37 @@ class DefaultDiningService implements DiningService {
         carts.close(cartId);
         order.close(sale.id(), Instant.now());
         return sale;
+    }
+
+    /** Builds an ephemeral priced cart from an order's lines, snapshotting modifier deltas at
+     *  add-time (the guest pays the quoted price). Shared by closeOrder and quoteOrder so the
+     *  quote can never drift from what close charges. */
+    private UUID priceCartFor(DiningOrder order) {
+        UUID cartId = carts.createCart();
+        for (OrderLine line : order.getLines()) {
+            java.util.List<com.company.pos.cart.api.CartLineModifierInput> mods =
+                    line.getModifiers().stream()
+                            .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
+                                    m.getOptionId(), m.getName(), m.getPriceDelta()))
+                            .toList();
+            carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
+        }
+        return cartId;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuoteView quoteOrder(UUID orderId) {
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (order.getLines().isEmpty()) {
+            throw DomainException.validation("Cannot quote an empty order");
+        }
+        UUID cartId = priceCartFor(order);
+        boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
+        QuoteView quote = sales.quote(cartId, applyServiceCharge);
+        carts.close(cartId);
+        return quote;
     }
 
     private boolean resolveApplyServiceCharge(DiningOrder order, boolean waiveServiceCharge,

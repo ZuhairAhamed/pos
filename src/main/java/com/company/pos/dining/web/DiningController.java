@@ -10,6 +10,7 @@ import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
+import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
@@ -72,6 +73,11 @@ class DiningController {
     @GetMapping("/dining/orders/{orderId}")
     OrderView getOrder(@PathVariable UUID orderId) {
         return dining.getOrder(orderId);
+    }
+
+    @GetMapping("/dining/orders/{orderId}/quote")
+    QuoteView quoteOrder(@PathVariable UUID orderId) {
+        return dining.quoteOrder(orderId);
     }
 
     @PostMapping("/dining/orders/{orderId}/lines")

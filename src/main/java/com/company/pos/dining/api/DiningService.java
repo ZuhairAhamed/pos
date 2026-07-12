@@ -1,5 +1,6 @@
 package com.company.pos.dining.api;
 
+import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import java.math.BigDecimal;
 import java.util.List;
@@ -32,6 +33,11 @@ public interface DiningService {
     OrderView removeLine(UUID orderId, UUID lineId);
 
     // --- close / void ---
+    /** Read-only pricing pass for an open order: prices it exactly as {@link #closeOrder} would
+     *  (same lines, same service-charge decision), returns the authoritative totals. Creates no
+     *  sale, closes no order. */
+    QuoteView quoteOrder(UUID orderId);
+
     SaleView closeOrder(UUID orderId, CloseOrderCommand command, String cashierUsername,
             boolean callerIsManager);
 
