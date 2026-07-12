@@ -64,6 +64,7 @@ class StartShiftViewModelTest {
         StartShiftViewModel vm = new StartShiftViewModel(api, Runnable::run);
         assertFalse(vm.openShift(null));
         assertEquals(0, api.calls);
+        assertTrue(vm.errorMessage().get().toLowerCase().contains("zero or more"));
     }
 
     @Test
@@ -96,5 +97,13 @@ class StartShiftViewModelTest {
         assertFalse(vm.openShift(new BigDecimal("100")));
         assertEquals("Shift already open", vm.errorMessage().get());
         assertNull(vm.shift().get());
+    }
+
+    @Test
+    void denominationsAreSarNotesLargestFirst() {
+        assertEquals(java.util.List.of(
+                new BigDecimal("500"), new BigDecimal("200"), new BigDecimal("100"),
+                new BigDecimal("50"), new BigDecimal("10"), new BigDecimal("5")),
+                StartShiftViewModel.DENOMINATIONS);
     }
 }
