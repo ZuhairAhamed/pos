@@ -5,6 +5,7 @@ import com.company.pos.terminal.api.dto.CloseOrderRequest;
 import com.company.pos.terminal.api.dto.OpenOrderRequest;
 import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.OrderView;
+import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleView;
 import com.company.pos.terminal.api.dto.TableView;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -57,6 +58,11 @@ public class DiningApi {
 
     public void fire(UUID orderId) {
         client.post("/dining/orders/" + orderId + "/fire", null, new TypeReference<OrderView>() {});
+    }
+
+    /** GET /dining/orders/{id}/quote — authoritative totals for a dine-in order (incl service charge). */
+    public QuoteView quoteOrder(UUID orderId) {
+        return client.get("/dining/orders/" + orderId + "/quote", new TypeReference<QuoteView>() {});
     }
 
     public SaleView close(UUID orderId, CloseOrderRequest req) {
