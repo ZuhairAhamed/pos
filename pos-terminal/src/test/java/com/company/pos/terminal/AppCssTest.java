@@ -50,7 +50,8 @@ class AppCssTest {
     void definesSliceFourClasses() throws Exception {
         String css = css();
         for (String cls : new String[] {
-            ".denom-row", ".denom-line-total"
+            ".denom-row", ".denom-line-total",
+            ".estimate-line", ".quote-badge"
         }) {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }

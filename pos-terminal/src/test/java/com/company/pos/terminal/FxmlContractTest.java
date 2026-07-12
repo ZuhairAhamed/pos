@@ -24,4 +24,11 @@ class FxmlContractTest {
         assertTrue(resource("/fxml/home.fxml").contains("fx:id=\"shiftLabel\""),
                 "home.fxml must declare the shift status label");
     }
+
+    @Test
+    void paymentDeclaresQuotePresentationNodes() throws Exception {
+        String fxml = resource("/fxml/payment.fxml");
+        assertTrue(fxml.contains("fx:id=\"estimateLabel\""), "muted estimate line");
+        assertTrue(fxml.contains("fx:id=\"quoteBadge\""), "server-quote badge");
+    }
 }

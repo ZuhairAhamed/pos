@@ -17,7 +17,11 @@
     <padding><Insets top="32" right="32" bottom="32" left="32"/></padding>
 
     <Label text="Payment" styleClass="title"/>
-    <Label fx:id="totalLabel" styleClass="pay-total,money"/>
+    <Label fx:id="estimateLabel" styleClass="estimate-line,money"/>
+    <HBox spacing="8" alignment="CENTER" maxWidth="Infinity">
+      <Label fx:id="totalLabel" styleClass="pay-total,money"/>
+      <Label fx:id="quoteBadge" text="✓ server" styleClass="quote-badge" visible="false" managed="false"/>
+    </HBox>
     <Label fx:id="remainingLabel" styleClass="pay-total,money"/>
 
     <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>

@@ -48,6 +48,8 @@ public class PaymentController {
     private final PaymentViewModel vm;
     private boolean quoteLoaded = false;
 
+    @FXML private Label estimateLabel;
+    @FXML private Label quoteBadge;
     @FXML private Label totalLabel;
     @FXML private Label remainingLabel;
     @FXML private Label errorLabel;
@@ -99,7 +101,7 @@ public class PaymentController {
 
     @FXML
     public void initialize() {
-        totalLabel.setText("Total due (est.): " + estimatedTotal.toPlainString());
+        estimateLabel.setText("Estimate at order: " + estimatedTotal.toPlainString());
         remainingLabel.textProperty().bind(
                 javafx.beans.binding.Bindings.concat("Remaining: ", vm.remainingText()));
 
@@ -122,7 +124,7 @@ public class PaymentController {
 
         // Tenders are disabled until the authoritative total loads (never tender a stale estimate).
         setTendersEnabled(false);
-        totalLabel.setText("Total due: loading…");
+        totalLabel.setText("Fetching total…");
         loadQuote();
     }
 
@@ -151,6 +153,8 @@ public class PaymentController {
     private void onQuoteLoaded(QuoteView q) {
         String cur = q.currencyCode();
         totalLabel.setText("Total due: " + money(q.grandTotal(), cur));
+        quoteBadge.setVisible(true);
+        quoteBadge.setManaged(true);
         vm.setAuthoritativeTotal(q.grandTotal());
         setTendersEnabled(true);
     }
