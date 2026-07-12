@@ -516,3 +516,18 @@
     -fx-padding: 4 10 4 10;
     -fx-background-radius: 12;
 }
+
+/* ---- Payment success state ------------------------------------------------ */
+
+/* Confirmation banner atop the receipt: success-tinted, check + "Paid · amount".
+   A state, not a step — Done remains the only action that navigates away. */
+.success-banner {
+    -fx-background-color: derive(-fx-success, 90%);
+    -fx-background-radius: 8;
+    -fx-padding: 16;
+}
+.success-check {
+    -fx-font-size: 44px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-success;
+}

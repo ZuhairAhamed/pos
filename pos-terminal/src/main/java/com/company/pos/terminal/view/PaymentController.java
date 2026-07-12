@@ -17,9 +17,11 @@ import java.math.RoundingMode;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javafx.animation.ScaleTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.util.Duration;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -64,6 +66,9 @@ public class PaymentController {
     @FXML private Button payWalletButton;
     @FXML private Button addTenderButton;
     @FXML private Button cancelButton;
+    @FXML private VBox successBanner;
+    @FXML private Label successCheck;
+    @FXML private Label paidLabel;
     @FXML private VBox resultBox;
     @FXML private Label receiptLabel;
     @FXML private VBox receiptLines;
@@ -281,6 +286,8 @@ public class PaymentController {
     private void showResult(SaleView sale) {
         String cur = sale.currencyCode();
         receiptLabel.setText("Receipt " + sale.receiptNumber());
+        paidLabel.setText("Paid · " + money(sale.grandTotal(), cur));
+        doneButton.setText(mode == Mode.RETAIL ? "Done ▸ Home" : "Done ▸ Tables");
 
         receiptLines.getChildren().clear();
         if (sale.lines() != null) {
@@ -335,6 +342,15 @@ public class PaymentController {
         tenderBox.setManaged(false);
         resultBox.setVisible(true);
         resultBox.setManaged(true);
+
+        if (!services.config.reducedMotion()) {
+            ScaleTransition pop = new ScaleTransition(Duration.millis(200), successCheck);
+            pop.setFromX(0.6);
+            pop.setFromY(0.6);
+            pop.setToX(1.0);
+            pop.setToY(1.0);
+            pop.play();
+        }
     }
 
     private HBox lineRow(SaleLineView line, String cur) {

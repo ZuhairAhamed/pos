@@ -42,4 +42,12 @@ class FxmlContractTest {
             assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing denomination chip: " + id);
         }
     }
+
+    @Test
+    void paymentDeclaresSuccessBanner() throws Exception {
+        String fxml = resource("/fxml/payment.fxml");
+        assertTrue(fxml.contains("fx:id=\"successBanner\""));
+        assertTrue(fxml.contains("fx:id=\"successCheck\""));
+        assertTrue(fxml.contains("fx:id=\"paidLabel\""));
+    }
 }

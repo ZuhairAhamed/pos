@@ -52,7 +52,8 @@ class AppCssTest {
         for (String cls : new String[] {
             ".denom-row", ".denom-line-total",
             ".estimate-line", ".quote-badge",
-            ".denom-chip"
+            ".denom-chip",
+            ".success-banner", ".success-check"
         }) {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }

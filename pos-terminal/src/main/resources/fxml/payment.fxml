@@ -71,6 +71,10 @@
 
     <!-- Receipt: hidden until a checkout succeeds. -->
     <VBox fx:id="resultBox" spacing="8" alignment="TOP_LEFT" visible="false" managed="false" maxWidth="Infinity">
+      <VBox fx:id="successBanner" alignment="CENTER" spacing="4" styleClass="success-banner" maxWidth="Infinity">
+        <Label fx:id="successCheck" text="✓" styleClass="success-check"/>
+        <Label fx:id="paidLabel" styleClass="pay-grand-label,money"/>
+      </VBox>
       <Label fx:id="receiptLabel" styleClass="subtitle"/>
       <Separator/>
       <VBox fx:id="receiptLines" spacing="4" maxWidth="Infinity"/>
