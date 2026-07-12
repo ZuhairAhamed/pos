@@ -35,7 +35,11 @@ public interface DiningService {
     // --- close / void ---
     /** Read-only pricing pass for an open order: prices it exactly as {@link #closeOrder} would
      *  (same lines, same service-charge decision), returns the authoritative totals. Creates no
-     *  sale, closes no order. */
+     *  sale, closes no order.
+     *  <p>Assumes the no-discount, no-waiver close path (prices with no discounts and
+     *  {@code waiveServiceCharge=false}). If dining ever passes line/transaction discounts or a
+     *  manager waiver at close, thread those same inputs through here too — otherwise the quoted
+     *  grandTotal would exceed what close charges and the tender would be rejected. */
     QuoteView quoteOrder(UUID orderId);
 
     SaleView closeOrder(UUID orderId, CloseOrderCommand command, String cashierUsername,
