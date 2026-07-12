@@ -78,6 +78,12 @@ public class PaymentController {
     @FXML private Label changeLabel;
     @FXML private Button reprintButton;
     @FXML private Button doneButton;
+    @FXML private Button denomExactButton;
+    @FXML private Button denom50Button;
+    @FXML private Button denom100Button;
+    @FXML private Button denom200Button;
+    @FXML private Button denom500Button;
+    private java.util.List<Button> denomButtons;
 
     public PaymentController(Services services, Navigator navigator, Mode mode, UUID id,
             BigDecimal estimatedTotal) {
@@ -119,6 +125,14 @@ public class PaymentController {
         reprintButton.setOnAction(e -> reprint());
         doneButton.setOnAction(e -> done());
 
+        denomExactButton.setOnAction(e -> tenderedField.setText(vm.remaining().toPlainString()));
+        denom50Button.setOnAction(e -> tenderedField.setText("50"));
+        denom100Button.setOnAction(e -> tenderedField.setText("100"));
+        denom200Button.setOnAction(e -> tenderedField.setText("200"));
+        denom500Button.setOnAction(e -> tenderedField.setText("500"));
+        denomButtons = java.util.List.of(denomExactButton, denom50Button, denom100Button,
+                denom200Button, denom500Button);
+
         vm.tenders().addListener((javafx.collections.ListChangeListener<Object>) c -> renderChips());
         vm.sale().addListener((o, was, now) -> { if (now != null) showResult(now); });
 
@@ -134,6 +148,9 @@ public class PaymentController {
         payCardButton.setDisable(!enabled);
         payWalletButton.setDisable(!enabled);
         addTenderButton.setDisable(!enabled);
+        if (denomButtons != null) {
+            denomButtons.forEach(b -> b.setDisable(!enabled));
+        }
     }
 
     /** Fetch the authoritative quote off the FX thread (retail cart or dine-in order). */
@@ -226,6 +243,9 @@ public class PaymentController {
         amountField.setDisable(busy);
         tenderedField.setDisable(busy);
         panField.setDisable(busy);
+        if (denomButtons != null) {
+            denomButtons.forEach(b -> b.setDisable(busy || !quoteLoaded));
+        }
     }
 
     private void updateChangePreview(String raw) {

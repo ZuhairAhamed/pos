@@ -47,6 +47,16 @@
 
       <Label fx:id="changePreviewLabel" styleClass="pay-change-preview,money"/>
 
+      <!-- Denomination fast-cash: one tap fills "Cash tendered" (Exact = the live remaining
+           amount, notes = face value); the change preview reacts, then Cash commits. -->
+      <HBox fx:id="denomBar" spacing="8" alignment="CENTER" maxWidth="Infinity">
+        <Button fx:id="denomExactButton" text="Exact" styleClass="denom-chip" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="denom50Button" text="50" styleClass="denom-chip,money" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="denom100Button" text="100" styleClass="denom-chip,money" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="denom200Button" text="200" styleClass="denom-chip,money" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+        <Button fx:id="denom500Button" text="500" styleClass="denom-chip,money" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+      </HBox>
+
       <HBox spacing="12" alignment="CENTER" maxWidth="Infinity">
         <Button fx:id="payCashButton" text="Cash" styleClass="tender-cash" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
         <Button fx:id="payCardButton" text="Card" styleClass="tender-card" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>

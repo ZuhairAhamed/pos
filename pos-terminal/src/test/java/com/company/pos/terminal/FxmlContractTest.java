@@ -31,4 +31,15 @@ class FxmlContractTest {
         assertTrue(fxml.contains("fx:id=\"estimateLabel\""), "muted estimate line");
         assertTrue(fxml.contains("fx:id=\"quoteBadge\""), "server-quote badge");
     }
+
+    @Test
+    void paymentDeclaresDenominationChips() throws Exception {
+        String fxml = resource("/fxml/payment.fxml");
+        for (String id : new String[] {
+            "denomExactButton", "denom50Button", "denom100Button",
+            "denom200Button", "denom500Button"
+        }) {
+            assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing denomination chip: " + id);
+        }
+    }
 }

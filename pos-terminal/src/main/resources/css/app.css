@@ -480,6 +480,27 @@
 .denom-row { -fx-padding: 0 0 0 0; }
 .denom-line-total { -fx-font-size: 16px; -fx-text-fill: -fx-muted; }
 
+/* ---- Denomination fast-cash chips ----------------------------------------- */
+
+/* 56px quick-fill chips for common SAR notes plus "Exact". They only fill the
+   cash-tendered field — the coloured tender button still commits the payment. */
+.denom-chip {
+    -fx-min-height: 56px;
+    -fx-pref-height: 56px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-color: -fx-canvas;
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+.denom-chip:hover    { -fx-border-color: -fx-primary; }
+.denom-chip:pressed  { -fx-background-color: derive(-fx-canvas, -12%); }
+.denom-chip:focused  { -fx-border-color: -fx-primary; -fx-border-width: 2; }
+.denom-chip:disabled { -fx-opacity: 0.55; }
+
 /* ---- Estimate vs server quote --------------------------------------------- */
 
 /* The client-side estimate is always muted and explicitly labelled — the big
