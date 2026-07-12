@@ -82,9 +82,12 @@ class DiningController {
         return dining.quoteOrder(orderId);
     }
 
-    /** Body for the discount-aware quote. Nulls mean "no discounts". */
+    /** Body for the discount-aware quote. Nulls (or omitted fields) mean "no discounts". */
     record QuoteOrderRequest(Map<String, DiscountInput> lineDiscounts,
             DiscountInput transactionDiscount) {
+        QuoteOrderRequest {
+            lineDiscounts = lineDiscounts == null ? Map.of() : lineDiscounts;
+        }
     }
 
     @PostMapping("/dining/orders/{orderId}/quote")
