@@ -36,6 +36,7 @@ class PaymentViewModelTest {
     void shortCashRejectedBeforeCheckout() {
         RecordingGateway gw = new RecordingGateway();
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("CASH", new BigDecimal("20.00"));
         assertEquals(0, gw.calls, "checkout must not run on a short tender");
         assertTrue(vm.errorMessage().get().toLowerCase().contains("insufficient"));
@@ -47,6 +48,7 @@ class PaymentViewModelTest {
     void fullCashCheckoutComputesChange() {
         RecordingGateway gw = new RecordingGateway();
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("CASH", new BigDecimal("30.00"));
         assertTrue(vm.paid().get());
         assertEquals(1, gw.calls);
@@ -60,6 +62,7 @@ class PaymentViewModelTest {
     void walletFullCheckout() {
         RecordingGateway gw = new RecordingGateway();
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("WALLET", null);
         assertTrue(vm.paid().get());
         assertEquals("WALLET", gw.received.get(0).method());
@@ -71,6 +74,7 @@ class PaymentViewModelTest {
     void splitCardThenCashFinalizesWhenCovered() {
         RecordingGateway gw = new RecordingGateway();
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.addTender("CARD", new BigDecimal("20.00"), null);
         assertFalse(vm.paid().get(), "not covered yet");
         assertTrue(vm.remainingText().get().contains("8.75"));
@@ -86,6 +90,7 @@ class PaymentViewModelTest {
     void finalizeRejectedWhenUnderTendered() {
         RecordingGateway gw = new RecordingGateway();
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.addTender("CARD", new BigDecimal("10.00"), null);
         vm.finalizeSale();
         assertFalse(vm.paid().get());
@@ -97,6 +102,7 @@ class PaymentViewModelTest {
     void checkoutFailureSurfacesErrorAndDoesNotMarkPaid() {
         CheckoutGateway gw = tenders -> { throw new ApiException(409, null, "cart already closed"); };
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("CARD", null);
         assertFalse(vm.paid().get());
         assertNull(vm.sale().get());
@@ -111,6 +117,7 @@ class PaymentViewModelTest {
             @Override public void reprint(UUID saleId) { reprinted.add(saleId); }
         };
         PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("CARD", null);
         vm.reprint();
         assertEquals(1, reprinted.size());
@@ -126,6 +133,7 @@ class PaymentViewModelTest {
             }
         };
         PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("CARD", null);
         vm.reprint();
         assertEquals("printer offline", vm.errorMessage().get());
@@ -137,6 +145,7 @@ class PaymentViewModelTest {
         java.util.function.Consumer<Runnable> deferred = queue::add;   // defer, don't run
         RecordingGateway gw = new RecordingGateway();
         PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"), deferred);
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
         vm.payFull("CARD", null);                 // runs "off-thread": observable writes are queued
         // Gateway MUST have been called even though no queued UI runnable has executed yet:
         assertEquals(1, gw.calls, "payFull must finalize using synchronous committed state, not deferred observable");
@@ -145,5 +154,28 @@ class PaymentViewModelTest {
         while (!queue.isEmpty()) queue.poll().run();
         assertTrue(vm.paid().get());
         assertEquals(1, vm.tenders().size());
+    }
+
+    @Test
+    void tenderRejectedBeforeAuthoritativeTotalLoaded() {
+        RecordingGateway gw = new RecordingGateway();
+        PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("28.75"));
+        // no setAuthoritativeTotal — the quote hasn't loaded
+        vm.payFull("CARD", null);
+        assertEquals(0, gw.calls, "must not checkout before the authoritative total is known");
+        assertTrue(vm.errorMessage().get().toLowerCase().contains("total"));
+        assertFalse(vm.paid().get());
+    }
+
+    @Test
+    void tendersAgainstAuthoritativeTotalNotEstimate() {
+        RecordingGateway gw = new RecordingGateway();
+        // estimate 39.00 (pre-tax) but authoritative 44.85 (tax-in)
+        PaymentViewModel vm = new PaymentViewModel(gw, null, new BigDecimal("39.00"));
+        vm.setAuthoritativeTotal(new BigDecimal("44.85"));
+        assertTrue(vm.remainingText().get().contains("44.85"));
+        vm.payFull("CARD", null);
+        assertEquals(1, gw.calls);
+        assertEquals(new BigDecimal("44.85"), gw.received.get(0).amount());
     }
 }

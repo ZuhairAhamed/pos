@@ -40,6 +40,7 @@ public class PaymentViewModel {
     private final CheckoutGateway gateway;
     private final SalesApi sales;
     private final BigDecimal estimatedTotal;
+    private BigDecimal authoritativeTotal; // null until the server quote loads
     private final Consumer<Runnable> ui;
 
     private final java.util.List<TenderInput> committed = new java.util.ArrayList<>();
@@ -71,12 +72,25 @@ public class PaymentViewModel {
     public ReadOnlyBooleanProperty paid() { return paid.getReadOnlyProperty(); }
 
     public BigDecimal remaining() {
+        BigDecimal due = authoritativeTotal != null ? authoritativeTotal : estimatedTotal;
         BigDecimal covered = BigDecimal.ZERO;
         for (TenderInput t : committed) {
             covered = covered.add(t.amount());
         }
-        BigDecimal rem = estimatedTotal.subtract(covered);
+        BigDecimal rem = due.subtract(covered);
         return rem.signum() < 0 ? BigDecimal.ZERO : rem;
+    }
+
+    /** Sets the server-computed total the tenders must cover. Enables tendering. */
+    public void setAuthoritativeTotal(BigDecimal grandTotal) {
+        this.authoritativeTotal = grandTotal.setScale(2, RoundingMode.HALF_UP); // plain, synchronous
+        String rem = remaining().toPlainString();
+        ui.accept(() -> remainingText.set(rem));
+    }
+
+    /** Surfaces a message through the bound error property (e.g. a quote-fetch failure). */
+    public void setError(String message) {
+        ui.accept(() -> errorMessage.set(message));
     }
 
     /**
@@ -87,6 +101,10 @@ public class PaymentViewModel {
      * async UI dispatcher such as {@code Platform::runLater}).
      */
     public boolean addTender(String method, BigDecimal amount, BigDecimal cashTendered) {
+        if (authoritativeTotal == null) {
+            ui.accept(() -> errorMessage.set("Total not loaded yet"));
+            return false;
+        }
         BigDecimal amt = (amount == null ? BigDecimal.ZERO : amount).setScale(2, RoundingMode.HALF_UP);
         if (amt.signum() <= 0) {
             ui.accept(() -> errorMessage.set("Enter a tender amount"));
@@ -122,6 +140,10 @@ public class PaymentViewModel {
 
     /** Runs the gateway checkout once the full amount is tendered; else surfaces remaining due. */
     public void finalizeSale() {
+        if (authoritativeTotal == null) {
+            ui.accept(() -> errorMessage.set("Total not loaded yet"));
+            return;
+        }
         BigDecimal due = remaining();
         if (due.signum() > 0) {
             ui.accept(() -> errorMessage.set("Remaining due: " + due.toPlainString()));
