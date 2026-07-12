@@ -473,3 +473,9 @@
 .tender-card:pressed   { -fx-background-color: derive(#2340C4, -15%); }
 .tender-wallet:pressed { -fx-background-color: derive(#B0338C, -15%); }
 .tender-chip { -fx-background-color: -fx-canvas; -fx-text-fill: -fx-ink; -fx-padding: 8 12 8 12; -fx-background-radius: 8; }
+
+/* ---- Start shift modal ---------------------------------------------------- */
+
+/* One stepper row per SAR note in the optional counting helper. */
+.denom-row { -fx-padding: 0 0 0 0; }
+.denom-line-total { -fx-font-size: 16px; -fx-text-fill: -fx-muted; }

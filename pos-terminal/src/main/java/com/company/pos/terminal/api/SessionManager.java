@@ -6,6 +6,7 @@ public final class SessionManager {
     private volatile String token;
     private volatile String username;
     private volatile Set<String> roles = Set.of();
+    private volatile boolean shiftPromptDismissed;
 
     public void setToken(String token) { this.token = token; }
     public String token() { return token; }
@@ -20,9 +21,14 @@ public final class SessionManager {
     public Set<String> roles() { return roles; }
     public boolean isManager() { return roles.contains("MANAGER") || roles.contains("ADMIN"); }
 
+    /** Session-scoped: the cashier skipped the start-shift prompt; don't re-nag until sign-out. */
+    public boolean shiftPromptDismissed() { return shiftPromptDismissed; }
+    public void dismissShiftPrompt() { this.shiftPromptDismissed = true; }
+
     public void clear() {
         this.token = null;
         this.username = null;
         this.roles = Set.of();
+        this.shiftPromptDismissed = false;
     }
 }

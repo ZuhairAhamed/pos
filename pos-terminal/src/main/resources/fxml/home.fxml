@@ -14,7 +14,10 @@
     <HBox spacing="16" alignment="CENTER" maxWidth="Infinity">
       <Label text="Choose a mode" styleClass="title"/>
       <Pane HBox.hgrow="ALWAYS"/>
-      <Label fx:id="userLabel" styleClass="subtitle"/>
+      <VBox alignment="CENTER_RIGHT" spacing="2">
+        <Label fx:id="userLabel" styleClass="subtitle"/>
+        <Label fx:id="shiftLabel" styleClass="subtitle"/>
+      </VBox>
       <Button fx:id="signOutButton" text="Sign out" styleClass="btn-secondary"/>
     </HBox>
 

@@ -45,4 +45,14 @@ class AppCssTest {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }
     }
+
+    @Test
+    void definesSliceFourClasses() throws Exception {
+        String css = css();
+        for (String cls : new String[] {
+            ".denom-row", ".denom-line-total"
+        }) {
+            assertTrue(css.contains(cls), "missing style class: " + cls);
+        }
+    }
 }
