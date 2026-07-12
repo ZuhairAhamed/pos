@@ -227,6 +227,20 @@ keys (env-overridable via the `configuration` settings store):
 A caller authenticated with `ROLE_MANAGER` is uncapped. A cashier whose discount exceeds either
 cap gets HTTP 400.
 
+**Discount-aware quotes (terminal slice 5)** — both quote surfaces accept the same optional
+discount fields as their checkout counterparts, and price them identically (shared code path):
+
+- `POST /sales/quote` body: `{ cartId, lineDiscounts?, transactionDiscount? }`.
+- `POST /dining/orders/{orderId}/quote` body: `{ lineDiscounts?, transactionDiscount? }`
+  (the discount-less `GET /dining/orders/{orderId}/quote` remains).
+
+Quotes are pure calculators: the cashier cap is **not** enforced at quote time (a quote commits
+nothing), but reason codes are validated. Checkout/close remain the sole enforcement point.
+
+**`GET /sales/discount-policy`** returns `{ cashierMaxPercent, cashierMaxAmount, reasonCodes }`
+so terminals can render reason-code choices and prompt for manager approval before tendering.
+Advisory only — the server still enforces the cap at checkout.
+
 **Receipt and ERP** — discounts are itemised on the printed receipt (one discount line per
 affected sale line) and are included in the `SaleUpload` sent to the ERP, so the back-office sees
 the pre-discount price, the discount amount, and the net. The persisted `SaleLine` stores the

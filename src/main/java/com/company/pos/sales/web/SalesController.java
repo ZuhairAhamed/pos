@@ -1,10 +1,16 @@
 package com.company.pos.sales.web;
 
+import com.company.pos.configuration.api.ConfigurationService;
+import com.company.pos.configuration.api.SettingKey;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.DiscountInput;
+import com.company.pos.sales.api.DiscountPolicyView;
 import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -20,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 class SalesController {
 
     private final SalesService sales;
+    private final ConfigurationService config;
 
-    SalesController(SalesService sales) {
+    SalesController(SalesService sales, ConfigurationService config) {
         this.sales = sales;
+        this.config = config;
     }
 
     @PostMapping("/sales")
@@ -46,6 +54,19 @@ class SalesController {
     QuoteView quote(@RequestBody QuoteRequest body) {
         // Retail quote: service charge is DINE_IN only, so applyServiceCharge is false.
         return sales.quote(body.cartId(), body.lineDiscounts(), body.transactionDiscount(), false);
+    }
+
+    /** Discount policy for terminal UIs: reason-code chips + a local "needs approval" hint.
+     *  Advisory only — checkout re-enforces the cap server-side regardless. */
+    @GetMapping("/sales/discount-policy")
+    DiscountPolicyView discountPolicy() {
+        List<String> codes = Arrays.stream(
+                        config.getString(SettingKey.DISCOUNT_REASON_CODES).split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).toList();
+        return new DiscountPolicyView(
+                new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_PERCENT)),
+                new BigDecimal(config.getString(SettingKey.DISCOUNT_CASHIER_MAX_AMOUNT)),
+                codes);
     }
 
     @GetMapping("/sales/{saleId}")
