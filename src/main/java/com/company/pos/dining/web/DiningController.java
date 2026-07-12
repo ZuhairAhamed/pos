@@ -10,11 +10,13 @@ import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.TableView;
+import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,6 +80,17 @@ class DiningController {
     @GetMapping("/dining/orders/{orderId}/quote")
     QuoteView quoteOrder(@PathVariable UUID orderId) {
         return dining.quoteOrder(orderId);
+    }
+
+    /** Body for the discount-aware quote. Nulls mean "no discounts". */
+    record QuoteOrderRequest(Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount) {
+    }
+
+    @PostMapping("/dining/orders/{orderId}/quote")
+    QuoteView quoteOrderWithDiscounts(@PathVariable UUID orderId,
+            @RequestBody QuoteOrderRequest body) {
+        return dining.quoteOrder(orderId, body.lineDiscounts(), body.transactionDiscount());
     }
 
     @PostMapping("/dining/orders/{orderId}/lines")

@@ -35,6 +35,7 @@ import com.company.pos.menu.api.MenuService;
 import com.company.pos.menu.api.ModifierResolution;
 import com.company.pos.menu.api.ResolvedModifier;
 import com.company.pos.sales.api.CheckoutCommand;
+import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.SaleView;
 import com.company.pos.sales.api.SalesService;
 import com.company.pos.payment.api.PaymentMethod;
@@ -301,6 +302,13 @@ class DefaultDiningService implements DiningService {
     @Override
     @Transactional
     public QuoteView quoteOrder(UUID orderId) {
+        return quoteOrder(orderId, Map.of(), null);
+    }
+
+    @Override
+    @Transactional
+    public QuoteView quoteOrder(UUID orderId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount) {
         DiningOrder order = load(orderId);
         requireOpen(order);
         if (order.getLines().isEmpty()) {
@@ -308,7 +316,7 @@ class DefaultDiningService implements DiningService {
         }
         UUID cartId = priceCartFor(order);
         boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
-        QuoteView quote = sales.quote(cartId, applyServiceCharge);
+        QuoteView quote = sales.quote(cartId, lineDiscounts, transactionDiscount, applyServiceCharge);
         carts.close(cartId);
         return quote;
     }

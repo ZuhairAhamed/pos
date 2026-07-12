@@ -1,9 +1,11 @@
 package com.company.pos.dining.api;
 
+import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.QuoteView;
 import com.company.pos.sales.api.SaleView;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface DiningService {
@@ -36,11 +38,17 @@ public interface DiningService {
     /** Read-only pricing pass for an open order: prices it exactly as {@link #closeOrder} would
      *  (same lines, same service-charge decision), returns the authoritative totals. Creates no
      *  sale, closes no order.
-     *  <p>Assumes the no-discount, no-waiver close path (prices with no discounts and
-     *  {@code waiveServiceCharge=false}). If dining ever passes line/transaction discounts or a
-     *  manager waiver at close, thread those same inputs through here too — otherwise the quoted
-     *  grandTotal would exceed what close charges and the tender would be rejected. */
+     *  <p>Assumes the no-discount, no-waiver close path. For a discounted close, use
+     *  {@link #quoteOrder(UUID, Map, DiscountInput)} with the same inputs the close will carry.
+     *  A manager service-charge waiver at close still has no quote counterpart (waiver UI is
+     *  out of scope) — thread {@code waiveServiceCharge} through here if that ever lands. */
     QuoteView quoteOrder(UUID orderId);
+
+    /** As {@link #quoteOrder(UUID)} but priced WITH the given manual discounts, exactly as a
+     *  close carrying the same discounts would price them (cap not enforced — quote is a pure
+     *  calculator; the close still requires a manager for over-cap discounts). */
+    QuoteView quoteOrder(UUID orderId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount);
 
     SaleView closeOrder(UUID orderId, CloseOrderCommand command, String cashierUsername,
             boolean callerIsManager);

@@ -2,6 +2,7 @@ package com.company.pos.dining;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,5 +66,22 @@ class DiningQuoteControllerTest {
     void anonymousQuoteRejected() throws Exception {
         mvc.perform(get("/dining/orders/" + UUID.randomUUID() + "/quote"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void postQuoteAppliesTransactionDiscount() throws Exception {
+        UUID tableId = dining.registerTable(new RegisterTableCommand("L" + UUID.randomUUID(), 4)).id();
+        UUID orderId = dining.openOrder(new OpenOrderCommand(tableId, ServiceType.DINE_IN), "alice").id();
+        dining.addLine(orderId, new AddLineCommand("BURGER", new BigDecimal("2"), null, null), "alice");
+
+        mvc.perform(post("/dining/orders/" + orderId + "/quote")
+                        .with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"transactionDiscount\":"
+                                + "{\"type\":\"PERCENT\",\"value\":10,\"reasonCode\":\"LOYALTY\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.discountTotal").value(6.00))
+                .andExpect(jsonPath("$.serviceChargeAmount").value(5.40))
+                .andExpect(jsonPath("$.grandTotal").value(68.31));
     }
 }
