@@ -79,4 +79,45 @@ class ApiClientTest {
         s.clear();
         assertFalse(s.isAuthenticated());
     }
+
+    @Test
+    void postWithTokenOverrideSendsThatBearerInsteadOfSession() throws Exception {
+        try (StubServer stub = new StubServer(200, "{}", "application/json")) {
+            SessionManager session = new SessionManager();
+            session.setToken("cashier-jwt");
+            ApiClient client = new ApiClient(stub.baseUrl(), session);
+            client.post("/sales", java.util.Map.of(),
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {},
+                    "manager-jwt");
+            assertEquals("Bearer manager-jwt", stub.lastAuth);
+        }
+    }
+
+    @Test
+    void unauthorizedOnOverriddenCallDoesNotClearTheCashierSession() throws Exception {
+        try (StubServer stub = new StubServer(401, null, null)) {
+            SessionManager session = new SessionManager();
+            session.setToken("cashier-jwt");
+            ApiClient client = new ApiClient(stub.baseUrl(), session);
+            ApiException ex = assertThrows(ApiException.class, () -> client.post("/sales",
+                    java.util.Map.of(),
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {},
+                    "bad-manager-jwt"));
+            assertEquals(401, ex.status());
+            assertEquals("cashier-jwt", session.token()); // the cashier stays signed in
+            assertTrue(session.isAuthenticated());
+        }
+    }
+
+    @Test
+    void unauthorizedOnSessionCallStillClearsTheSession() throws Exception {
+        try (StubServer stub = new StubServer(401, null, null)) {
+            SessionManager session = new SessionManager();
+            session.setToken("stale-jwt");
+            ApiClient client = new ApiClient(stub.baseUrl(), session);
+            assertThrows(ApiException.class, () -> client.get("/products",
+                    new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {}));
+            assertNull(session.token());
+        }
+    }
 }

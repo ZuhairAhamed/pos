@@ -30,6 +30,19 @@ public class AuthApi {
         completeLogin(t);
     }
 
+    /**
+     * One-shot PIN login for manager approval: exchanges credentials for the manager's token +
+     * roles WITHOUT touching the {@link SessionManager} — the signed-in cashier stays signed in.
+     * The caller attaches the returned token to exactly one request and discards it. A wrong PIN
+     * is HTTP 400 from the server (surfaced as ApiException), never a session-clearing 401.
+     */
+    public ManagerAuth pinLoginForToken(String cashierCode, String pin) {
+        TokenResponse t = client.post("/auth/pin-login", new PinLoginRequest(cashierCode, pin),
+                new TypeReference<TokenResponse>() {});
+        MeResponse me = client.get("/auth/me", new TypeReference<MeResponse>() {}, t.token());
+        return new ManagerAuth(t.token(), me.username(), me.roles());
+    }
+
     private void completeLogin(TokenResponse t) {
         session.setToken(t.token());
         MeResponse me = client.get("/auth/me", new TypeReference<MeResponse>() {});

@@ -24,6 +24,12 @@ public class SalesApi {
         return client.post("/sales", req, new TypeReference<SaleView>() {});
     }
 
+    /** As {@link #checkout(CheckoutRequest)} but authenticated with a one-shot manager token
+     *  ({@code null} = the signed-in cashier's session token). */
+    public SaleView checkout(CheckoutRequest req, String bearerToken) {
+        return client.post("/sales", req, new TypeReference<SaleView>() {}, bearerToken);
+    }
+
     /** POST /sales/quote — authoritative totals for a retail cart (service charge off). */
     public QuoteView quote(UUID cartId) {
         return quote(cartId, null);

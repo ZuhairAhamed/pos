@@ -36,12 +36,26 @@ public class ApiClient {
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    public <T> T get(String path, TypeReference<T> type) { return send("GET", path, null, type); }
-    public <T> T post(String path, Object body, TypeReference<T> type) { return send("POST", path, body, type); }
-    public <T> T put(String path, Object body, TypeReference<T> type) { return send("PUT", path, body, type); }
-    public void delete(String path) { send("DELETE", path, null, null); }
+    public <T> T get(String path, TypeReference<T> type) { return send("GET", path, null, type, null); }
+    public <T> T post(String path, Object body, TypeReference<T> type) { return send("POST", path, body, type, null); }
+    public <T> T put(String path, Object body, TypeReference<T> type) { return send("PUT", path, body, type, null); }
+    public void delete(String path) { send("DELETE", path, null, null, null); }
 
-    private <T> T send(String method, String path, Object body, TypeReference<T> type) {
+    /** As {@link #get(String, TypeReference)} but authenticated with {@code bearerToken} instead of
+     *  the session token ({@code null} = session semantics). A 401 on an overridden call never
+     *  clears the cashier session. */
+    public <T> T get(String path, TypeReference<T> type, String bearerToken) {
+        return send("GET", path, null, type, bearerToken);
+    }
+
+    /** As {@link #post(String, Object, TypeReference)} with the same override semantics as
+     *  {@link #get(String, TypeReference, String)}. Used for one-shot manager-approved calls. */
+    public <T> T post(String path, Object body, TypeReference<T> type, String bearerToken) {
+        return send("POST", path, body, type, bearerToken);
+    }
+
+    private <T> T send(String method, String path, Object body, TypeReference<T> type,
+            String tokenOverride) {
         try {
             HttpRequest.BodyPublisher pub = body == null
                     ? HttpRequest.BodyPublishers.noBody()
@@ -52,11 +66,14 @@ public class ApiClient {
                     .header("Accept", "application/json")
                     .method(method, pub);
             if (body != null) b.header("Content-Type", "application/json");
-            if (session.token() != null) b.header("Authorization", "Bearer " + session.token());
+            if (tokenOverride != null) b.header("Authorization", "Bearer " + tokenOverride);
+            else if (session.token() != null) b.header("Authorization", "Bearer " + session.token());
 
             HttpResponse<String> resp = http.send(b.build(), HttpResponse.BodyHandlers.ofString());
             int sc = resp.statusCode();
-            if (sc == 401) session.clear();
+            // Only a SESSION-authenticated 401 signs the cashier out; a rejected one-shot
+            // override token is the override's problem, not the session's.
+            if (sc == 401 && tokenOverride == null) session.clear();
             if (sc < 200 || sc >= 300) throw toApiException(sc, resp.body());
             if (type == null || resp.body() == null || resp.body().isBlank()) return null;
             return mapper.readValue(resp.body(), type);

@@ -79,4 +79,11 @@ public class DiningApi {
         return client.post("/dining/orders/" + orderId + "/close", req,
                 new TypeReference<SaleView>() {});
     }
+
+    /** As {@link #close(UUID, CloseOrderRequest)} but authenticated with a one-shot manager token
+     *  ({@code null} = the signed-in cashier's session token). */
+    public SaleView close(UUID orderId, CloseOrderRequest req, String bearerToken) {
+        return client.post("/dining/orders/" + orderId + "/close", req,
+                new TypeReference<SaleView>() {}, bearerToken);
+    }
 }

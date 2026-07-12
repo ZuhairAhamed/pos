@@ -66,4 +66,39 @@ class AuthApiTest {
             assertEquals("/auth/me", stub.lastPath);
         }
     }
+
+    @Test
+    void pinLoginForTokenDoesNotTouchTheSession() throws Exception {
+        // Stub returns the same body for POST /auth/pin-login and GET /auth/me.
+        String body = "{\"token\":\"mgr-jwt\",\"username\":\"boss\",\"roles\":[\"MANAGER\"]}";
+        try (StubServer stub = new StubServer(200, body, "application/json")) {
+            SessionManager session = new SessionManager();
+            session.setToken("cashier-jwt");
+            session.setUser("alice", java.util.Set.of("CASHIER"));
+            AuthApi auth = new AuthApi(new ApiClient(stub.baseUrl(), session), session);
+
+            com.company.pos.terminal.api.dto.ManagerAuth mgr = auth.pinLoginForToken("M01", "9999");
+
+            assertEquals("mgr-jwt", mgr.token());
+            assertTrue(mgr.isManager());
+            // The cashier session is untouched:
+            assertEquals("cashier-jwt", session.token());
+            assertEquals("alice", session.username());
+            assertFalse(session.isManager());
+            // /auth/me was called with the MANAGER token, not the session token:
+            StubServer.RecordedRequest me = stub.requestTo("GET", "/auth/me");
+            assertNotNull(me);
+            assertEquals("Bearer mgr-jwt", me.authorization());
+        }
+    }
+
+    @Test
+    void pinLoginForTokenReportsNonManagerRoles() throws Exception {
+        String body = "{\"token\":\"jwt-c\",\"username\":\"carl\",\"roles\":[\"CASHIER\"]}";
+        try (StubServer stub = new StubServer(200, body, "application/json")) {
+            SessionManager session = new SessionManager();
+            AuthApi auth = new AuthApi(new ApiClient(stub.baseUrl(), session), session);
+            assertFalse(auth.pinLoginForToken("C01", "1234").isManager());
+        }
+    }
 }
