@@ -1,9 +1,11 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.dto.CheckoutRequest;
 import com.company.pos.terminal.api.dto.CloseOrderRequest;
 import com.company.pos.terminal.api.dto.DiscountInput;
 import com.company.pos.terminal.api.dto.DiscountPolicyView;
+import com.company.pos.terminal.api.dto.ManagerAuth;
 import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleLineModifierView;
 import com.company.pos.terminal.api.dto.SaleLineView;
@@ -12,6 +14,7 @@ import com.company.pos.terminal.api.dto.SaleView;
 import com.company.pos.terminal.app.FxTasks;
 import com.company.pos.terminal.app.Navigator;
 import com.company.pos.terminal.app.Services;
+import com.company.pos.terminal.viewmodel.DiscountRules;
 import com.company.pos.terminal.viewmodel.PaymentViewModel;
 import com.company.pos.terminal.viewmodel.PaymentViewModel.CheckoutGateway;
 import java.math.BigDecimal;
@@ -100,6 +103,9 @@ public class PaymentController {
     private volatile DiscountInput discount;
     private volatile DiscountPolicyView policy;
     private volatile BigDecimal baseSubtotal;
+    // One-shot manager approval token: attached to exactly one checkout call, discarded on
+    // success. Never stored in SessionManager — the cashier stays signed in.
+    private volatile String pendingApprovalToken;
 
     public PaymentController(Services services, Navigator navigator, Mode mode, UUID id,
             BigDecimal estimatedTotal) {
@@ -115,10 +121,12 @@ public class PaymentController {
     private CheckoutGateway gatewayFor(Mode m, UUID id) {
         if (m == Mode.RETAIL) {
             return tenders -> services.salesApi.checkout(
-                    new CheckoutRequest(id, tenders, Map.of(), discount, false));
+                    new CheckoutRequest(id, tenders, Map.of(), discount, false),
+                    pendingApprovalToken);
         }
         return tenders -> services.diningApi.close(id,
-                new CloseOrderRequest(tenders, Map.of(), discount, false));
+                new CloseOrderRequest(tenders, Map.of(), discount, false),
+                pendingApprovalToken);
     }
 
     @FXML
@@ -299,10 +307,62 @@ public class PaymentController {
     }
 
     private void pay(Runnable action) {
+        if (approvalNeeded()) {
+            requestApprovalThen(action);
+            return;
+        }
+        runPayment(action);
+    }
+
+    private void runPayment(Runnable action) {
         setBusy(true);
         FxTasks.run(action, () -> setBusy(false), err -> {
             setBusy(false);
             LOG.log(System.Logger.Level.ERROR, "Unexpected error taking payment", err);
+        });
+    }
+
+    /**
+     * Approval is needed when the applied discount exceeds the cashier cap (local policy
+     * mirror) — or, defensively, when the server has already rejected this checkout for the
+     * cap (stale local policy: the error text is the server's own validation message). A token
+     * already collected for this sale is reused.
+     */
+    private boolean approvalNeeded() {
+        if (pendingApprovalToken != null) {
+            return false;
+        }
+        if (DiscountRules.needsApproval(discount, baseSubtotal, policy,
+                services.session.isManager())) {
+            return true;
+        }
+        String err = vm.errorMessage().get();
+        return err != null && err.contains("manager approval required");
+    }
+
+    /** Collects manager credentials (modal), exchanges them for a ONE-SHOT token off the FX
+     *  thread, then runs the payment. Cancel returns to the payment screen untouched. */
+    private void requestApprovalThen(Runnable action) {
+        var creds = ManagerPinDialog.promptForApproval(
+                "Discount exceeds the cashier limit — manager approval required");
+        if (creds.isEmpty()) {
+            return;
+        }
+        setBusy(true);
+        FxTasks.run(() -> {
+            ManagerAuth auth = services.authApi.pinLoginForToken(
+                    creds.get().cashierCode(), creds.get().pin());
+            if (!auth.isManager()) {
+                throw new ApiException(403, null, "This account is not a manager");
+            }
+            pendingApprovalToken = auth.token();
+        }, () -> {
+            setBusy(false);
+            runPayment(action);
+        }, err -> {
+            setBusy(false);
+            String msg = err.getMessage();
+            vm.setError(msg == null || msg.isBlank() ? "Manager approval failed" : msg);
         });
     }
 
@@ -368,6 +428,7 @@ public class PaymentController {
     }
 
     private void showResult(SaleView sale) {
+        pendingApprovalToken = null; // the one shot has been fired
         String cur = sale.currencyCode();
         receiptLabel.setText("Receipt " + sale.receiptNumber());
         paidLabel.setText("Paid · " + money(sale.grandTotal(), cur));
