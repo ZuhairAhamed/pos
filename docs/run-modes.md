@@ -237,6 +237,21 @@ discount fields as their checkout counterparts, and price them identically (shar
 Quotes are pure calculators: the cashier cap is **not** enforced at quote time (a quote commits
 nothing), but reason codes are validated. Checkout/close remain the sole enforcement point.
 
+**Split-bill quote (terminal slice 6)** — `POST /dining/orders/{orderId}/quote-split` prices a
+proposed partition using the same code path that `close-split` charges (any authenticated user).
+
+- **BY_ITEM** body: `{"mode":"BY_ITEM","bills":[{"lineIds":[...]}, ...]}` — returns `bills`, one
+  `QuoteView` per bill in request order, with service charge applied per bill.
+- **EVEN** body: `{"mode":"EVEN","even":{"ways":N}}` — returns `order` (the whole-order quote)
+  plus `shares`: HALF_UP scale-2 shares, the last absorbing the rounding remainder so they sum
+  exactly (e.g. 40.25 ÷ 3 → 13.42 + 13.42 + 13.41), matching the exact-amount tenders
+  `close-split` creates.
+
+Pure calculator: creates no sale, the order stays OPEN. The partition is validated exactly as at
+close — every line in exactly one bill, no duplicates, ≥ 1 line per bill — so mistakes fail at
+quote time rather than at close. No discount/waiver fields in the body; a discounted split close
+bypasses the quote and is out of scope.
+
 **`GET /sales/discount-policy`** returns `{ cashierMaxPercent, cashierMaxAmount, reasonCodes }`
 so terminals can render reason-code choices and prompt for manager approval before tendering.
 Advisory only — the server still enforces the cap at checkout.

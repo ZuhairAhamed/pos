@@ -154,6 +154,65 @@ or a seeded cashier):
 5. Dine-in order → close via payment screen with a 15% discount → same approval path, service
    charge visibly computed on the discounted base.
 
+## Slice 6 — split-bill (BY_ITEM and EVEN)
+
+From the **order screen**, the **Split bill** button is enabled once the order has loaded and has
+at least one line. Tapping it opens a two-phase split flow.
+
+**Phase 1 — partition**
+
+A mode toggle selects the split strategy:
+
+- **By item** — guest tabs are shown (2–6 guests; add with "+ Guest"). Tap any line row to assign
+  it to the currently-selected guest tab; tap again to unassign; tapping while a different guest
+  is active reassigns the line. An "Unassigned: N" counter tracks lines not yet placed.
+  **Continue** stays disabled until N = 0; guests with zero lines assigned are silently dropped
+  at Continue.
+- **Split evenly** — a ways stepper (2–8) divides the whole bill equally. No line assignment is
+  needed.
+
+**Phase 2 — per-guest tender**
+
+Pressing Continue fetches server-authoritative amounts via
+`POST /dining/orders/{id}/quote-split`, shown with a "✓ server" badge on each guest tile. A
+short-tender or quota error fails immediately. Each guest gets exactly one tender choice
+(Cash / Card / Wallet):
+
+- On **BY_ITEM** bills, Cash shows a tendered-amount field and a live change preview.
+- On **EVEN** bills, Cash is "exact amount" (no tendered field — the server already knows the
+  shares sum exactly).
+
+**Close all bills** fires a single atomic `POST /dining/orders/{id}/close-split`. If the server
+rejects any bill the whole call is rolled back, the order stays OPEN, and Phase 2 remains
+editable. **Back** returns to Phase 1 with all assignments preserved; any change to the partition
+requires a new Continue (re-fetches the quote).
+
+**Phase 3 — results**
+
+A per-guest receipt list is shown:
+
+- BY_ITEM: receipt number, total, and change due per guest.
+- EVEN: one receipt and one payment line per guest.
+
+**Done ▸ Tables** closes the flow and returns to the table map (the table is now free).
+
+Manual E2E (backend running with `--spring.profiles.active=embedded,dev`, login `manager`/`manager`
+— see the existing E2E preamble below):
+
+1. **BY_ITEM, 2 guests** — seat a table, add 3 items, Split bill → By item → assign 1 item to
+   Guest 1 and 2 items to Guest 2 → Continue. Verify the two amounts match a hand-check of those
+   line totals (badge shows ✓ server). Tender Guest 1 by CASH with an over-tender (change
+   previews correctly), Guest 2 by CARD → Close all bills → both receipts listed; Guest 1 shows
+   change due → Done ▸ Tables → table is free.
+2. **EVEN, 3 ways** — order → Split bill → Split evenly, ways = 3 → Continue → three shares;
+   when the total is not exactly divisible, the last share differs by the rounding remainder. One
+   CASH share shows "exact amount" (no tendered field) → Close all bills → one receipt, three
+   payment lines.
+3. **Partition error path** — leave an item unassigned; confirm Continue stays disabled. Reassign
+   that item to another guest and verify the assignment badge moves to the new guest tab.
+4. **Atomic-failure path** — hard to trigger from the UI alone (all validation fires at quote
+   time before Close is enabled); covered by the backend test `aFailingBillRollsBackTheWholeSplit`.
+
 ## Manual end-to-end walkthrough
 
 With a backend running and seeded per above, launch the terminal (`javafx:run`)
