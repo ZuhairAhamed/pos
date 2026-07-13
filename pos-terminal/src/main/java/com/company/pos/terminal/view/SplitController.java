@@ -143,6 +143,7 @@ public class SplitController {
     // --- phase 1: partition ---
 
     private void renderGuestTabs() {
+        guestGroup.getToggles().clear();   // old tabs would otherwise accumulate in the group
         guestTabs.getChildren().clear();
         for (int g = 0; g < vm.guestCount(); g++) {
             final int guest = g;
