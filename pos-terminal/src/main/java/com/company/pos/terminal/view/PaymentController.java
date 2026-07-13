@@ -255,6 +255,8 @@ public class PaymentController {
         setTendersEnabled(false);
         quoteBadge.setVisible(false);
         quoteBadge.setManaged(false);
+        discountChipRow.setVisible(false);
+        discountChipRow.setManaged(false);
         totalLabel.setText("Fetching total…");
         loadQuote();
     }
@@ -380,12 +382,12 @@ public class PaymentController {
 
         subtotalValue.setText(money(sale.subtotal(), cur));
 
-        BigDecimal discount = sale.discountTotal();
-        boolean hasDiscount = discount != null && discount.compareTo(BigDecimal.ZERO) > 0;
+        BigDecimal saleDiscount = sale.discountTotal();
+        boolean hasDiscount = saleDiscount != null && saleDiscount.compareTo(BigDecimal.ZERO) > 0;
         discountRow.setVisible(hasDiscount);
         discountRow.setManaged(hasDiscount);
         if (hasDiscount) {
-            discountValue.setText("-" + money(discount, cur));
+            discountValue.setText("-" + money(saleDiscount, cur));
         }
 
         taxValue.setText(money(sale.taxTotal(), cur));
