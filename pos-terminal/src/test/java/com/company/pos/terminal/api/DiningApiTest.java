@@ -182,4 +182,86 @@ class DiningApiTest {
             assertEquals("/sales/55555555-5555-5555-5555-555555555555/reprint", stub.lastPath);
         }
     }
+
+    @Test
+    void quoteSplitByItemPostsModeAndBills() throws Exception {
+        String json = "{\"bills\":[{\"currencyCode\":\"SAR\",\"subtotal\":30.00,\"discountTotal\":0,"
+                + "\"serviceChargeAmount\":0,\"taxTotal\":4.50,\"grandTotal\":34.50}],"
+                + "\"order\":null,\"shares\":null}";
+        try (StubServer stub = new StubServer(200, json, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            SplitQuoteView v = api.quoteSplit(ORDER_ID, new QuoteSplitRequest("BY_ITEM",
+                    List.of(new QuoteBillInput(List.of(LINE_ID))), null));
+            assertEquals(1, v.bills().size());
+            assertEquals(0, new BigDecimal("34.50").compareTo(v.bills().get(0).grandTotal()));
+            assertNull(v.order());
+            assertNull(v.shares());
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/quote-split", stub.lastPath);
+            assertTrue(stub.lastBody.contains("\"mode\":\"BY_ITEM\""));
+            assertTrue(stub.lastBody.contains("\"lineIds\":[\"66666666-6666-6666-6666-666666666666\"]"));
+        }
+    }
+
+    @Test
+    void quoteSplitEvenPostsWaysAndParsesShares() throws Exception {
+        String json = "{\"bills\":null,"
+                + "\"order\":{\"currencyCode\":\"SAR\",\"subtotal\":35.00,\"discountTotal\":0,"
+                + "\"serviceChargeAmount\":0,\"taxTotal\":5.25,\"grandTotal\":40.25},"
+                + "\"shares\":[13.42,13.42,13.41]}";
+        try (StubServer stub = new StubServer(200, json, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            SplitQuoteView v = api.quoteSplit(ORDER_ID,
+                    new QuoteSplitRequest("EVEN", null, new QuoteEvenInput(3)));
+            assertEquals(0, new BigDecimal("40.25").compareTo(v.order().grandTotal()));
+            assertEquals(3, v.shares().size());
+            assertEquals(0, new BigDecimal("13.41").compareTo(v.shares().get(2)));
+            assertTrue(stub.lastBody.contains("\"mode\":\"EVEN\""));
+            assertTrue(stub.lastBody.contains("\"ways\":3"));
+        }
+    }
+
+    @Test
+    void closeSplitPostsBillsAndParsesSaleList() throws Exception {
+        String sales = "[{\"id\":\"55555555-5555-5555-5555-555555555555\",\"receiptNumber\":\"S01-T01-1\","
+                + "\"currencyCode\":\"SAR\",\"subtotal\":30.00,\"taxTotal\":4.50,\"grandTotal\":34.50,"
+                + "\"discountTotal\":0.00,\"serviceChargeAmount\":0.00,\"lines\":[],\"payments\":[]},"
+                + "{\"id\":\"88888888-8888-8888-8888-888888888888\",\"receiptNumber\":\"S01-T01-2\","
+                + "\"currencyCode\":\"SAR\",\"subtotal\":17.00,\"taxTotal\":2.55,\"grandTotal\":19.55,"
+                + "\"discountTotal\":0.00,\"serviceChargeAmount\":0.00,\"lines\":[],\"payments\":[]}]";
+        try (StubServer stub = new StubServer(201, sales, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            SplitCloseRequest req = new SplitCloseRequest("BY_ITEM", List.of(
+                    new BillRequest(List.of(LINE_ID),
+                            List.of(new TenderInput("CASH", new BigDecimal("34.50"), new BigDecimal("50.00"))),
+                            Map.of(), null)),
+                    null, false);
+            List<SaleView> result = api.closeSplit(ORDER_ID, req);
+            assertEquals(2, result.size());
+            assertEquals("S01-T01-2", result.get(1).receiptNumber());
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/close-split", stub.lastPath);
+            assertTrue(stub.lastBody.contains("\"mode\":\"BY_ITEM\""));
+            assertTrue(stub.lastBody.contains("\"method\":\"CASH\""));
+            assertTrue(stub.lastBody.contains("\"tendered\":50.00"));
+            assertTrue(stub.lastBody.contains("\"waiveServiceCharge\":false"));
+        }
+    }
+
+    @Test
+    void closeSplitEvenPostsWaysAndMethods() throws Exception {
+        String sales = "[{\"id\":\"55555555-5555-5555-5555-555555555555\",\"receiptNumber\":\"S01-T01-1\","
+                + "\"currencyCode\":\"SAR\",\"subtotal\":35.00,\"taxTotal\":5.25,\"grandTotal\":40.25,"
+                + "\"discountTotal\":0.00,\"serviceChargeAmount\":0.00,\"lines\":[],\"payments\":[]}]";
+        try (StubServer stub = new StubServer(201, sales, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            SplitCloseRequest req = new SplitCloseRequest("EVEN", null,
+                    new EvenSplitRequest(3, List.of("CASH", "CARD", "CASH")), false);
+            List<SaleView> result = api.closeSplit(ORDER_ID, req);
+            assertEquals(1, result.size());
+            assertTrue(stub.lastBody.contains("\"mode\":\"EVEN\""));
+            assertTrue(stub.lastBody.contains("\"ways\":3"));
+            assertTrue(stub.lastBody.contains("\"methods\":[\"CASH\",\"CARD\",\"CASH\"]"));
+        }
+    }
 }

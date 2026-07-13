@@ -8,7 +8,10 @@ import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.OrderView;
 import com.company.pos.terminal.api.dto.QuoteOrderRequest;
 import com.company.pos.terminal.api.dto.QuoteView;
+import com.company.pos.terminal.api.dto.QuoteSplitRequest;
 import com.company.pos.terminal.api.dto.SaleView;
+import com.company.pos.terminal.api.dto.SplitCloseRequest;
+import com.company.pos.terminal.api.dto.SplitQuoteView;
 import com.company.pos.terminal.api.dto.TableView;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.math.BigDecimal;
@@ -85,5 +88,19 @@ public class DiningApi {
     public SaleView close(UUID orderId, CloseOrderRequest req, String bearerToken) {
         return client.post("/dining/orders/" + orderId + "/close", req,
                 new TypeReference<SaleView>() {}, bearerToken);
+    }
+
+    /** POST /dining/orders/{id}/quote-split — authoritative per-bill / per-share amounts for a
+     *  proposed split. Pure calculator: the order stays OPEN. */
+    public SplitQuoteView quoteSplit(UUID orderId, QuoteSplitRequest req) {
+        return client.post("/dining/orders/" + orderId + "/quote-split", req,
+                new TypeReference<SplitQuoteView>() {});
+    }
+
+    /** POST /dining/orders/{id}/close-split — closes ALL bills in one atomic call; any failing
+     *  bill rolls back the whole split and the order stays OPEN. */
+    public List<SaleView> closeSplit(UUID orderId, SplitCloseRequest req) {
+        return client.post("/dining/orders/" + orderId + "/close-split", req,
+                new TypeReference<List<SaleView>>() {});
     }
 }
