@@ -209,11 +209,14 @@ public class SplitController {
     /** Continue: fetch the authoritative quote-split off-thread; only on success move to the
      *  tender phase (the tender phase can never show a number the server hasn't confirmed). */
     private void quoteAndShowTender() {
-        continueButton.setDisable(true);
+        // Parent-disable covers every input in the partition phase so no FX handler can mutate
+        // VM state (assignment map, mode, ways) while the background quote call is reading it.
+        partitionBox.setDisable(true);
         final boolean[] ok = new boolean[1];
         FxTasks.run(
                 () -> ok[0] = vm.quoteSplit(orderId),
                 () -> {
+                    partitionBox.setDisable(false);
                     continueButton.setDisable(!vm.canContinue());
                     if (ok[0]) {
                         quoteBadge.setVisible(true);
@@ -223,6 +226,7 @@ public class SplitController {
                     }
                 },
                 err -> {
+                    partitionBox.setDisable(false);
                     continueButton.setDisable(!vm.canContinue());
                     LOG.log(System.Logger.Level.ERROR, "quote-split failed", err);
                 });
@@ -257,9 +261,10 @@ public class SplitController {
             exactHint.setManaged(false);
 
             tenderedField.textProperty().addListener((o, was, now) -> {
-                vm.setCashTendered(bill, parseMoney(now));
+                BigDecimal tendered = parseMoney(now);
+                vm.setCashTendered(bill, tendered);
                 BigDecimal change = vm.changeFor(bill);
-                changeLabel.setText(change.signum() >= 0 && parseMoney(now) != null
+                changeLabel.setText(change.signum() >= 0 && tendered != null
                         ? "Change: " + change.toPlainString() : "");
                 updateCloseAllState();
             });
@@ -304,13 +309,14 @@ public class SplitController {
     }
 
     private void closeAll() {
-        closeAllButton.setDisable(true);
-        backButton.setDisable(true);
+        // Parent-disable covers every input in the tender phase so no FX handler can mutate
+        // VM state (methods, cashTendered) while the background close call is reading it.
+        tenderBox.setDisable(true);
         final boolean[] ok = new boolean[1];
         FxTasks.run(
                 () -> ok[0] = vm.closeAll(orderId),
                 () -> {
-                    backButton.setDisable(false);
+                    tenderBox.setDisable(false);
                     if (ok[0]) {
                         showResults();
                     } else {
@@ -319,7 +325,7 @@ public class SplitController {
                     }
                 },
                 err -> {
-                    backButton.setDisable(false);
+                    tenderBox.setDisable(false);
                     updateCloseAllState();
                     LOG.log(System.Logger.Level.ERROR, "close-split failed", err);
                 });
@@ -333,7 +339,7 @@ public class SplitController {
         BigDecimal paid = BigDecimal.ZERO;
         resultRows.getChildren().clear();
         List<String> rows = new ArrayList<>();
-        if (sales.size() > 1 || SplitViewModel.BY_ITEM.equals(vm.mode())) {
+        if (sales.size() > 1 || SplitViewModel.BY_ITEM.equals(vm.quotedMode())) {
             // BY_ITEM: one sale per guest, aligned with the bill order.
             for (int i = 0; i < sales.size(); i++) {
                 SaleView s = sales.get(i);

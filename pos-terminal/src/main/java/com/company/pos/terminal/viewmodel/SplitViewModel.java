@@ -227,6 +227,9 @@ public class SplitViewModel {
 
     public boolean quoted() { return quote != null; }
 
+    /** The mode the current quote was priced under ("BY_ITEM"/"EVEN"), null when not quoted. */
+    public String quotedMode() { return quotedMode; }
+
     private void invalidateQuote() {
         quote = null;
         quotedBills = null;
