@@ -1,5 +1,6 @@
 package com.company.pos.dining.web;
 
+import com.company.pos.common.exception.DomainException;
 import com.company.pos.dining.api.AddLineCommand;
 import com.company.pos.dining.api.CloseOrderCommand;
 import com.company.pos.dining.api.CourseTag;
@@ -9,6 +10,8 @@ import com.company.pos.dining.api.OpenOrderCommand;
 import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
+import com.company.pos.dining.api.SplitMode;
+import com.company.pos.dining.api.SplitQuoteView;
 import com.company.pos.dining.api.TableView;
 import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.QuoteView;
@@ -137,6 +140,34 @@ class DiningController {
         boolean isManager = authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_MANAGER".equals(a.getAuthority()));
         return dining.closeOrderSplit(orderId, body, authentication.getName(), isManager);
+    }
+
+    /** Body for the split quote. BY_ITEM populates {@code bills}; EVEN populates {@code even}. */
+    record QuoteSplitRequest(SplitMode mode, List<QuoteBillInput> bills, QuoteEvenInput even) {
+    }
+
+    record QuoteBillInput(List<UUID> lineIds) {
+    }
+
+    record QuoteEvenInput(int ways) {
+    }
+
+    @PostMapping("/dining/orders/{orderId}/quote-split")
+    SplitQuoteView quoteSplit(@PathVariable UUID orderId, @RequestBody QuoteSplitRequest body) {
+        if (body.mode() == null) {
+            throw DomainException.validation("Split mode is required");
+        }
+        return switch (body.mode()) {
+            case BY_ITEM -> dining.quoteSplitByItem(orderId,
+                    body.bills() == null ? List.of()
+                            : body.bills().stream().map(QuoteBillInput::lineIds).toList());
+            case EVEN -> {
+                if (body.even() == null) {
+                    throw DomainException.validation("Even split details are required");
+                }
+                yield dining.quoteSplitEven(orderId, body.even().ways());
+            }
+        };
     }
 
     @GetMapping("/dining/orders/{orderId}/sales")
