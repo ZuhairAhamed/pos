@@ -566,3 +566,65 @@
     -fx-border-color: -fx-primary;
 }
 .reason-chip:disabled { -fx-opacity: 0.55; }
+
+/* ---- Split-bill screen (slice 6) ----------------------------------------- */
+
+/* Mode toggle + guest tabs: large ToggleButtons; selected = primary fill.
+   Same shape family as .reason-chip but 56px — they carry the screen's flow. */
+.mode-toggle, .guest-tab {
+    -fx-min-height: 56px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-color: -fx-canvas;
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 20 8 20;
+}
+.mode-toggle:selected, .guest-tab:selected {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+    -fx-border-color: -fx-primary;
+}
+.mode-toggle:hover, .guest-tab:hover { -fx-border-color: -fx-primary; }
+.mode-toggle:focused, .guest-tab:focused { -fx-border-width: 2; }
+.guest-tab { -fx-min-width: 112px; }
+
+/* Tap-to-assign order line: card row; assigned rows tint toward the primary. */
+.split-line {
+    -fx-min-height: 56px;
+    -fx-alignment: CENTER_LEFT;
+    -fx-font-size: 16px;
+    -fx-background-color: -fx-card;
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 8 16 8 16;
+}
+.split-line:hover { -fx-border-color: -fx-primary; }
+.split-line:focused { -fx-border-color: -fx-primary; -fx-border-width: 2; }
+.split-line-assigned {
+    -fx-background-color: derive(-fx-primary, 92%);
+    -fx-border-color: -fx-primary;
+}
+
+/* Guest-number badge on an assigned line. */
+.guest-badge {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 2 10 2 10;
+    -fx-background-radius: 10;
+}
+
+/* One guest's tender row in phase 2: label + authoritative amount + method + cash field. */
+.split-amount-row {
+    -fx-background-color: -fx-card;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 12 16 12 16;
+}

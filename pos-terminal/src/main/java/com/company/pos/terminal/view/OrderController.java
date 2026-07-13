@@ -63,6 +63,7 @@ public class OrderController {
     @FXML private Label errorLabel;
     @FXML private Button removeButton;
     @FXML private Button fireButton;
+    @FXML private Button splitButton;
     @FXML private Button payButton;
     @FXML private Button backButton;
     @FXML private TabPane categoryTabs;
@@ -83,6 +84,7 @@ public class OrderController {
 
         removeButton.setOnAction(e -> removeSelected());
         fireButton.setOnAction(e -> fire());
+        splitButton.setOnAction(e -> navigator.toSplit(orderId));
         payButton.setOnAction(e -> pay());
         backButton.setOnAction(e -> navigator.toTableMap());
 
@@ -95,6 +97,7 @@ public class OrderController {
         // Nothing is actionable until the catalog + order have loaded.
         payButton.setDisable(true);
         fireButton.setDisable(true);
+        splitButton.setDisable(true);
 
         // Load the product catalog into a MenuCache, off the FX thread; then wire the VM.
         FxTasks.run(
@@ -111,7 +114,10 @@ public class OrderController {
                 .bind(Bindings.concat("Subtotal (est.): ", vm.subtotalText()));
         errorLabel.textProperty().bind(vm.errorMessage());
         vm.lines()
-                .addListener((ListChangeListener<OrderLineView>) c -> lineList.getItems().setAll(vm.lines()));
+                .addListener((ListChangeListener<OrderLineView>) c -> {
+                    lineList.getItems().setAll(vm.lines());
+                    splitButton.setDisable(vm.lines().isEmpty());
+                });
 
         buildMenu();
 
@@ -120,7 +126,10 @@ public class OrderController {
 
         FxTasks.run(
                 () -> vm.load(orderId),
-                () -> lineList.getItems().setAll(vm.lines()),
+                () -> {
+                    lineList.getItems().setAll(vm.lines());
+                    splitButton.setDisable(vm.lines().isEmpty());
+                },
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to load order " + orderId, err));
     }
 

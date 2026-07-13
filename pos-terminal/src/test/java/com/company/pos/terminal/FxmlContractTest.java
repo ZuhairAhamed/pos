@@ -60,4 +60,34 @@ class FxmlContractTest {
             assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing discount control: " + id);
         }
     }
+
+    @Test
+    void orderDeclaresSplitButton() throws Exception {
+        assertTrue(resource("/fxml/order.fxml").contains("fx:id=\"splitButton\""),
+                "order.fxml must declare the Split bill button");
+    }
+
+    @Test
+    void splitDeclaresPartitionPhaseNodes() throws Exception {
+        String fxml = resource("/fxml/split.fxml");
+        for (String id : new String[] {
+            "byItemToggle", "evenToggle", "guestTabs", "addGuestButton", "lineRows",
+            "waysMinusButton", "waysLabel", "waysPlusButton", "unassignedLabel",
+            "continueButton", "cancelButton", "partitionBox", "byItemBox", "evenBox"
+        }) {
+            assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing partition node: " + id);
+        }
+    }
+
+    @Test
+    void splitDeclaresTenderAndResultPhaseNodes() throws Exception {
+        String fxml = resource("/fxml/split.fxml");
+        for (String id : new String[] {
+            "tenderBox", "guestRows", "backButton", "closeAllButton", "quoteBadge",
+            "resultBox", "successBanner", "successCheck", "paidLabel", "resultRows",
+            "doneButton", "errorLabel"
+        }) {
+            assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing tender/result node: " + id);
+        }
+    }
 }

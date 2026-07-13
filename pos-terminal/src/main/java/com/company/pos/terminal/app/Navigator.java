@@ -48,6 +48,14 @@ public class Navigator {
         setScene("/fxml/order.fxml", controller);
     }
 
+    // Reached from the order screen's "Split bill" action. Builds the split screen; Cancel
+    // returns to the order, Done (after a successful close) returns to the table map.
+    public void toSplit(UUID orderId) {
+        com.company.pos.terminal.view.SplitController controller =
+                new com.company.pos.terminal.view.SplitController(services, this, orderId);
+        setScene("/fxml/split.fxml", controller);
+    }
+
     // Reached from the order screen's "Pay" action with the client-side estimated
     // subtotal (pre-tax, pre-service-charge). Builds the payment screen for dine-in;
     // the VM closes the order server-side and exposes the authoritative SaleView totals.

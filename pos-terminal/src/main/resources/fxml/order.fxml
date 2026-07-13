@@ -34,6 +34,7 @@
       <HBox spacing="12">
         <Button fx:id="backButton" text="Back to tables" styleClass="btn-secondary"/>
         <Pane HBox.hgrow="ALWAYS"/>
+        <Button fx:id="splitButton" text="Split bill" styleClass="btn-secondary"/>
         <Button fx:id="payButton" text="Pay" defaultButton="true" styleClass="btn-primary"/>
       </HBox>
     </VBox>
