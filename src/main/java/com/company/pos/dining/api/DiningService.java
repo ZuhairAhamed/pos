@@ -56,6 +56,17 @@ public interface DiningService {
     List<SaleView> closeOrderSplit(UUID orderId, SplitCloseCommand command, String cashierUsername,
             boolean callerIsManager);
 
+    /** Prices a BY_ITEM partition exactly as {@link #closeOrderSplit} would (per-bill ephemeral
+     *  carts, service charge per bill). Pure calculator: creates no sale, closes nothing, the
+     *  order stays OPEN. Runs the same partition validation as close so mistakes fail at quote
+     *  time. Assumes the no-discount, no-waiver close path (the split UI carries neither). */
+    SplitQuoteView quoteSplitByItem(UUID orderId, List<List<UUID>> billLineIds);
+
+    /** Prices an EVEN split: the whole-order quote plus the exact per-share amounts
+     *  {@link #closeOrderSplit} would tender ({@code ways ≥ 2}; last share absorbs the
+     *  rounding remainder). Pure calculator — the order stays OPEN. */
+    SplitQuoteView quoteSplitEven(UUID orderId, int ways);
+
     List<UUID> listOrderSaleIds(UUID orderId);
 
     void voidOrder(UUID orderId, String reason);

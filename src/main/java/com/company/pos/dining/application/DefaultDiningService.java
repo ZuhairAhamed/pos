@@ -34,6 +34,7 @@ import com.company.pos.product.api.ProductView;
 import com.company.pos.menu.api.MenuService;
 import com.company.pos.menu.api.ModifierResolution;
 import com.company.pos.menu.api.ResolvedModifier;
+import com.company.pos.dining.api.SplitQuoteView;
 import com.company.pos.sales.api.CheckoutCommand;
 import com.company.pos.sales.api.DiscountInput;
 import com.company.pos.sales.api.SaleView;
@@ -355,6 +356,44 @@ class DefaultDiningService implements DiningService {
             orderSales.save(new DiningOrderSale(Identifiers.newId(), order.getId(), sale.id()));
         }
         return results;
+    }
+
+    @Override
+    public SplitQuoteView quoteSplitByItem(UUID orderId, List<List<UUID>> billLineIds) {
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (order.getLines().isEmpty()) {
+            throw DomainException.validation("Cannot quote an empty order");
+        }
+        validatePartition(order, billLineIds);
+        boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
+        List<QuoteView> bills = new ArrayList<>();
+        for (List<UUID> lineIds : billLineIds) {
+            UUID cartId = cartForLines(order, lineIds);
+            bills.add(sales.quote(cartId, applyServiceCharge));
+            carts.close(cartId);
+        }
+        return new SplitQuoteView(bills, null, null);
+    }
+
+    @Override
+    public SplitQuoteView quoteSplitEven(UUID orderId, int ways) {
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (order.getLines().isEmpty()) {
+            throw DomainException.validation("Cannot quote an empty order");
+        }
+        if (ways < 2) {
+            throw DomainException.validation("Even split requires at least 2 ways");
+        }
+        UUID cartId = priceCartFor(order);
+        boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
+        QuoteView quote = sales.quote(cartId, applyServiceCharge);
+        carts.close(cartId);
+        if (quote.grandTotal().signum() <= 0) {
+            throw DomainException.validation("Cannot evenly split a non-positive total");
+        }
+        return new SplitQuoteView(null, quote, evenShares(quote.grandTotal(), ways));
     }
 
     private List<SaleView> closeByItem(DiningOrder order, List<BillInput> bills,
