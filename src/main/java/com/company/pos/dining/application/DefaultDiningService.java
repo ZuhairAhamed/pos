@@ -359,7 +359,29 @@ class DefaultDiningService implements DiningService {
 
     private List<SaleView> closeByItem(DiningOrder order, List<BillInput> bills,
             String cashier, boolean isManager, boolean applyServiceCharge) {
-        if (bills == null || bills.isEmpty()) {
+        if (bills == null) {
+            throw DomainException.validation("At least one bill is required for a by-item split");
+        }
+        validatePartition(order, bills.stream().map(BillInput::lineIds).toList());
+
+        List<SaleView> results = new ArrayList<>();
+        for (BillInput bill : bills) {
+            UUID cartId = cartForLines(order, bill.lineIds());
+            SaleView sale = sales.checkout(
+                    new CheckoutCommand(cartId, bill.tenders(), bill.lineDiscounts(),
+                            bill.transactionDiscount(), applyServiceCharge),
+                    cashier, isManager);
+            carts.close(cartId);
+            results.add(sale);
+        }
+        return results;
+    }
+
+    /** Validates a by-item partition: ≥1 bill, ≥1 line per bill, every order line in exactly
+     *  one bill, no unknown ids. Shared by close and quote so mistakes fail the same way at
+     *  quote time as at close time. Returns the order's lines keyed by id. */
+    private Map<UUID, OrderLine> validatePartition(DiningOrder order, List<List<UUID>> billLineIds) {
+        if (billLineIds == null || billLineIds.isEmpty()) {
             throw DomainException.validation("At least one bill is required for a by-item split");
         }
         Map<UUID, OrderLine> byId = new LinkedHashMap<>();
@@ -367,11 +389,11 @@ class DefaultDiningService implements DiningService {
             byId.put(line.getId(), line);
         }
         Set<UUID> assigned = new HashSet<>();
-        for (BillInput bill : bills) {
-            if (bill.lineIds() == null || bill.lineIds().isEmpty()) {
+        for (List<UUID> lineIds : billLineIds) {
+            if (lineIds == null || lineIds.isEmpty()) {
                 throw DomainException.validation("Each bill must contain at least one line");
             }
-            for (UUID lineId : bill.lineIds()) {
+            for (UUID lineId : lineIds) {
                 if (!byId.containsKey(lineId)) {
                     throw DomainException.validation("Line " + lineId + " is not on order " + order.getId());
                 }
@@ -383,26 +405,22 @@ class DefaultDiningService implements DiningService {
         if (assigned.size() != byId.size()) {
             throw DomainException.validation("Every order line must be assigned to exactly one bill");
         }
+        return byId;
+    }
 
-        List<SaleView> results = new ArrayList<>();
-        for (BillInput bill : bills) {
-            UUID cartId = carts.createCart();
-            for (UUID lineId : bill.lineIds()) {
-                OrderLine line = byId.get(lineId);
-                List<com.company.pos.cart.api.CartLineModifierInput> mods = line.getModifiers().stream()
-                        .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
-                                m.getOptionId(), m.getName(), m.getPriceDelta()))
-                        .toList();
-                carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
-            }
-            SaleView sale = sales.checkout(
-                    new CheckoutCommand(cartId, bill.tenders(), bill.lineDiscounts(),
-                            bill.transactionDiscount(), applyServiceCharge),
-                    cashier, isManager);
-            carts.close(cartId);
-            results.add(sale);
+    /** Builds an ephemeral priced cart from a SUBSET of an order's lines (one split bill),
+     *  snapshotting modifier deltas at add-time exactly like {@link #priceCartFor}. */
+    private UUID cartForLines(DiningOrder order, List<UUID> lineIds) {
+        UUID cartId = carts.createCart();
+        for (UUID lineId : lineIds) {
+            OrderLine line = requireLine(order, lineId);
+            List<com.company.pos.cart.api.CartLineModifierInput> mods = line.getModifiers().stream()
+                    .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
+                            m.getOptionId(), m.getName(), m.getPriceDelta()))
+                    .toList();
+            carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
         }
-        return results;
+        return cartId;
     }
 
     private List<SaleView> closeEven(DiningOrder order, EvenSplitInput even,
@@ -417,35 +435,38 @@ class DefaultDiningService implements DiningService {
             throw DomainException.validation("Even split requires one payment method per share");
         }
 
-        UUID cartId = carts.createCart();
-        for (OrderLine line : order.getLines()) {
-            List<com.company.pos.cart.api.CartLineModifierInput> mods = line.getModifiers().stream()
-                    .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
-                            m.getOptionId(), m.getName(), m.getPriceDelta()))
-                    .toList();
-            carts.addLinePreResolved(cartId, line.getSku(), line.getQty(), mods);
-        }
-
+        UUID cartId = priceCartFor(order);
         QuoteView quote = sales.quote(cartId, applyServiceCharge);
         BigDecimal grandTotal = quote.grandTotal();
         if (grandTotal.signum() <= 0) {
             throw DomainException.validation("Cannot evenly split a non-positive total");
         }
-        int ways = even.ways();
-        BigDecimal base = grandTotal.divide(new BigDecimal(ways), 2, RoundingMode.HALF_UP);
+        List<BigDecimal> shares = evenShares(grandTotal, even.ways());
         List<TenderInput> tenders = new ArrayList<>();
-        BigDecimal allocated = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-        for (int i = 0; i < ways; i++) {
-            BigDecimal share = (i == ways - 1) ? grandTotal.subtract(allocated) : base;
-            allocated = allocated.add(share);
-            PaymentMethod method = even.methods().get(i);
-            tenders.add(new TenderInput(method, share, share));
+        for (int i = 0; i < even.ways(); i++) {
+            BigDecimal share = shares.get(i);
+            tenders.add(new TenderInput(even.methods().get(i), share, share));
         }
 
         SaleView sale = sales.checkout(new CheckoutCommand(cartId, tenders, Map.of(), null, applyServiceCharge),
                 cashier, isManager);
         carts.close(cartId);
         return List.of(sale);
+    }
+
+    /** Splits {@code grandTotal} into {@code ways} shares: base = HALF_UP scale-2 division,
+     *  the LAST share absorbs the rounding remainder so shares sum exactly to the total
+     *  (40.25 / 3 → 13.42, 13.42, 13.41). Shared by closeEven and quoteSplitEven. */
+    static List<BigDecimal> evenShares(BigDecimal grandTotal, int ways) {
+        BigDecimal base = grandTotal.divide(new BigDecimal(ways), 2, RoundingMode.HALF_UP);
+        List<BigDecimal> shares = new ArrayList<>();
+        BigDecimal allocated = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        for (int i = 0; i < ways; i++) {
+            BigDecimal share = (i == ways - 1) ? grandTotal.subtract(allocated) : base;
+            allocated = allocated.add(share);
+            shares.add(share);
+        }
+        return shares;
     }
 
     @Override
