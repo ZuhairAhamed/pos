@@ -2,6 +2,8 @@ package com.company.pos.terminal.view;
 
 import com.company.pos.terminal.api.dto.CheckoutRequest;
 import com.company.pos.terminal.api.dto.CloseOrderRequest;
+import com.company.pos.terminal.api.dto.DiscountInput;
+import com.company.pos.terminal.api.dto.DiscountPolicyView;
 import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleLineModifierView;
 import com.company.pos.terminal.api.dto.SaleLineView;
@@ -89,6 +91,15 @@ public class PaymentController {
     @FXML private Button denom200Button;
     @FXML private Button denom500Button;
     private java.util.List<Button> denomButtons;
+    @FXML private Button discountButton;
+    @FXML private HBox discountChipRow;
+    @FXML private Label discountChipLabel;
+    @FXML private Button removeDiscountButton;
+    // Read by background lambdas (quote fetch, checkout gateway) — hence volatile. Plain fields
+    // are the synchronous source of truth; observables/labels are FX-thread mirrors.
+    private volatile DiscountInput discount;
+    private volatile DiscountPolicyView policy;
+    private volatile BigDecimal baseSubtotal;
 
     public PaymentController(Services services, Navigator navigator, Mode mode, UUID id,
             BigDecimal estimatedTotal) {
@@ -104,10 +115,10 @@ public class PaymentController {
     private CheckoutGateway gatewayFor(Mode m, UUID id) {
         if (m == Mode.RETAIL) {
             return tenders -> services.salesApi.checkout(
-                    new CheckoutRequest(id, tenders, Map.of(), null, false));
+                    new CheckoutRequest(id, tenders, Map.of(), discount, false));
         }
         return tenders -> services.diningApi.close(id,
-                new CloseOrderRequest(tenders, Map.of(), null, false));
+                new CloseOrderRequest(tenders, Map.of(), discount, false));
     }
 
     @FXML
@@ -127,6 +138,8 @@ public class PaymentController {
         payWalletButton.setOnAction(e -> pay(() -> vm.payFull("WALLET", null)));
         addTenderButton.setOnAction(e -> addPartial());
         cancelButton.setOnAction(e -> cancel());
+        discountButton.setOnAction(e -> applyDiscount());
+        removeDiscountButton.setOnAction(e -> removeDiscount());
         reprintButton.setOnAction(e -> reprint());
         doneButton.setOnAction(e -> done());
 
@@ -138,7 +151,10 @@ public class PaymentController {
         denomButtons = java.util.List.of(denomExactButton, denom50Button, denom100Button,
                 denom200Button, denom500Button);
 
-        vm.tenders().addListener((javafx.collections.ListChangeListener<Object>) c -> renderChips());
+        vm.tenders().addListener((javafx.collections.ListChangeListener<Object>) c -> {
+            renderChips();
+            updateDiscountControls(!quoteLoaded);
+        });
         vm.sale().addListener((o, was, now) -> { if (now != null) showResult(now); });
 
         // Tenders are disabled until the authoritative total loads (never tender a stale estimate).
@@ -156,15 +172,28 @@ public class PaymentController {
         if (denomButtons != null) {
             denomButtons.forEach(b -> b.setDisable(!enabled));
         }
+        updateDiscountControls(!enabled);
     }
 
-    /** Fetch the authoritative quote off the FX thread (retail cart or dine-in order). */
+    /** Fetch the authoritative quote off the FX thread — WITH the applied discount, if any.
+     *  Also fetches the discount policy once (advisory: chips + approval hint only). */
     private void loadQuote() {
         final QuoteView[] holder = new QuoteView[1];
         FxTasks.run(
-                () -> holder[0] = (mode == Mode.RETAIL)
-                        ? services.salesApi.quote(id)
-                        : services.diningApi.quoteOrder(id),
+                () -> {
+                    holder[0] = (mode == Mode.RETAIL)
+                            ? services.salesApi.quote(id, discount)
+                            : services.diningApi.quoteOrder(id, discount);
+                    if (policy == null) {
+                        try {
+                            policy = services.salesApi.discountPolicy();
+                        } catch (RuntimeException e) {
+                            // Advisory only: without it the Discount button stays disabled and
+                            // the server still enforces the cap at checkout.
+                            LOG.log(System.Logger.Level.WARNING, "Discount policy unavailable", e);
+                        }
+                    }
+                },
                 () -> onQuoteLoaded(holder[0]),
                 err -> {
                     vm.setError("Couldn't load the total — go back and try again");
@@ -177,6 +206,19 @@ public class PaymentController {
         totalLabel.setText("Total due: " + money(q.grandTotal(), cur));
         quoteBadge.setVisible(true);
         quoteBadge.setManaged(true);
+        if (discount == null) {
+            // The undiscounted subtotal is the server's cap base (no line discounts here);
+            // captured only from discount-less quotes so re-quotes don't shrink it.
+            baseSubtotal = q.subtotal();
+        }
+        boolean hasDiscount = discount != null && q.discountTotal() != null
+                && q.discountTotal().signum() > 0;
+        discountChipRow.setVisible(hasDiscount);
+        discountChipRow.setManaged(hasDiscount);
+        if (hasDiscount) {
+            discountChipLabel.setText("Discount −" + money(q.discountTotal(), cur)
+                    + " · " + discount.reasonCode());
+        }
         vm.setAuthoritativeTotal(q.grandTotal());
         setTendersEnabled(true);
     }
@@ -188,6 +230,33 @@ public class PaymentController {
         // Cash partial uses the tendered field; card/wallet partials pass null tendered.
         BigDecimal cash = "CASH".equals(method) ? parse(tenderedField) : null;
         pay(() -> vm.addTender(method, amount, cash));
+    }
+
+    /** Opens the discount modal; applying re-fetches the authoritative quote WITH the discount. */
+    private void applyDiscount() {
+        if (policy == null || !quoteLoaded) {
+            return;
+        }
+        DiscountDialog.promptForDiscount(policy, baseSubtotal, services.session.isManager())
+                .ifPresent(d -> {
+                    discount = d;
+                    requote();
+                });
+    }
+
+    private void removeDiscount() {
+        discount = null;
+        requote();
+    }
+
+    /** Re-lock tenders and fetch the quote again — the same gate as the initial load, so the
+     *  big total is never a number the server hasn't confirmed. */
+    private void requote() {
+        setTendersEnabled(false);
+        quoteBadge.setVisible(false);
+        quoteBadge.setManaged(false);
+        totalLabel.setText("Fetching total…");
+        loadQuote();
     }
 
     private void renderChips() {
@@ -250,6 +319,19 @@ public class PaymentController {
         panField.setDisable(busy);
         if (denomButtons != null) {
             denomButtons.forEach(b -> b.setDisable(busy || !quoteLoaded));
+        }
+        updateDiscountControls(busy || !quoteLoaded);
+    }
+
+    /** Discount can change only while quoted, idle, and before any tender exists — the total
+     *  must not move under a partially-tendered split. */
+    private void updateDiscountControls(boolean lockedByState) {
+        boolean tendered = !vm.tenders().isEmpty();
+        if (discountButton != null) {
+            discountButton.setDisable(lockedByState || tendered || policy == null);
+        }
+        if (removeDiscountButton != null) {
+            removeDiscountButton.setDisable(lockedByState || tendered);
         }
     }
 

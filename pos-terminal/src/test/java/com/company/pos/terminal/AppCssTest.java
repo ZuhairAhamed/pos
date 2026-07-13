@@ -58,4 +58,14 @@ class AppCssTest {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }
     }
+
+    @Test
+    void definesSliceFiveClasses() throws Exception {
+        String css = css();
+        for (String cls : new String[] {
+            ".discount-chip", ".approval-hint", ".reason-chip"
+        }) {
+            assertTrue(css.contains(cls), "missing style class: " + cls);
+        }
+    }
 }

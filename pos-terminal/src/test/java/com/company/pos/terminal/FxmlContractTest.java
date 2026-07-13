@@ -50,4 +50,14 @@ class FxmlContractTest {
         assertTrue(fxml.contains("fx:id=\"successCheck\""));
         assertTrue(fxml.contains("fx:id=\"paidLabel\""));
     }
+
+    @Test
+    void paymentDeclaresDiscountControls() throws Exception {
+        String fxml = resource("/fxml/payment.fxml");
+        for (String id : new String[] {
+            "discountButton", "discountChipRow", "discountChipLabel", "removeDiscountButton"
+        }) {
+            assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing discount control: " + id);
+        }
+    }
 }

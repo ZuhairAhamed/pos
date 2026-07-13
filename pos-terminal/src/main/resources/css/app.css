@@ -529,3 +529,40 @@
     -fx-font-weight: bold;
     -fx-text-fill: -fx-success;
 }
+
+/* ---- Slice 5: whole-sale discount + manager approval ----------------------- */
+
+/* Applied-discount chip under the total: "Discount −6.00 SAR · LOYALTY". */
+.discount-chip {
+    -fx-background-color: derive(-fx-accent, 82%);
+    -fx-text-fill: -fx-ink;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 6 12 6 12;
+    -fx-background-radius: 12;
+}
+
+/* Amber "needs manager approval" hint in the discount/approval modals. */
+.approval-hint {
+    -fx-text-fill: derive(-fx-accent, -25%);
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+/* Selectable type/reason chips in the discount modal (48px touch minimum). */
+.reason-chip {
+    -fx-min-height: 48px;
+    -fx-font-size: 15px;
+    -fx-background-color: -fx-canvas;
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-cursor: hand;
+}
+.reason-chip:selected {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+    -fx-border-color: -fx-primary;
+}
+.reason-chip:disabled { -fx-opacity: 0.55; }
