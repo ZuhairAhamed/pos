@@ -128,6 +128,32 @@ zero, sourced from the returned `SaleView`.
   (checkmark scale-in honours `ui.reduced-motion`), and Done is labelled with its
   destination ("Done ▸ Tables" / "Done ▸ Home").
 
+## Slice 5 — whole-sale discount + manager approval
+
+- **Discount** (payment screen, both retail and dine-in): one whole-bill discount — percent or
+  amount plus a required reason chip (reasons come from `GET /sales/discount-policy`). Applying
+  re-fetches the server quote WITH the discount, so the big total is always the discounted
+  authoritative number; a removable chip shows `Discount −6.00 SAR · LOYALTY`. The discount
+  locks once any tender is added.
+- **Manager approval**: a discount over the cashier cap (policy `cashierMaxPercent` /
+  `cashierMaxAmount`) shows an amber hint in the modal and, at tender time, a manager code+PIN
+  modal. The manager's token (via `POST /auth/pin-login`) rides exactly ONE call — the
+  checkout/close POST — and is discarded; the cashier stays signed in. A rejected override
+  never signs the cashier out.
+
+Manual E2E (requires `--spring.profiles.active=embedded,dev` backend, login `manager`/`manager`
+or a seeded cashier):
+
+1. Retail sale → payment: apply 5% LOYALTY → total re-quotes lower, chip appears, tenders
+   re-enable only after the re-quote lands. Pay cash. Receipt shows the discount row.
+2. Apply 15% as a CASHIER (over the 10% cap): the modal shows the amber approval hint; tapping
+   a tender opens the manager PIN modal; a manager approves; the sale closes; the toolbar user
+   is still the cashier.
+3. Wrong PIN → error surfaces on the payment screen, cashier still signed in, retry works.
+4. Remove discount (✕) → total re-quotes back up.
+5. Dine-in order → close via payment screen with a 15% discount → same approval path, service
+   charge visibly computed on the discounted base.
+
 ## Manual end-to-end walkthrough
 
 With a backend running and seeded per above, launch the terminal (`javafx:run`)
