@@ -217,6 +217,9 @@ public class PaymentController {
         if (discount == null) {
             // The undiscounted subtotal is the server's cap base (no line discounts here);
             // captured only from discount-less quotes so re-quotes don't shrink it.
+            // Caveat: under tax.inclusive=true the quote subtotal is net-of-tax while the
+            // server's cap base is gross, so the local hint can under-flag — the server's
+            // checkout rejection (approvalNeeded's error fallback) remains the authority.
             baseSubtotal = q.subtotal();
         }
         boolean hasDiscount = discount != null && q.discountTotal() != null
