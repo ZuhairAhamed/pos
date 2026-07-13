@@ -249,8 +249,8 @@ proposed partition using the same code path that `close-split` charges (any auth
 
 Pure calculator: creates no sale, the order stays OPEN. The partition is validated exactly as at
 close — every line in exactly one bill, no duplicates, ≥ 1 line per bill — so mistakes fail at
-quote time rather than at close. No discount/waiver fields in the body; a discounted split close
-bypasses the quote and is out of scope.
+quote time rather than at close. No discount/waiver fields in the body — the terminal split UI
+carries no discounts; a discounted split close is out of scope.
 
 **`GET /sales/discount-policy`** returns `{ cashierMaxPercent, cashierMaxAmount, reasonCodes }`
 so terminals can render reason-code choices and prompt for manager approval before tendering.
