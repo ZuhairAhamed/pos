@@ -14,7 +14,6 @@ import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TitledPane;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -54,7 +53,7 @@ public final class StartShiftDialog {
         VBox floatBox = new VBox(6, floatLabel, floatField);
         floatBox.getStyleClass().add("field");
 
-        VBox box = new VBox(16, signedIn, floatBox, pinPad(floatField), denominationPane(floatField));
+        VBox box = new VBox(16, signedIn, floatBox, Keypads.numericPad(floatField), denominationPane(floatField));
         box.setAlignment(Pos.TOP_CENTER);
         dialog.getDialogPane().setContent(box);
 
@@ -81,35 +80,6 @@ public final class StartShiftDialog {
         }
     }
 
-    /** 3×4 numeric pad appending to the target field — same form language as the login pad. */
-    private static GridPane pinPad(TextField target) {
-        GridPane pad = new GridPane();
-        pad.getStyleClass().add("pin-pad");
-        pad.setAlignment(Pos.CENTER);
-        String[][] keys = {{"1", "2", "3"}, {"4", "5", "6"}, {"7", "8", "9"}, {".", "0", "⌫"}};
-        for (int r = 0; r < keys.length; r++) {
-            for (int c = 0; c < keys[r].length; c++) {
-                String key = keys[r][c];
-                Button b = new Button(key);
-                b.getStyleClass().add("pin-key");
-                if (".".equals(key) || "⌫".equals(key)) {
-                    b.getStyleClass().add("pin-key-alt");
-                }
-                b.setOnAction(e -> {
-                    String t = target.getText() == null ? "" : target.getText();
-                    if ("⌫".equals(key)) {
-                        if (!t.isEmpty()) {
-                            target.setText(t.substring(0, t.length() - 1));
-                        }
-                    } else {
-                        target.setText(t + key);
-                    }
-                });
-                pad.add(b, c, r);
-            }
-        }
-        return pad;
-    }
 
     /** Optional counting helper: a stepper row per SAR note; the total overwrites the float field. */
     private static TitledPane denominationPane(TextField floatField) {
