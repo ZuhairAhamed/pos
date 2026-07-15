@@ -243,15 +243,62 @@
 .table-free:hover   { -fx-background-color: derive(-fx-success, 80%); }
 .table-free:pressed { -fx-background-color: derive(-fx-success, 70%); }
 
-.table-occupied {
-    -fx-background-color: derive(-fx-danger, 90%);
-    -fx-text-fill: -fx-danger;
-    -fx-border-color: -fx-danger;
-}
-.table-occupied:hover   { -fx-background-color: derive(-fx-danger, 80%); }
-.table-occupied:pressed { -fx-background-color: derive(-fx-danger, 70%); }
-
 .table-cell:focused { -fx-border-color: -fx-ink; }
+
+/* Seated (order open, no items yet) — amber; Active (has items) — emerald. State is also
+   carried in the tile caption text ("Seated"/"In use"), never colour alone. */
+.table-seated {
+    -fx-background-color: derive(-fx-accent, 82%);
+    -fx-text-fill: derive(-fx-accent, -25%);
+    -fx-border-color: -fx-accent;
+}
+.table-seated:hover   { -fx-background-color: derive(-fx-accent, 72%); }
+.table-seated:pressed { -fx-background-color: derive(-fx-accent, 62%); }
+
+.table-active {
+    -fx-background-color: derive(-fx-primary, 86%);
+    -fx-text-fill: -fx-primary-press;
+    -fx-border-color: -fx-primary;
+}
+.table-active:hover   { -fx-background-color: derive(-fx-primary, 78%); }
+.table-active:pressed { -fx-background-color: derive(-fx-primary, 70%); }
+
+/* Long-open marker: a thick accent border. The caption also carries a ⏰ glyph. */
+.attention-badge { -fx-border-color: -fx-accent; -fx-border-width: 4; }
+
+/* Tables|Takeaway segmented control — mirrors .mode-toggle sizing. */
+.segmented { -fx-border-color: -fx-border; -fx-border-radius: 8; -fx-background-radius: 8; }
+.segment {
+    -fx-min-height: 56px;
+    -fx-min-width: 128px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-color: -fx-canvas;
+    -fx-text-fill: -fx-ink;
+    -fx-background-radius: 8;
+    -fx-padding: 8 20 8 20;
+}
+.segment:selected { -fx-background-color: -fx-primary; -fx-text-fill: white; }
+.segment:hover    { -fx-border-color: -fx-primary; }
+.segment:focused  { -fx-border-width: 2; }
+
+/* Takeaway list row — a wide tappable card. */
+.takeaway-row {
+    -fx-min-height: 56px;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-alignment: CENTER_LEFT;
+    -fx-background-color: -fx-card;
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-border;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 12 20 12 20;
+    -fx-cursor: hand;
+}
+.takeaway-row:hover   { -fx-border-color: -fx-primary; }
+.takeaway-row:pressed { -fx-background-color: derive(-fx-card, -6%); }
+.takeaway-row:focused { -fx-border-color: -fx-ink; -fx-border-width: 2; }
 
 .table-scroll {
     -fx-background-color: transparent;

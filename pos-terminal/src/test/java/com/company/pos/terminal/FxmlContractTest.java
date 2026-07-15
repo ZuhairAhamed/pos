@@ -90,4 +90,15 @@ class FxmlContractTest {
             assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing tender/result node: " + id);
         }
     }
+
+    @Test
+    void tableMapDeclaresSegmentedAndTakeawayNodes() throws Exception {
+        String fxml = resource("/fxml/table-map.fxml");
+        for (String id : new String[] {
+            "tablesSegment", "takeawaySegment", "tablesPane", "takeawayPane",
+            "newTakeawayButton", "takeawayList", "tableFlow"
+        }) {
+            assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing table-map node: " + id);
+        }
+    }
 }

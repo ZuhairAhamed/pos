@@ -79,4 +79,15 @@ class AppCssTest {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }
     }
+
+    @Test
+    void definesSliceSevenClasses() throws Exception {
+        String css = css();
+        for (String cls : new String[] {
+            ".segmented", ".segment", ".table-seated", ".table-active",
+            ".attention-badge", ".takeaway-row"
+        }) {
+            assertTrue(css.contains(cls), "missing style class: " + cls);
+        }
+    }
 }
