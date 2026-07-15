@@ -88,4 +88,11 @@ class TerminalConfigTest {
                 IllegalArgumentException.class, () -> TerminalConfig.from(p));
         assertTrue(ex.getMessage().contains("soon"));
     }
+
+    @Test
+    void loadReadsTakeawayPrefixWithTrailingSpaceFromPropertiesFile() {
+        TerminalConfig cfg = TerminalConfig.load();
+        assertEquals("Counter ", cfg.takeawayLabelPrefix(),
+                "shipped pos-terminal.properties must keep the trailing space so counter labels match");
+    }
 }
