@@ -142,7 +142,7 @@ class DefaultDiningService implements DiningService {
         return orders.findByStatus(OrderStatus.OPEN).stream()
                 .map(o -> new OpenOrderView(o.getId(), o.getTableId(),
                         tables.findById(o.getTableId()).map(DiningTable::getLabel).orElse(null),
-                        o.getOpenedAt(), o.getLines().size()))
+                        o.getOpenedAt(), o.getLines().size(), o.getServiceType()))
                 .toList();
     }
 

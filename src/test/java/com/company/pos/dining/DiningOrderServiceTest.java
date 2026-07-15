@@ -75,4 +75,20 @@ class DiningOrderServiceTest {
         assertThat(dining.listOpenOrders())
                 .extracting(OpenOrderView::orderId).contains(opened.id());
     }
+
+    @Test
+    void listOpenOrdersCarriesServiceType() {
+        UUID dineTable = freshTable("SVC-DINE-" + UUID.randomUUID());
+        UUID counterTable = freshTable("SVC-CNT-" + UUID.randomUUID());
+        UUID dineOrder = dining.openOrder(
+                new OpenOrderCommand(dineTable, ServiceType.DINE_IN), "alice").id();
+        UUID takeawayOrder = dining.openOrder(
+                new OpenOrderCommand(counterTable, ServiceType.QUICK_SERVICE), "alice").id();
+
+        var byId = dining.listOpenOrders().stream()
+                .collect(java.util.stream.Collectors.toMap(OpenOrderView::orderId, o -> o));
+
+        assertThat(byId.get(dineOrder).serviceType()).isEqualTo(ServiceType.DINE_IN);
+        assertThat(byId.get(takeawayOrder).serviceType()).isEqualTo(ServiceType.QUICK_SERVICE);
+    }
 }
