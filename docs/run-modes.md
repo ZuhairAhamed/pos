@@ -508,3 +508,41 @@ Operational insight, composed on-demand from module facades (no new tables). "To
 - `GET /dashboard/open-shifts` — currently-open shifts + derived active cashiers.
 
 Config key: `dashboard.revenue.window.days` (default `7`) sets the revenue rolling window.
+
+## Dining (Restaurant track: Phases 10–13b)
+
+A parallel track for table-service restaurant operations, with modules `dining`, `menu`,
+`kitchen`, and `shift`. The core API includes:
+
+```
+POST   /dining/tables                      {"label","serviceType"}              -> TableView
+GET    /dining/tables                                                          -> [TableView...]
+POST   /dining/orders                      {"tableId","serviceType"}          -> OrderView
+GET    /dining/orders/{orderId}                                               -> OrderView
+GET    /dining/orders                      (open-order summaries)             -> [OpenOrderView...]
+POST   /dining/orders/{orderId}/close      {"tendered","change",...}         -> 201 SaleView
+```
+
+**Open-order summaries** — `GET /dining/orders` returns a list of `OpenOrderView` with:
+`{ id, tableLabel, serviceType, openMinutes, lineCount, attention }`. The `serviceType`
+field indicates `DINE_IN` (table with applied service charge) or `QUICK_SERVICE` (counter or takeaway,
+no service charge). Takeaway is not a separate concept — a takeaway order is a `QUICK_SERVICE`
+order opened against a counter-labelled table. Service charge is already gated on `DINE_IN`
+in the quote/close paths (`resolveApplyServiceCharge`), so takeaway orders quote and close
+untaxed with no dedicated code path. No schema change — `serviceType` is a projection of the
+existing `service_type` column on the `dining_order` table.
+
+**Table registration** — `POST /dining/tables` registers a new dining table or counter (identified
+by `serviceType`: `DINE_IN` for floor tables, `QUICK_SERVICE` for counter service like takeaway).
+The terminal consumes this list to populate the table map and counter selector.
+
+**Quote and split-bill** — `POST /dining/orders/{orderId}/quote` (with optional discounts) and
+`POST /dining/orders/{orderId}/quote-split` (with partition) price orders before close, excluding
+service charge from `QUICK_SERVICE` orders by construction.
+
+**Dwell and attention** — the `openMinutes` is the wall-clock duration since the order was opened;
+the `attention` flag indicates whether the order has exceeded a configured dwell threshold
+(`dining.dwell.attention.minutes`, default 45 min) and may need intervention.
+
+Deferred: menu modifiers/variants, kitchen-print routing, shift-level reconciliation, and
+customer notifications.

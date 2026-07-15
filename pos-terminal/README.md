@@ -241,3 +241,21 @@ and walk the flow:
 
 If the backend is stopped mid-flow, actions surface the unreachable-server error
 rather than proceeding.
+
+## Slice 7 — Table states + takeaway (manual E2E)
+
+Run the backend with seed data (`--spring.profiles.active=embedded,dev` — this now seeds
+tables `T1`–`T6` and `Counter 1`–`Counter 3`), then `./mvnw -f pos-terminal/pom.xml javafx:run`
+and log in as `manager` / `manager`.
+
+1. **Dine-in states.** On **Tables**, every table shows **Open**. Tap `T1` → order screen →
+   Back to tables: `T1` now shows **Seated · 0m**. Add an item to `T1`, return: it shows
+   **In use · Nm**. Leave it open past the dwell window (default 45 min, or set
+   `-Ddining.dwell.attention.minutes=1`): the tile gains a ⏰ marker and thick accent border.
+2. **New takeaway.** Switch to the **Takeaway** segment → **+ New takeaway** → the order screen
+   opens on a counter. Add items and pay: confirm the quote shows **no service charge** (takeaway
+   is `QUICK_SERVICE`). The counter tile never appears on the dine-in **Tables** grid.
+3. **Takeaway list + resume.** Open two takeaway orders; both appear as rows under **Takeaway**
+   with item count and dwell. Tap a row to resume that order.
+4. **All counters busy.** Open takeaway orders on all three counters, then **+ New takeaway** →
+   the error banner shows "All counters are busy" and no navigation occurs.
