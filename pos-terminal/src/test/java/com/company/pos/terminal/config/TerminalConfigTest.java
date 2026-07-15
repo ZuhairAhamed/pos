@@ -62,4 +62,30 @@ class TerminalConfigTest {
         p.setProperty("ui.reduced-motion", "true");
         assertTrue(com.company.pos.terminal.config.TerminalConfig.from(p).reducedMotion());
     }
+
+    @Test
+    void takeawayPrefixAndDwellDefaults() {
+        TerminalConfig cfg = TerminalConfig.from(new Properties());
+        assertEquals("Counter ", cfg.takeawayLabelPrefix());
+        assertEquals(java.time.Duration.ofMinutes(45), cfg.dwellAttention());
+    }
+
+    @Test
+    void takeawayPrefixAndDwellFromProperties() {
+        Properties p = new Properties();
+        p.setProperty("dining.takeaway.label-prefix", "TA-");
+        p.setProperty("dining.dwell.attention.minutes", "20");
+        TerminalConfig cfg = TerminalConfig.from(p);
+        assertEquals("TA-", cfg.takeawayLabelPrefix());
+        assertEquals(java.time.Duration.ofMinutes(20), cfg.dwellAttention());
+    }
+
+    @Test
+    void nonNumericDwellThrowsWithBadValue() {
+        Properties p = new Properties();
+        p.setProperty("dining.dwell.attention.minutes", "soon");
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class, () -> TerminalConfig.from(p));
+        assertTrue(ex.getMessage().contains("soon"));
+    }
 }

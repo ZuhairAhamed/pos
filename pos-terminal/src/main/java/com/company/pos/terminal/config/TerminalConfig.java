@@ -2,6 +2,7 @@ package com.company.pos.terminal.config;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.Properties;
 
 public final class TerminalConfig {
@@ -10,6 +11,8 @@ public final class TerminalConfig {
     private final String storeId;
     private final int pollIntervalSeconds;
     private final boolean reducedMotion;
+    private final String takeawayLabelPrefix;
+    private final Duration dwellAttention;
 
     private TerminalConfig(Properties p) {
         this.serverBaseUrl = p.getProperty("server.base-url", "http://localhost:8080");
@@ -23,6 +26,14 @@ public final class TerminalConfig {
                     "poll.interval.seconds must be an integer, got: " + rawInterval, e);
         }
         this.reducedMotion = Boolean.parseBoolean(p.getProperty("ui.reduced-motion", "false"));
+        this.takeawayLabelPrefix = p.getProperty("dining.takeaway.label-prefix", "Counter ");
+        String rawDwell = p.getProperty("dining.dwell.attention.minutes", "45");
+        try {
+            this.dwellAttention = Duration.ofMinutes(Integer.parseInt(rawDwell));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "dining.dwell.attention.minutes must be an integer, got: " + rawDwell, e);
+        }
     }
 
     public static TerminalConfig from(Properties p) {
@@ -37,7 +48,7 @@ public final class TerminalConfig {
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read pos-terminal.properties", e);
         }
-        for (String key : new String[]{"server.base-url", "terminal.id", "store.id", "poll.interval.seconds", "ui.reduced-motion"}) {
+        for (String key : new String[]{"server.base-url", "terminal.id", "store.id", "poll.interval.seconds", "ui.reduced-motion", "dining.takeaway.label-prefix", "dining.dwell.attention.minutes"}) {
             String override = System.getProperty(key);
             if (override != null) p.setProperty(key, override);
         }
@@ -49,4 +60,6 @@ public final class TerminalConfig {
     public String storeId() { return storeId; }
     public int pollIntervalSeconds() { return pollIntervalSeconds; }
     public boolean reducedMotion() { return reducedMotion; }
+    public String takeawayLabelPrefix() { return takeawayLabelPrefix; }
+    public Duration dwellAttention() { return dwellAttention; }
 }
