@@ -45,7 +45,8 @@ class DiningApiTest {
     void openOrdersParsesOpenOrderSummaries() throws Exception {
         String json = "[{\"orderId\":\"33333333-3333-3333-3333-333333333333\","
                 + "\"tableId\":\"44444444-4444-4444-4444-444444444444\",\"tableLabel\":\"T1\","
-                + "\"openedAt\":\"2026-07-11T10:00:00Z\",\"lineCount\":3}]";
+                + "\"openedAt\":\"2026-07-11T10:00:00Z\",\"lineCount\":3,"
+                + "\"serviceType\":\"QUICK_SERVICE\"}]";
         try (StubServer stub = new StubServer(200, json, "application/json")) {
             DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
             List<OpenOrderView> orders = api.openOrders();
@@ -53,8 +54,21 @@ class DiningApiTest {
             assertEquals(ORDER_ID, orders.get(0).orderId());
             assertEquals("T1", orders.get(0).tableLabel());
             assertEquals(3, orders.get(0).lineCount());
+            assertEquals("QUICK_SERVICE", orders.get(0).serviceType());
             assertEquals("GET", stub.lastMethod);
             assertEquals("/dining/orders", stub.lastPath);
+        }
+    }
+
+    @Test
+    void openOrderPostsQuickServiceWhenRequested() throws Exception {
+        try (StubServer stub = new StubServer(201, ORDER_JSON, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            api.openOrder(TABLE_ID, "QUICK_SERVICE");
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders", stub.lastPath);
+            assertTrue(stub.lastBody.contains("\"serviceType\":\"QUICK_SERVICE\""));
+            assertTrue(stub.lastBody.contains("tableId"));
         }
     }
 

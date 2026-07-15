@@ -32,7 +32,7 @@ class TableMapViewModelTest {
 
             @Override
             public List<OpenOrderView> openOrders() {
-                return List.of(new OpenOrderView(openOrderId, t1, "T1", Instant.now(), 0));
+                return List.of(new OpenOrderView(openOrderId, t1, "T1", Instant.now(), 0, "DINE_IN"));
             }
         };
     }
@@ -81,7 +81,7 @@ class TableMapViewModelTest {
 
                     @Override
                     public List<OpenOrderView> openOrders() {
-                        return List.of(new OpenOrderView(openOrderId, t1, "T1", Instant.now(), 0));
+                        return List.of(new OpenOrderView(openOrderId, t1, "T1", Instant.now(), 0, "DINE_IN"));
                     }
 
                     @Override

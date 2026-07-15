@@ -41,7 +41,12 @@ public class DiningApi {
     }
 
     public OrderView openOrder(UUID tableId) {
-        return client.post("/dining/orders", new OpenOrderRequest(tableId, "DINE_IN"),
+        return openOrder(tableId, "DINE_IN");
+    }
+
+    /** Opens a dining order of the given service type ({@code "DINE_IN"} or {@code "QUICK_SERVICE"}). */
+    public OrderView openOrder(UUID tableId, String serviceType) {
+        return client.post("/dining/orders", new OpenOrderRequest(tableId, serviceType),
                 new TypeReference<OrderView>() {});
     }
 
