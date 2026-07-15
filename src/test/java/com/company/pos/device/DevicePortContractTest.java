@@ -54,6 +54,15 @@ class DevicePortContractTest {
         assertThat(printer.cuts).isEqualTo(1);
     }
 
+    /** A fake fulfilling the Emailer port — proves the interface is implementable/usable. */
+    static final class FakeEmailer implements com.company.pos.device.api.Emailer {
+        final List<com.company.pos.device.api.EmailMessage> sent = new ArrayList<>();
+        @Override
+        public void send(com.company.pos.device.api.EmailMessage message) {
+            sent.add(message);
+        }
+    }
+
     @Test
     void cashDrawerOpensFromClosed() {
         FakeCashDrawer drawer = new FakeCashDrawer();
@@ -61,5 +70,15 @@ class DevicePortContractTest {
         assertThat(drawer.isOpen()).isFalse();
         drawer.open();
         assertThat(drawer.isOpen()).isTrue();
+    }
+
+    @Test
+    void emailerAcceptsAMessage() {
+        FakeEmailer emailer = new FakeEmailer();
+        emailer.send(new com.company.pos.device.api.EmailMessage("a@b.com", "Receipt S1", "TOTAL 10.00"));
+        assertThat(emailer.sent).hasSize(1);
+        assertThat(emailer.sent.get(0).to()).isEqualTo("a@b.com");
+        assertThat(emailer.sent.get(0).subject()).isEqualTo("Receipt S1");
+        assertThat(emailer.sent.get(0).body()).contains("TOTAL");
     }
 }

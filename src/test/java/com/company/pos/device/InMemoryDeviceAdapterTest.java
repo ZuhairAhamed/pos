@@ -22,6 +22,10 @@ class InMemoryDeviceAdapterTest {
     CashDrawer drawer;
     @Autowired
     InMemoryPrinter inMemoryPrinter;
+    @Autowired
+    com.company.pos.device.api.Emailer emailer;
+    @Autowired
+    com.company.pos.device.infrastructure.InMemoryEmailer inMemoryEmailer;
 
     @Test
     void printerCapturesLinesAndCuts() {
@@ -39,5 +43,13 @@ class InMemoryDeviceAdapterTest {
     void drawerOpensAndReportsState() {
         drawer.open();
         assertThat(drawer.isOpen()).isTrue();
+    }
+
+    @Test
+    void emailerRecordsSentMessages() {
+        inMemoryEmailer.clear();
+        emailer.send(new com.company.pos.device.api.EmailMessage("guest@example.com", "Receipt", "TOTAL 10.00"));
+        assertThat(inMemoryEmailer.sent()).extracting(com.company.pos.device.api.EmailMessage::to)
+                .containsExactly("guest@example.com");
     }
 }
