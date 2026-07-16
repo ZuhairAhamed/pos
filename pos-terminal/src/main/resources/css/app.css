@@ -321,7 +321,7 @@
 }
 
 /* A fired line is locked: shown muted + italic so the badge is not the only cue. */
-.order-lines .list-cell.order-line-fired {
+.cart-line.order-line-fired .label {
     -fx-text-fill: -fx-muted;
     -fx-font-style: italic;
 }

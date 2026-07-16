@@ -105,5 +105,7 @@ class AppCssTest {
         for (String cls : new String[] { ".course-chip", ".line-remove" }) {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }
+        assertTrue(css.contains(".cart-line.order-line-fired"),
+                "fired-row muted style must use a live (non-.list-cell) selector");
     }
 }
