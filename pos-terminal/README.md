@@ -259,3 +259,15 @@ and log in as `manager` / `manager`.
    with item count and dwell. Tap a row to resume that order.
 4. **All counters busy.** Open takeaway orders on all three counters, then **+ New takeaway** →
    the error banner shows "All counters are busy" and no navigation occurs.
+
+## Slice 8 — Email receipt (manual)
+
+Run backend with `--spring.profiles.active=embedded,dev`; login `manager`/`manager`; `./mvnw -f pos-terminal/pom.xml javafx:run`.
+
+1. **Retail:** ring a retail sale, take payment. On the success screen tap **Email receipt**,
+   type `guest@example.com`, tap **Send** → the dialog closes and a green "Sent to guest@example.com"
+   note appears. Check the backend log for `EMAIL to=guest@example.com subject=Your receipt …`.
+2. **Dine-in:** seat a table, add items, close the whole order, pay. Same **Email receipt** flow on
+   the success screen.
+3. **Validation:** tap **Email receipt**, leave the field blank (or type `nope`), tap **Send** →
+   the dialog stays open and the error line reads "Enter a valid email address"; no email is logged.

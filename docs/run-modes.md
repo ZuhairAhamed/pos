@@ -62,6 +62,7 @@ DELETE /carts/{cartId}/lines/{sku}                          -> CartView
 POST   /sales                          {"cartId","amountTendered"} -> 201 SaleView
 GET    /sales/{saleId}                 -> SaleView
 POST   /sales/{saleId}/reprint         -> 204
+POST   /sales/{saleId}/send-receipt    {"email"}            -> 204
 ```
 
 Checkout prices the cart, applies VAT, takes a cash tender (rejecting short payment),
@@ -77,6 +78,12 @@ Config (env overridable via the `configuration` settings store):
 > JavaPOS/ESC-POS adapter implements `com.company.pos.device.api.Printer` later with no
 > change to the `receipt`/`sales` modules. Card/QR tenders, split payment, void, hold/resume,
 > and cashdrawer/shift reconciliation arrive in Phase 2b; returns/exchanges are a later plan.
+
+- `POST /sales/{saleId}/send-receipt` — emails the stored sale's receipt to the address in the
+  `{ "email": "..." }` body. Renders the same content as the printed slip via the `Emailer` port
+  (an `InMemoryEmailer` fake this phase — logs and records mail; a real SMTP adapter drops in
+  later). 204 on success; 400 for a blank/malformed address; 404 for an unknown sale. Any
+  authenticated user (same as reprint).
 
 ## Event outbox & resilience (Phase 3a)
 
