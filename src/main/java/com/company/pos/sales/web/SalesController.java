@@ -79,4 +79,14 @@ class SalesController {
     void reprint(@PathVariable UUID saleId) {
         sales.reprint(saleId);
     }
+
+    /** Body for POST /sales/{saleId}/send-receipt. */
+    record EmailReceiptRequest(String email) {
+    }
+
+    @PostMapping("/sales/{saleId}/send-receipt")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void sendReceipt(@PathVariable UUID saleId, @RequestBody EmailReceiptRequest body) {
+        sales.emailReceipt(saleId, body.email());
+    }
 }

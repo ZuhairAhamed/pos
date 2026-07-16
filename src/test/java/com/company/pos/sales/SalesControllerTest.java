@@ -78,4 +78,44 @@ class SalesControllerTest {
         mvc.perform(post("/sales").contentType("application/json").content("{}"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    void emailReceiptReturnsNoContent() throws Exception {
+        UUID cart = carts.createCart();
+        carts.addLine(cart, "COLA", new BigDecimal("1"));
+        String body = mvc.perform(post("/sales").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"cartId\":\"" + cart + "\",\"tenders\":[{\"method\":\"CASH\",\"tendered\":10.00}]}"))
+                .andReturn().getResponse().getContentAsString();
+        String saleId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
+
+        mvc.perform(post("/sales/" + saleId + "/send-receipt").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"email\":\"guest@example.com\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void emailReceiptRejectsMalformedAddress() throws Exception {
+        UUID cart = carts.createCart();
+        carts.addLine(cart, "COLA", new BigDecimal("1"));
+        String body = mvc.perform(post("/sales").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"cartId\":\"" + cart + "\",\"tenders\":[{\"method\":\"CASH\",\"tendered\":10.00}]}"))
+                .andReturn().getResponse().getContentAsString();
+        String saleId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
+
+        mvc.perform(post("/sales/" + saleId + "/send-receipt").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"email\":\"not-an-email\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void emailReceiptUnknownSaleReturnsNotFound() throws Exception {
+        mvc.perform(post("/sales/" + UUID.randomUUID() + "/send-receipt").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"email\":\"guest@example.com\"}"))
+                .andExpect(status().isNotFound());
+    }
 }

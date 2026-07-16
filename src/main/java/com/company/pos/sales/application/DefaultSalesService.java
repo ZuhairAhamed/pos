@@ -308,30 +308,46 @@ class DefaultSalesService implements SalesService {
         printReceipt(sale, payments.findBySale(saleId));
     }
 
+    private ReceiptData buildReceiptData(Sale sale, List<PaymentView> salePayments) {
+        List<ReceiptLineData> lines = sale.getLines().stream()
+                .map(l -> {
+                    List<ReceiptLineModifierData> mods = l.getModifiers().stream()
+                            .map(m -> new ReceiptLineModifierData(m.getName(), m.getPriceDelta()))
+                            .toList();
+                    return new ReceiptLineData(l.getName(), l.getQuantity(), l.getUnitPrice(),
+                            l.getLineTotal(), l.getGrossAmount(), l.getLineDiscountAmount(), mods);
+                })
+                .toList();
+        List<ReceiptPaymentData> pays = salePayments.stream()
+                .map(p -> new ReceiptPaymentData(p.method(), p.amount(), p.amountTendered(),
+                        p.changeDue(), p.maskedPan()))
+                .toList();
+        return new ReceiptData(sale.getReceiptNumber(), sale.getCashierUsername(),
+                sale.getCreatedAt(), lines, sale.getSubtotal(), sale.getTaxTotal(),
+                sale.getGrandTotal(), pays, sale.getCurrencyCode(), sale.getDiscountTotal(),
+                sale.getTxnDiscountAmount(), sale.getTxnDiscountReason(),
+                sale.getServiceChargeAmount());
+    }
+
     private void printReceipt(Sale sale, List<PaymentView> salePayments) {
         try {
-            List<ReceiptLineData> lines = sale.getLines().stream()
-                    .map(l -> {
-                        List<ReceiptLineModifierData> mods = l.getModifiers().stream()
-                                .map(m -> new ReceiptLineModifierData(m.getName(), m.getPriceDelta()))
-                                .toList();
-                        return new ReceiptLineData(l.getName(), l.getQuantity(), l.getUnitPrice(),
-                                l.getLineTotal(), l.getGrossAmount(), l.getLineDiscountAmount(), mods);
-                    })
-                    .toList();
-            List<ReceiptPaymentData> pays = salePayments.stream()
-                    .map(p -> new ReceiptPaymentData(p.method(), p.amount(), p.amountTendered(),
-                            p.changeDue(), p.maskedPan()))
-                    .toList();
-            receipts.print(new ReceiptData(sale.getReceiptNumber(), sale.getCashierUsername(),
-                    sale.getCreatedAt(), lines, sale.getSubtotal(), sale.getTaxTotal(),
-                    sale.getGrandTotal(), pays, sale.getCurrencyCode(), sale.getDiscountTotal(),
-                    sale.getTxnDiscountAmount(), sale.getTxnDiscountReason(),
-                    sale.getServiceChargeAmount()));
+            receipts.print(buildReceiptData(sale, salePayments));
         } catch (RuntimeException ex) {
             log.warn("Receipt print failed for sale {} ({}) — sale is recorded; reprint available",
                     sale.getId(), sale.getReceiptNumber(), ex);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void emailReceipt(UUID saleId, String toAddress) {
+        String addr = toAddress == null ? "" : toAddress.trim();
+        if (addr.isBlank() || !addr.contains("@")) {
+            throw DomainException.validation("A valid email address is required");
+        }
+        Sale sale = sales.findById(saleId)
+                .orElseThrow(() -> DomainException.notFound("No sale " + saleId));
+        receipts.emailReceipt(addr, buildReceiptData(sale, payments.findBySale(saleId)));
     }
 
     private SaleView toView(Sale sale, List<PaymentView> salePayments) {

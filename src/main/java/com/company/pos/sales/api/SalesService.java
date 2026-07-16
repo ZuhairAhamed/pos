@@ -21,6 +21,13 @@ public interface SalesService {
     void reprint(UUID saleId);
 
     /**
+     * Renders the stored sale's receipt and emails it to {@code toAddress}. Throws a
+     * validation error (400) for a blank/malformed address and not-found (404) for an
+     * unknown sale. Unlike print, delivery failure is NOT swallowed.
+     */
+    void emailReceipt(UUID saleId, String toAddress);
+
+    /**
      * Read-only pricing pass: prices the cart with NO discounts, applies tax, returns the totals.
      * Creates no sale, takes no payment, fires no event. Used to learn a cart's total up front
      * (e.g. to split it evenly).
