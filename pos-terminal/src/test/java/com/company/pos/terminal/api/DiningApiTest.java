@@ -123,13 +123,25 @@ class DiningApiTest {
     }
 
     @Test
-    void updateLineSendsQtyAsQueryParam() throws Exception {
+    void updateLineSendsQtyNoteAndCourseAsQueryParams() throws Exception {
         try (StubServer stub = new StubServer(200, ORDER_JSON, "application/json")) {
             DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
-            api.updateLine(ORDER_ID, LINE_ID, new BigDecimal("3"));
+            api.updateLine(ORDER_ID, LINE_ID, new BigDecimal("3"), "no onion", "STARTER");
             assertEquals("PUT", stub.lastMethod);
             assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/lines/"
                     + "66666666-6666-6666-6666-666666666666", stub.lastPath);
+            assertTrue(stub.lastQuery.contains("qty=3"), stub.lastQuery);
+            assertTrue(stub.lastQuery.contains("note=no+onion"), stub.lastQuery);
+            assertTrue(stub.lastQuery.contains("course=STARTER"), stub.lastQuery);
+        }
+    }
+
+    @Test
+    void updateLineOmitsNullNoteAndCourse() throws Exception {
+        try (StubServer stub = new StubServer(200, ORDER_JSON, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            api.updateLine(ORDER_ID, LINE_ID, new BigDecimal("3"), null, null);
+            assertEquals("PUT", stub.lastMethod);
             assertEquals("qty=3", stub.lastQuery);
         }
     }

@@ -91,7 +91,7 @@ public class OrderViewModel {
             ui.accept(() -> errorMessage.set("Fired lines cannot be changed"));
             return;
         }
-        apply(() -> dining.updateLine(order.id(), line.id(), qty));
+        apply(() -> dining.updateLine(order.id(), line.id(), qty, line.note(), line.course()));
     }
 
     public void removeLine(OrderLineView line) {

@@ -15,6 +15,8 @@ import com.company.pos.terminal.api.dto.SplitQuoteView;
 import com.company.pos.terminal.api.dto.TableView;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -55,10 +57,21 @@ public class DiningApi {
                 new TypeReference<OrderView>() {});
     }
 
-    /** The server takes {@code qty} as a query parameter (not a body). */
-    public OrderView updateLine(UUID orderId, UUID lineId, BigDecimal qty) {
-        return client.put("/dining/orders/" + orderId + "/lines/" + lineId + "?qty=" + qty, null,
-                new TypeReference<OrderView>() {});
+    /**
+     * Updates a line. The server's endpoint is a FULL REPLACE — it overwrites qty, note, and
+     * course on every call — so callers must pass the line's current note/course to preserve them.
+     * qty/note/course are query params ({@code note} is URL-encoded; null note/course are omitted).
+     */
+    public OrderView updateLine(UUID orderId, UUID lineId, BigDecimal qty, String note, String course) {
+        StringBuilder path = new StringBuilder("/dining/orders/").append(orderId)
+                .append("/lines/").append(lineId).append("?qty=").append(qty);
+        if (note != null) {
+            path.append("&note=").append(URLEncoder.encode(note, StandardCharsets.UTF_8));
+        }
+        if (course != null) {
+            path.append("&course=").append(URLEncoder.encode(course, StandardCharsets.UTF_8));
+        }
+        return client.put(path.toString(), null, new TypeReference<OrderView>() {});
     }
 
     /** DELETE returns the updated order server-side, but {@link ApiClient#delete} is void, so re-fetch. */

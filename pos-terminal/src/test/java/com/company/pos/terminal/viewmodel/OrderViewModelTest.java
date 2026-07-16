@@ -123,7 +123,7 @@ class OrderViewModelTest {
                     }
 
                     @Override
-                    public OrderView updateLine(UUID oid, UUID lineId, BigDecimal qty) {
+                    public OrderView updateLine(UUID oid, UUID lineId, BigDecimal qty, String note, String course) {
                         return orderWith(List.of(after));
                     }
                 };
