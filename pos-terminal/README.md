@@ -271,3 +271,19 @@ Run backend with `--spring.profiles.active=embedded,dev`; login `manager`/`manag
    the success screen.
 3. **Validation:** tap **Email receipt**, leave the field blank (or type `nope`), tap **Send** →
    the dialog stays open and the error line reads "Enter a valid email address"; no email is logged.
+
+## Slice 9 — Inline course tags + quantity edit (manual E2E)
+
+The dine-in **order** screen now edits lines inline (like the retail cart):
+
+1. **Prereq** — run the backend with `embedded,dev` and log in (`manager`/`manager`).
+   Open a table and add a couple of products (at least one with a modifier group).
+2. **Quantity** — each un-fired row shows `[−] qty [+]`. Tap `+`/`−`; the estimated
+   subtotal updates. `−` is disabled at qty 1 (use `×` to remove the line).
+3. **Course** — each un-fired row has a course dropdown (Starter/Main/Dessert/Drink),
+   defaulting to Main. Change it; the server persists it (visible after re-open).
+4. **Note is preserved** — changing qty or course on a line with a note keeps the note
+   (the server endpoint is a full replace; the terminal resends qty+note+course).
+5. **Remove** — the `×` button removes an un-fired line.
+6. **Fired lock** — after **Fire to kitchen**, fired lines render muted with a `[fired]`
+   badge and NO edit controls (no steppers, course dropdown, or remove).
