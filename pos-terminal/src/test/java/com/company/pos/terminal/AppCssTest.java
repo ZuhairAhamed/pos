@@ -90,4 +90,12 @@ class AppCssTest {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }
     }
+
+    @Test
+    void definesSliceEightClasses() throws Exception {
+        String css = css();
+        for (String cls : new String[] { ".email-dialog", ".email-confirm" }) {
+            assertTrue(css.contains(cls), "missing style class: " + cls);
+        }
+    }
 }

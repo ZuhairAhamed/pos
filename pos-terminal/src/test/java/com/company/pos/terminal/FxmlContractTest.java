@@ -101,4 +101,15 @@ class FxmlContractTest {
             assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing table-map node: " + id);
         }
     }
+
+    @Test
+    void paymentDeclaresEmailReceiptNodes() throws Exception {
+        String fxml = resource("/fxml/payment.fxml");
+        for (String id : new String[] {
+            "emailReceiptButton", "emailDialog", "emailField",
+            "emailSendButton", "emailCancelButton", "emailConfirmLabel"
+        }) {
+            assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing email node: " + id);
+        }
+    }
 }

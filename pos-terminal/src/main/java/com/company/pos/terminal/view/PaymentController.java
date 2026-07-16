@@ -88,6 +88,12 @@ public class PaymentController {
     @FXML private Label changeLabel;
     @FXML private Button reprintButton;
     @FXML private Button doneButton;
+    @FXML private Button emailReceiptButton;
+    @FXML private VBox emailDialog;
+    @FXML private TextField emailField;
+    @FXML private Button emailSendButton;
+    @FXML private Button emailCancelButton;
+    @FXML private Label emailConfirmLabel;
     @FXML private Button denomExactButton;
     @FXML private Button denom50Button;
     @FXML private Button denom100Button;
@@ -149,6 +155,9 @@ public class PaymentController {
         discountButton.setOnAction(e -> applyDiscount());
         removeDiscountButton.setOnAction(e -> removeDiscount());
         reprintButton.setOnAction(e -> reprint());
+        emailReceiptButton.setOnAction(e -> showEmailDialog());
+        emailCancelButton.setOnAction(e -> hideEmailDialog());
+        emailSendButton.setOnAction(e -> sendEmail());
         doneButton.setOnAction(e -> done());
 
         denomExactButton.setOnAction(e -> tenderedField.setText(vm.remaining().toPlainString()));
@@ -372,6 +381,38 @@ public class PaymentController {
     private void reprint() {
         FxTasks.run(vm::reprint, () -> {},
                 err -> LOG.log(System.Logger.Level.ERROR, "Unexpected error reprinting receipt", err));
+    }
+
+    private void showEmailDialog() {
+        emailConfirmLabel.setVisible(false);
+        emailConfirmLabel.setManaged(false);
+        emailField.clear();
+        emailDialog.setVisible(true);
+        emailDialog.setManaged(true);
+        emailField.requestFocus();
+    }
+
+    private void hideEmailDialog() {
+        emailDialog.setVisible(false);
+        emailDialog.setManaged(false);
+        emailField.clear();
+    }
+
+    private void sendEmail() {
+        final String addr = emailField.getText();
+        final boolean[] holder = new boolean[1];
+        FxTasks.run(
+                () -> holder[0] = vm.emailReceipt(addr),
+                () -> {
+                    if (holder[0]) {
+                        hideEmailDialog();
+                        emailConfirmLabel.setText("Sent to " + (addr == null ? "" : addr.trim()));
+                        emailConfirmLabel.setVisible(true);
+                        emailConfirmLabel.setManaged(true);
+                    }
+                    // On failure the dialog stays open; vm.errorMessage() (bound to errorLabel) shows why.
+                },
+                err -> LOG.log(System.Logger.Level.ERROR, "Unexpected error emailing receipt", err));
     }
 
     private void setBusy(boolean busy) {
