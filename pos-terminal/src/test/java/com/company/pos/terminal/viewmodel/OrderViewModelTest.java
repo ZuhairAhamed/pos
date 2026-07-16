@@ -187,4 +187,124 @@ class OrderViewModelTest {
         assertEquals(1, vm.lines().size());
         assertTrue(vm.subtotalText().get().contains("50.00"));
     }
+
+    @Test
+    void updateQtyPreservesNoteAndCourse() {
+        OrderLineView line =
+                new OrderLineView(
+                        firedLineId, "BURGER", new BigDecimal("1"), "no onion", "STARTER", null,
+                        List.of());
+        String[] captured = new String[2];
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView updateLine(UUID oid, UUID lineId, BigDecimal qty, String note,
+                            String course) {
+                        captured[0] = note;
+                        captured[1] = course;
+                        return orderWith(List.of(new OrderLineView(
+                                lineId, "BURGER", qty, note, course, null, List.of())));
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        vm.updateQty(line, new BigDecimal("4"));
+        assertEquals("no onion", captured[0]);
+        assertEquals("STARTER", captured[1]);
+    }
+
+    @Test
+    void updateCourseChangesCoursePreservingQtyAndNote() {
+        OrderLineView line =
+                new OrderLineView(
+                        firedLineId, "BURGER", new BigDecimal("2"), "no onion", "MAIN", null,
+                        List.of());
+        BigDecimal[] capturedQty = new BigDecimal[1];
+        String[] capturedNote = new String[1];
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView updateLine(UUID oid, UUID lineId, BigDecimal qty, String note,
+                            String course) {
+                        capturedQty[0] = qty;
+                        capturedNote[0] = note;
+                        return orderWith(List.of(new OrderLineView(
+                                lineId, "BURGER", qty, note, course, null, List.of())));
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        vm.updateCourse(line, "DESSERT");
+        assertEquals(new BigDecimal("2"), capturedQty[0]);
+        assertEquals("no onion", capturedNote[0]);
+        assertEquals("DESSERT", vm.lines().get(0).course());
+    }
+
+    @Test
+    void updateCourseOnFiredLineIsNoOp() {
+        OrderLineView fired =
+                new OrderLineView(
+                        firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", Instant.now(),
+                        List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(fired));
+                    }
+
+                    @Override
+                    public OrderView updateLine(UUID oid, UUID lineId, BigDecimal qty, String note,
+                            String course) {
+                        throw new AssertionError("updateLine must not be called for a fired line");
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        vm.updateCourse(fired, "DESSERT");
+        assertEquals("Fired lines cannot be changed", vm.errorMessage().get());
+        assertEquals("MAIN", vm.lines().get(0).course());
+    }
+
+    @Test
+    void deferredDispatcherHoldsCourseWriteUntilDrained() {
+        OrderLineView before =
+                new OrderLineView(
+                        firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        OrderLineView after =
+                new OrderLineView(
+                        firedLineId, "BURGER", new BigDecimal("1"), null, "DESSERT", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(before));
+                    }
+
+                    @Override
+                    public OrderView updateLine(UUID oid, UUID lineId, BigDecimal qty, String note,
+                            String course) {
+                        return orderWith(List.of(after));
+                    }
+                };
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        OrderViewModel vm = new OrderViewModel(dining, cache(), queue::add);
+        vm.load(orderId);
+        while (!queue.isEmpty()) queue.poll().run();       // drain load → baseline
+        assertEquals("MAIN", vm.lines().get(0).course());
+        vm.updateCourse(before, "DESSERT");
+        assertEquals("MAIN", vm.lines().get(0).course());  // deferred: not yet applied
+        while (!queue.isEmpty()) queue.poll().run();       // drain the course write
+        assertEquals("DESSERT", vm.lines().get(0).course());
+    }
 }

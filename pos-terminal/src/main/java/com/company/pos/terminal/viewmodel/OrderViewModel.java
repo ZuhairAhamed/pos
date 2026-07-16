@@ -94,6 +94,15 @@ public class OrderViewModel {
         apply(() -> dining.updateLine(order.id(), line.id(), qty, line.note(), line.course()));
     }
 
+    /** Changes a line's course tag, preserving its qty and note. Fired lines are locked. */
+    public void updateCourse(OrderLineView line, String course) {
+        if (!canEdit(line)) {
+            ui.accept(() -> errorMessage.set("Fired lines cannot be changed"));
+            return;
+        }
+        apply(() -> dining.updateLine(order.id(), line.id(), line.qty(), line.note(), course));
+    }
+
     public void removeLine(OrderLineView line) {
         if (!canEdit(line)) {
             ui.accept(() -> errorMessage.set("Fired lines cannot be changed"));
