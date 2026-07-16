@@ -3,6 +3,7 @@ package com.company.pos.terminal.api;
 import com.company.pos.terminal.api.dto.CheckoutRequest;
 import com.company.pos.terminal.api.dto.DiscountInput;
 import com.company.pos.terminal.api.dto.DiscountPolicyView;
+import com.company.pos.terminal.api.dto.EmailReceiptRequest;
 import com.company.pos.terminal.api.dto.QuoteRequest;
 import com.company.pos.terminal.api.dto.QuoteView;
 import com.company.pos.terminal.api.dto.SaleView;
@@ -49,5 +50,11 @@ public class SalesApi {
     /** {@code POST /sales/{id}/reprint} — 204 No Content. */
     public void reprint(UUID saleId) {
         client.post("/sales/" + saleId + "/reprint", null, new TypeReference<Void>() {});
+    }
+
+    /** {@code POST /sales/{id}/send-receipt} — emails the stored sale's receipt. 204 No Content. */
+    public void emailReceipt(UUID saleId, String email) {
+        client.post("/sales/" + saleId + "/send-receipt", new EmailReceiptRequest(email),
+                new TypeReference<Void>() {});
     }
 }

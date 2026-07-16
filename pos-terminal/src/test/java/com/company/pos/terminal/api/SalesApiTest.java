@@ -52,4 +52,16 @@ class SalesApiTest {
             assertTrue(stub.lastBody.contains("\"reasonCode\":\"LOYALTY\""));
         }
     }
+
+    @Test
+    void emailReceiptPostsAddressToSendReceiptEndpoint() throws Exception {
+        UUID saleId = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        try (StubServer stub = new StubServer(204, "", "application/json")) {
+            SalesApi api = new SalesApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            api.emailReceipt(saleId, "guest@example.com");
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/sales/" + saleId + "/send-receipt", stub.lastPath);
+            assertTrue(stub.lastBody.contains("\"email\":\"guest@example.com\""));
+        }
+    }
 }
