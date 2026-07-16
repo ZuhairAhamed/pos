@@ -3,23 +3,26 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 
-<!-- Two-pane order screen: LEFT = current order (lines + estimated subtotal + actions);
-     CENTER = touch menu grid, one tab per category. -->
+<!-- Two-pane order screen: LEFT = current order (inline-editable lines + estimated subtotal +
+     actions); CENTER = touch menu grid, one tab per category. -->
 <BorderPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
   <left>
-    <VBox spacing="12" prefWidth="400" styleClass="order-pane">
+    <VBox spacing="12" prefWidth="440" styleClass="order-pane">
       <padding><Insets top="0" right="24" bottom="0" left="0"/></padding>
 
       <Label text="Order" styleClass="title"/>
 
-      <ListView fx:id="lineList" VBox.vgrow="ALWAYS" styleClass="order-lines"/>
+      <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="order-lines">
+        <VBox fx:id="lineBox" spacing="8"/>
+      </ScrollPane>
+      <Label fx:id="emptyLabel" text="No items yet" styleClass="empty-cart"/>
 
       <Label fx:id="subtotalLabel" styleClass="subtotal"/>
 
@@ -27,7 +30,6 @@
       <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
 
       <HBox spacing="12">
-        <Button fx:id="removeButton" text="Remove line" styleClass="btn-secondary"/>
         <Button fx:id="fireButton" text="Fire to kitchen" styleClass="btn-primary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
       </HBox>
 

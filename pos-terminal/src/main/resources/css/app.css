@@ -690,3 +690,7 @@
     -fx-font-weight: bold;
     -fx-padding: 4 0 0 0;
 }
+
+/* Slice 9 — inline dine-in line editor (course chip + remove) */
+.course-chip { -fx-font-size: 12px; -fx-padding: 4 10 4 10; -fx-background-radius: 8; }
+.line-remove { -fx-background-color: transparent; -fx-text-fill: -fx-ink; -fx-font-size: 18px; -fx-cursor: hand; }

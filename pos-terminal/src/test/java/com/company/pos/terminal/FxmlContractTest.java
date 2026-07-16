@@ -112,4 +112,10 @@ class FxmlContractTest {
             assertTrue(fxml.contains("fx:id=\"" + id + "\""), "missing email node: " + id);
         }
     }
+
+    @Test
+    void orderDeclaresLineBox() throws Exception {
+        assertTrue(resource("/fxml/order.fxml").contains("fx:id=\"lineBox\""),
+                "order.fxml must declare the inline line-box container");
+    }
 }
