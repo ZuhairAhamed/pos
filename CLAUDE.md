@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-store, offline-first Point-of-Sale system: a **Spring Modulith modular monolith** (Java 21 + Spring Boot 3.3). One artifact runs in two persistence modes (PostgreSQL store-server, or embedded SQLite). The ERP link is treated as intermittent — the store keeps trading offline and drains queued work when the link returns. Architecture rationale lives in `plan/pos-architecture-combined.md`; per-phase behaviour and the live HTTP API surface are documented in `docs/run-modes.md`.
+A single-store, offline-first Point-of-Sale system: a **Spring Modulith modular monolith** (Java 21 + Spring Boot 3.3). One artifact runs in two persistence modes (PostgreSQL store-server, or embedded SQLite). The ERP link is treated as intermittent — the store keeps trading offline and drains queued work when the link returns. It covers both a **retail** track and a **restaurant** track (`dining`, `menu`, `kitchen`, `shift` modules), and now has a touch-first **JavaFX terminal** front-end (`pos-terminal/`, a separate REST thin-client build — see below). Architecture rationale lives in `plan/pos-architecture-combined.md`; per-phase behaviour and the live HTTP API surface are documented in `docs/run-modes.md`.
 
 ## Build, test, run
 
@@ -37,6 +37,21 @@ Running the packaged jar (see `docs/run-modes.md` for full flags):
 java -jar target/pos.jar --spring.profiles.active=store-server --POS_DB_URL=... --POS_DB_USER=... --POS_DB_PASSWORD=...
 java -jar target/pos.jar --spring.profiles.active=embedded     --POS_DB_URL=jdbc:sqlite:file:/var/lib/pos/pos.db
 ```
+
+To run the full stack locally with seed data, start the backend with the `dev` profile (`--spring.profiles.active=embedded,dev`) — it registers `@Profile("dev")` seeders (`DevUserSeeder`, `DevCatalogueSeeder`); log in as `manager`/`manager`. Without `dev` there is no seed path (empty catalogue, no user-creation endpoint).
+
+### The JavaFX terminal is a separate build
+
+`pos-terminal/` is a standalone JavaFX REST thin-client (its own `pom.xml`, package `com.company.pos.terminal`) — it is **not** in the root reactor, so `./mvnw verify` does not touch it. Build/run it explicitly (it needs a running backend):
+
+```bash
+./mvnw -f pos-terminal/pom.xml clean test   # headless; no display/TestFX needed
+./mvnw -f pos-terminal/pom.xml javafx:run    # launches the terminal UI
+```
+
+It holds no DB and no business rules — all authoritative totals come from the server (`SaleView` at checkout); the terminal only previews a client-side *estimated* subtotal. See `pos-terminal/README.md`.
+
+**Terminal FX-threading convention (the recurring bug class — get it right):** ViewModel methods are **synchronous** on the calling thread and return plain values; the controller runs them off the FX thread via `FxTasks.run(work, onDone, onError)` and reads the result only in the FX-thread `onDone` (via a `holder` array). The *only* observable a VM writes off-thread is `errorMessage`, and only inside `ui.accept(...)`; plain fields — never the deferred observables — are the synchronous control-flow truth. Any inter-thread time source is an injected `Supplier<Instant> clock`, never inline `Instant.now()`. Every such VM needs an async-dispatcher regression test (a deferred, undrained `ui` dispatcher) — synchronous-only tests mask the bug.
 
 ## Module architecture (the part that needs reading multiple files)
 
@@ -79,7 +94,7 @@ Known, deliberate gaps (do not assume these exist): no retry cap / dead-letter, 
 - **Authorization is method security**, not URL rules. `SecurityConfig` only permits `/auth/login` + `/auth/pin-login` and authenticates everything else; role checks (`ROLE_MANAGER` for returns, ERP sync, over-cap discounts) are `@PreAuthorize` on the application/web layer. Auth is stateless JWT (HS256 bearer); `POS_JWT_SECRET` must be ≥32 bytes in any real deployment.
 - **Typed config lives in the `configuration` settings store**, not hardcoded. Keys like `tax.rate`, `store.id`, `DISCOUNT_CASHIER_MAX_PERCENT` are read through `configuration :: api` and are env-overridable. Add new tunables there.
 - **Flyway migrations are per-module directories** under `src/main/resources/db/migration/<module>/`, but version numbers are **globally sequential** (`V1`…`V18`) across all modules — pick the next free number, not the next free number within a folder. Only `store-server` runs Flyway (each module's path is registered in `application-store-server.yml`); `embedded` uses Hibernate `ddl-auto` and disables Flyway (Flyway 10 lacks SQLite support).
-- Hardware (`Printer`, `CashDrawer`, `PaymentTerminal`, …) and the ERP (`ErpClient`) sit behind `device.api` / `integration.api` **ports**. Current implementations are in-memory fakes (`InMemoryPrinter`, `FakeErpClient`); real adapters replace them with no change to consuming modules. Tests assert against the fakes.
+- Hardware (`Printer`, `CashDrawer`, `PaymentTerminal`, `Emailer`, …) and the ERP (`ErpClient`) sit behind `device.api` / `integration.api` **ports**. Current implementations are in-memory fakes (`InMemoryPrinter`, `InMemoryEmailer`, `FakeErpClient`); real adapters replace them with no change to consuming modules. Tests assert against the fakes.
 
 ## Workflow notes
 
