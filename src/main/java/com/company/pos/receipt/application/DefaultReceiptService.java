@@ -3,6 +3,8 @@ package com.company.pos.receipt.application;
 import com.company.pos.common.util.Monies;
 import com.company.pos.configuration.api.ConfigurationService;
 import com.company.pos.configuration.api.SettingKey;
+import com.company.pos.device.api.EmailMessage;
+import com.company.pos.device.api.Emailer;
 import com.company.pos.device.api.PrintLine;
 import com.company.pos.device.api.Printer;
 import com.company.pos.receipt.api.ReceiptData;
@@ -14,21 +16,23 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 @Service
 class DefaultReceiptService implements ReceiptService {
 
     private final Printer printer;
+    private final Emailer emailer;
     private final ConfigurationService config;
 
-    DefaultReceiptService(Printer printer, ConfigurationService config) {
+    DefaultReceiptService(Printer printer, Emailer emailer, ConfigurationService config) {
         this.printer = printer;
+        this.emailer = emailer;
         this.config = config;
     }
 
-    @Override
-    public void print(ReceiptData data) {
+    private List<PrintLine> renderLines(ReceiptData data) {
         String storeName = config.getString(SettingKey.STORE_NAME);
         Locale locale = Locale.forLanguageTag(config.getString(SettingKey.LOCALE));
         String currency = data.currencyCode();
@@ -95,9 +99,21 @@ class DefaultReceiptService implements ReceiptService {
                         false));
             }
         }
+        return lines;
+    }
 
-        printer.print(lines);
+    @Override
+    public void print(ReceiptData data) {
+        printer.print(renderLines(data));
         printer.cut();
+    }
+
+    @Override
+    public void emailReceipt(String to, ReceiptData data) {
+        String body = renderLines(data).stream().map(PrintLine::text)
+                .collect(Collectors.joining("\n"));
+        String subject = "Your receipt " + data.receiptNumber();
+        emailer.send(new EmailMessage(to, subject, body));
     }
 
     private String money(BigDecimal amount, String currency, Locale locale) {
