@@ -212,7 +212,7 @@ public class OrderController {
 
         Button minus = new Button("−"); // − minus sign
         minus.getStyleClass().add("qty-stepper");
-        minus.setDisable(line.qty() != null && line.qty().compareTo(BigDecimal.ONE) <= 0);
+        minus.setDisable(line.qty() == null || line.qty().compareTo(BigDecimal.ONE) <= 0);
         minus.setOnAction(e -> step(line, -1));
 
         Label qty = new Label(qtyText(line.qty()));
