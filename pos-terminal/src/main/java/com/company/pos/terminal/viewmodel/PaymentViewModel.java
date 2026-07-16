@@ -194,6 +194,33 @@ public class PaymentViewModel {
         }
     }
 
+    /**
+     * Emails the closed sale's receipt to {@code toAddress}. Returns true when the address was
+     * accepted and the send succeeded. No sale yet, a blank/malformed address, or an API error
+     * sets {@link #errorMessage()} (where applicable) and returns false. Synchronous like
+     * {@link #reprint()} — the controller runs it off the FX thread and reads the result.
+     */
+    public boolean emailReceipt(String toAddress) {
+        SaleView current = sale.get();
+        if (current == null) {
+            return false;
+        }
+        String addr = toAddress == null ? "" : toAddress.trim();
+        if (addr.isBlank() || !addr.contains("@")) {
+            ui.accept(() -> errorMessage.set("Enter a valid email address"));
+            return false;
+        }
+        try {
+            sales.emailReceipt(current.id(), addr);
+            ui.accept(() -> errorMessage.set(""));
+            return true;
+        } catch (ApiException e) {
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
+            return false;
+        }
+    }
+
     private String messageOf(ApiException e) {
         if (e.problem() != null) {
             if (e.problem().detail() != null && !e.problem().detail().isBlank()) {

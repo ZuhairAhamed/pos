@@ -178,4 +178,83 @@ class PaymentViewModelTest {
         assertEquals(1, gw.calls);
         assertEquals(new BigDecimal("44.85"), gw.received.get(0).amount());
     }
+
+    @Test
+    void emailReceiptCallsSalesApiWithSaleIdAndAddress() {
+        RecordingGateway gw = new RecordingGateway();
+        List<UUID> ids = new ArrayList<>();
+        List<String> addrs = new ArrayList<>();
+        SalesApi sales = new SalesApi(null) {
+            @Override public void emailReceipt(UUID saleId, String email) { ids.add(saleId); addrs.add(email); }
+        };
+        PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
+        vm.payFull("CARD", null);
+        assertTrue(vm.emailReceipt("guest@example.com"));
+        assertEquals(1, ids.size());
+        assertEquals(vm.sale().get().id(), ids.get(0));
+        assertEquals("guest@example.com", addrs.get(0));
+    }
+
+    @Test
+    void emailReceiptRejectsBlankAndMalformedWithoutCallingApi() {
+        RecordingGateway gw = new RecordingGateway();
+        int[] calls = {0};
+        SalesApi sales = new SalesApi(null) {
+            @Override public void emailReceipt(UUID saleId, String email) { calls[0]++; }
+        };
+        PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
+        vm.payFull("CARD", null);
+        assertFalse(vm.emailReceipt("   "));
+        assertFalse(vm.emailReceipt("not-an-email"));
+        assertEquals(0, calls[0]);
+        assertTrue(vm.errorMessage().get().toLowerCase().contains("email"));
+    }
+
+    @Test
+    void emailReceiptReturnsFalseBeforeAnySale() {
+        RecordingGateway gw = new RecordingGateway();
+        int[] calls = {0};
+        SalesApi sales = new SalesApi(null) {
+            @Override public void emailReceipt(UUID saleId, String email) { calls[0]++; }
+        };
+        PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        assertFalse(vm.emailReceipt("guest@example.com"));
+        assertEquals(0, calls[0]);
+    }
+
+    @Test
+    void emailReceiptFailureSurfacesError() {
+        RecordingGateway gw = new RecordingGateway();
+        SalesApi sales = new SalesApi(null) {
+            @Override public void emailReceipt(UUID saleId, String email) {
+                throw new ApiException(400, null, "invalid email address");
+            }
+        };
+        PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"));
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
+        vm.payFull("CARD", null);
+        assertFalse(vm.emailReceipt("x@y.com"));
+        assertEquals("invalid email address", vm.errorMessage().get());
+    }
+
+    @Test
+    void emailReceiptSucceedsUnderDeferredDispatcher() {
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        RecordingGateway gw = new RecordingGateway();
+        List<String> addrs = new ArrayList<>();
+        SalesApi sales = new SalesApi(null) {
+            @Override public void emailReceipt(UUID saleId, String email) { addrs.add(email); }
+        };
+        PaymentViewModel vm = new PaymentViewModel(gw, sales, new BigDecimal("28.75"), queue::add);
+        vm.setAuthoritativeTotal(new BigDecimal("28.75"));
+        vm.payFull("CARD", null);
+        while (!queue.isEmpty()) queue.poll().run();          // drain payFull's deferred writes → sale set
+        assertTrue(vm.emailReceipt("guest@example.com"),
+                "emailReceipt returns synchronously regardless of the UI dispatcher");
+        assertEquals(1, addrs.size());
+        while (!queue.isEmpty()) queue.poll().run();
+        assertEquals("", vm.errorMessage().get());
+    }
 }
