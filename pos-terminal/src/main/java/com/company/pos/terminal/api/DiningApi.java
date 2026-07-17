@@ -114,8 +114,14 @@ public class DiningApi {
 
     /** POST /dining/orders/{id}/quote — quote priced with a whole-sale discount ({@code null} = none). */
     public QuoteView quoteOrder(UUID orderId, DiscountInput transactionDiscount) {
+        return quoteOrder(orderId, transactionDiscount, false);
+    }
+
+    /** As above, with the service charge waived when {@code waiveServiceCharge} is true (manager-approved). */
+    public QuoteView quoteOrder(UUID orderId, DiscountInput transactionDiscount,
+            boolean waiveServiceCharge) {
         return client.post("/dining/orders/" + orderId + "/quote",
-                new QuoteOrderRequest(Map.of(), transactionDiscount),
+                new QuoteOrderRequest(Map.of(), transactionDiscount, waiveServiceCharge),
                 new TypeReference<QuoteView>() {});
     }
 
@@ -143,5 +149,12 @@ public class DiningApi {
     public List<SaleView> closeSplit(UUID orderId, SplitCloseRequest req) {
         return client.post("/dining/orders/" + orderId + "/close-split", req,
                 new TypeReference<List<SaleView>>() {});
+    }
+
+    /** As {@link #closeSplit(UUID, SplitCloseRequest)} but authenticated with a one-shot manager
+     *  token ({@code null} = the signed-in cashier's session token). */
+    public List<SaleView> closeSplit(UUID orderId, SplitCloseRequest req, String bearerToken) {
+        return client.post("/dining/orders/" + orderId + "/close-split", req,
+                new TypeReference<List<SaleView>>() {}, bearerToken);
     }
 }

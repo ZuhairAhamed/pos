@@ -328,4 +328,34 @@ class DiningApiTest {
             assertEquals("absorbedOrderId=55555555-5555-5555-5555-555555555555", stub.lastQuery);
         }
     }
+
+    @Test
+    void quoteOrderSendsWaiveServiceChargeFlag() throws Exception {
+        String quoteJson = "{\"currencyCode\":\"SAR\",\"subtotal\":25.00,\"discountTotal\":0,"
+                + "\"serviceChargeAmount\":0,\"taxTotal\":3.75,\"grandTotal\":28.75}";
+        try (StubServer stub = new StubServer(200, quoteJson, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            api.quoteOrder(ORDER_ID, null, true);
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/quote", stub.lastPath);
+            assertTrue(stub.lastBody.contains("\"waiveServiceCharge\":true"));
+        }
+    }
+
+    @Test
+    void closeSplitWithTokenSendsBearerAndWaiveFlag() throws Exception {
+        String sales = "[{\"id\":\"55555555-5555-5555-5555-555555555555\",\"receiptNumber\":\"S01-T01-1\","
+                + "\"currencyCode\":\"SAR\",\"subtotal\":35.00,\"taxTotal\":5.25,\"grandTotal\":40.25,"
+                + "\"discountTotal\":0.00,\"serviceChargeAmount\":0.00,\"lines\":[],\"payments\":[]}]";
+        try (StubServer stub = new StubServer(201, sales, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            SplitCloseRequest req = new SplitCloseRequest("EVEN", null,
+                    new EvenSplitRequest(2, List.of("CASH", "CASH")), true);
+            api.closeSplit(ORDER_ID, req, "mgr-token-xyz");
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/close-split", stub.lastPath);
+            assertEquals("Bearer mgr-token-xyz", stub.lastAuth);
+            assertTrue(stub.lastBody.contains("\"waiveServiceCharge\":true"));
+        }
+    }
 }
