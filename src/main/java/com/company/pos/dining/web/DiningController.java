@@ -182,4 +182,9 @@ class DiningController {
             @RequestParam(required = false, defaultValue = "") String reason) {
         dining.voidOrder(orderId, reason);
     }
+
+    @PostMapping("/dining/orders/{orderId}/transfer")
+    OrderView transferOrder(@PathVariable UUID orderId, @RequestParam UUID targetTableId) {
+        return dining.transferOrder(orderId, targetTableId);
+    }
 }
