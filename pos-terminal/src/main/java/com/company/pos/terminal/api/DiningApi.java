@@ -84,6 +84,12 @@ public class DiningApi {
         client.post("/dining/orders/" + orderId + "/fire", null, new TypeReference<OrderView>() {});
     }
 
+    /** POST /dining/orders/{orderId}/transfer?targetTableId=... — relocates the order to a free table. */
+    public OrderView transferOrder(UUID orderId, UUID targetTableId) {
+        return client.post("/dining/orders/" + orderId + "/transfer?targetTableId=" + targetTableId,
+                null, new TypeReference<OrderView>() {});
+    }
+
     /**
      * Voids the whole order (MANAGER-gated on the server). {@code reason} is optional (may be
      * blank) and URL-encoded. Authenticated with a one-shot manager {@code bearerToken}; a 401

@@ -302,4 +302,17 @@ class DiningApiTest {
             assertEquals("Bearer mgr-token-123", stub.lastAuth);
         }
     }
+
+    @Test
+    void transferOrderPostsTargetTableIdAndParsesOrder() throws Exception {
+        try (StubServer stub = new StubServer(200, ORDER_JSON, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            java.util.UUID target = java.util.UUID.fromString("44444444-4444-4444-4444-444444444444");
+            OrderView v = api.transferOrder(ORDER_ID, target);
+            assertEquals("OPEN", v.status());
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/transfer", stub.lastPath);
+            assertEquals("targetTableId=44444444-4444-4444-4444-444444444444", stub.lastQuery);
+        }
+    }
 }
