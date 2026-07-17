@@ -1,9 +1,12 @@
 package com.company.pos.terminal.api;
 
+import com.company.pos.terminal.api.dto.CloseShiftRequest;
 import com.company.pos.terminal.api.dto.OpenShiftRequest;
+import com.company.pos.terminal.api.dto.ShiftSummary;
 import com.company.pos.terminal.api.dto.ShiftView;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /** Typed client for the store server's {@code /shifts} endpoints. */
 public class ShiftApi {
@@ -34,5 +37,11 @@ public class ShiftApi {
     public ShiftView openShift(BigDecimal openingFloat) {
         return client.post("/shifts", new OpenShiftRequest(openingFloat),
                 new TypeReference<ShiftView>() {});
+    }
+
+    /** POST /shifts/{shiftId}/close — closes the shift and returns the drawer reconciliation. */
+    public ShiftSummary closeShift(UUID shiftId, BigDecimal countedCash) {
+        return client.post("/shifts/" + shiftId + "/close", new CloseShiftRequest(countedCash),
+                new TypeReference<ShiftSummary>() {});
     }
 }

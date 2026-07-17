@@ -2,6 +2,7 @@ package com.company.pos.terminal.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.company.pos.terminal.api.dto.ShiftSummary;
 import com.company.pos.terminal.api.dto.ShiftView;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,32 @@ class ShiftApiTest {
             assertEquals("/shifts", stub.lastPath);
             assertTrue(stub.lastBody.contains("openingFloat"));
             assertTrue(stub.lastBody.contains("500.00"));
+        }
+    }
+
+    @Test
+    void closeShiftPostsCountedCashAndParsesSummary() throws Exception {
+        String json = "{\"shiftId\":\"88888888-8888-8888-8888-888888888888\",\"terminalId\":\"T01\","
+            + "\"openedBy\":\"manager\",\"closedBy\":\"manager\",\"status\":\"CLOSED\","
+            + "\"openedAt\":\"2026-07-12T06:02:00Z\",\"closedAt\":\"2026-07-12T14:00:00Z\","
+            + "\"cash\":{\"sessionId\":\"99999999-9999-9999-9999-999999999999\",\"openingFloat\":500.00,"
+            + "\"cashSales\":1200.00,\"cashSalesCount\":37,\"payIns\":0.00,\"payOuts\":50.00,"
+            + "\"expectedCash\":1650.00,\"countedCash\":1640.00,\"variance\":-10.00,\"currencyCode\":\"SAR\"}}";
+        try (StubServer stub = new StubServer(200, json, "application/json")) {
+            ShiftApi api = new ShiftApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            ShiftSummary s = api.closeShift(
+                java.util.UUID.fromString("88888888-8888-8888-8888-888888888888"),
+                new BigDecimal("1640.00"));
+            assertEquals("CLOSED", s.status());
+            assertEquals("manager", s.closedBy());
+            assertNotNull(s.cash());
+            assertEquals(0, new BigDecimal("1650.00").compareTo(s.cash().expectedCash()));
+            assertEquals(0, new BigDecimal("-10.00").compareTo(s.cash().variance()));
+            assertEquals(37, s.cash().cashSalesCount());
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/shifts/88888888-8888-8888-8888-888888888888/close", stub.lastPath);
+            assertTrue(stub.lastBody.contains("countedCash"));
+            assertTrue(stub.lastBody.contains("1640.00"));
         }
     }
 }
