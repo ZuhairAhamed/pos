@@ -327,6 +327,7 @@ class OrderViewModelTest {
                 };
         OrderViewModel vm = new OrderViewModel(dining, cache());
         vm.load(orderId);
+        vm.setError("stale");
         assertTrue(vm.voidOrder("walkout", "tok"));
         assertTrue(called[0]);
         assertEquals("", vm.errorMessage().get());
@@ -388,5 +389,15 @@ class OrderViewModelTest {
         OrderViewModel vm = new OrderViewModel(new DiningApi(null), cache());
         vm.setError("Manager approval failed");
         assertEquals("Manager approval failed", vm.errorMessage().get());
+    }
+
+    @Test
+    void deferredDispatcherHoldsSetErrorUntilDrained() {
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        OrderViewModel vm = new OrderViewModel(new DiningApi(null), cache(), queue::add);
+        vm.setError("boom");
+        assertEquals("", vm.errorMessage().get());   // deferred: write not applied yet
+        while (!queue.isEmpty()) queue.poll().run();
+        assertEquals("boom", vm.errorMessage().get());
     }
 }
