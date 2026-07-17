@@ -28,6 +28,12 @@ public interface DiningService {
      *  the target is the same/unknown/inactive, or the target already has an open order. */
     OrderView transferOrder(UUID orderId, UUID targetTableId);
 
+    /** Merges the absorbed OPEN dine-in order's lines into the survivor OPEN dine-in order
+     *  (preserving qty/note/course/modifiers/fired state), then voids the absorbed order.
+     *  Fails if either order is not open or not dine-in, they are the same order, or the
+     *  absorbed order has no lines. Returns the survivor. */
+    OrderView mergeOrders(UUID survivorOrderId, UUID absorbedOrderId);
+
     // --- fire to kitchen ---
     OrderView fireOrder(UUID orderId, String firedBy);
 

@@ -26,6 +26,7 @@ import com.company.pos.dining.domain.DiningOrder;
 import com.company.pos.dining.domain.DiningOrderSale;
 import com.company.pos.dining.domain.DiningTable;
 import com.company.pos.dining.domain.OrderLine;
+import com.company.pos.dining.domain.OrderLineModifier;
 import com.company.pos.dining.infrastructure.DiningOrderRepository;
 import com.company.pos.dining.infrastructure.DiningOrderSaleRepository;
 import com.company.pos.dining.infrastructure.DiningTableRepository;
@@ -163,6 +164,37 @@ class DefaultDiningService implements DiningService {
         }
         order.moveToTable(targetTableId);
         return toOrderView(orders.save(order));
+    }
+
+    @Override
+    public OrderView mergeOrders(UUID survivorOrderId, UUID absorbedOrderId) {
+        DiningOrder survivor = load(survivorOrderId);
+        DiningOrder absorbed = load(absorbedOrderId);
+        requireOpen(survivor);
+        requireOpen(absorbed);
+        if (survivorOrderId.equals(absorbedOrderId)) {
+            throw DomainException.validation("Cannot merge an order into itself");
+        }
+        if (survivor.getServiceType() != ServiceType.DINE_IN
+                || absorbed.getServiceType() != ServiceType.DINE_IN) {
+            throw DomainException.validation("Only dine-in orders can be merged");
+        }
+        if (absorbed.getLines().isEmpty()) {
+            throw DomainException.validation("The selected order has no lines to merge");
+        }
+        for (OrderLine src : absorbed.getLines()) {
+            OrderLine copy = new OrderLine(Identifiers.newId(), survivor.getId(), src.getSku(),
+                    src.getQty(), src.getNote(), src.getCourse(), src.getAddedBy(), src.getAddedAt());
+            for (OrderLineModifier m : src.getModifiers()) {
+                copy.addModifier(m.getOptionId(), m.getName(), m.getPriceDelta());
+            }
+            if (src.isFired()) {
+                copy.fire(src.getFiredAt());
+            }
+            survivor.addLine(copy);
+        }
+        absorbed.voidOrder();
+        return toOrderView(orders.save(survivor));
     }
 
     DiningOrder load(UUID orderId) {
