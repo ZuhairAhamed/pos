@@ -116,7 +116,12 @@ public class SplitController {
         waysMinusButton.setOnAction(e -> { if (vm.setWays(vm.ways() - 1)) updateWays(); });
         waysPlusButton.setOnAction(e -> { if (vm.setWays(vm.ways() + 1)) updateWays(); });
         continueButton.setOnAction(e -> quoteAndShowTender());
-        backButton.setOnAction(e -> showPhase(partitionBox));
+        backButton.setOnAction(e -> {
+            vm.setWaiveServiceCharge(false);
+            vm.setApprovalToken(null);
+            refreshWaiveControls(false);
+            showPhase(partitionBox);
+        });
         closeAllButton.setOnAction(e -> closeAll());
         waiveButton.setOnAction(e -> waiveTapped());
         removeWaiveButton.setOnAction(e -> removeWaiver());

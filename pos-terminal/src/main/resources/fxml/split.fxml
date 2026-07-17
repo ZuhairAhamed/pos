@@ -68,9 +68,9 @@
         </ScrollPane>
         <Button fx:id="waiveButton" text="Waive service charge" styleClass="btn-secondary"
                 visible="false" managed="false"/>
-        <HBox fx:id="waiveChipRow" styleClass="chip-row" visible="false" managed="false">
+        <HBox fx:id="waiveChipRow" spacing="8" alignment="CENTER" visible="false" managed="false" maxWidth="Infinity">
           <Label fx:id="waiveChipLabel" styleClass="discount-chip"/>
-          <Button fx:id="removeWaiveButton" text="✕" styleClass="chip-remove"/>
+          <Button fx:id="removeWaiveButton" text="✕" styleClass="btn-secondary"/>
         </HBox>
         <HBox spacing="12" maxWidth="Infinity">
           <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
