@@ -1,13 +1,17 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.dto.ShiftSummary;
 import com.company.pos.terminal.api.dto.ShiftView;
 import com.company.pos.terminal.app.FxTasks;
 import com.company.pos.terminal.app.Navigator;
 import com.company.pos.terminal.app.Services;
+import com.company.pos.terminal.viewmodel.CloseShiftViewModel;
 import com.company.pos.terminal.viewmodel.StartShiftViewModel;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+import java.util.UUID;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -29,17 +33,21 @@ public class HomeController {
     private final Services services;
     private final Navigator navigator;
     private final StartShiftViewModel shiftVm;
+    private final CloseShiftViewModel closeVm;
+    private ShiftView openShift;
 
     @FXML private Label userLabel;
     @FXML private Label shiftLabel;
     @FXML private Button signOutButton;
     @FXML private Button dineInButton;
     @FXML private Button retailButton;
+    @FXML private Button closeShiftButton;
 
     public HomeController(Services services, Navigator navigator) {
         this.services = services;
         this.navigator = navigator;
         this.shiftVm = new StartShiftViewModel(services.shiftApi, Platform::runLater);
+        this.closeVm = new CloseShiftViewModel(services.shiftApi, Platform::runLater);
     }
 
     @FXML
@@ -53,6 +61,9 @@ public class HomeController {
             services.session.clear();
             navigator.toLogin();
         });
+        closeShiftButton.setOnAction(e -> closeShift());
+        closeShiftButton.setVisible(false);
+        closeShiftButton.setManaged(false);
         checkShift();
     }
 
@@ -100,10 +111,46 @@ public class HomeController {
     }
 
     private void showShift(ShiftView shift) {
+        this.openShift = shift;
         shiftLabel.setText("Shift open since " + OPENED_AT.format(shift.openedAt()));
+        closeShiftButton.setVisible(true);
+        closeShiftButton.setManaged(true);
     }
 
     private void showNoShift() {
+        this.openShift = null;
         shiftLabel.setText("No shift open — cash reports unavailable");
+        closeShiftButton.setVisible(false);
+        closeShiftButton.setManaged(false);
+    }
+
+    /** Close the shift: blind count → close → reconciliation result → no-shift state. */
+    private void closeShift() {
+        if (openShift == null) {
+            return;
+        }
+        Optional<BigDecimal> counted = CloseShiftDialog.promptForCount(services.config.terminalId());
+        if (counted.isEmpty()) {
+            return;
+        }
+        UUID id = openShift.shiftId();
+        boolean[] holder = {false};
+        FxTasks.run(
+                () -> holder[0] = closeVm.closeShift(id, counted.get()),
+                () -> {
+                    if (holder[0]) {
+                        ShiftSummary s = closeVm.summary().get();
+                        if (s != null && s.cash() != null) {
+                            ShiftResultDialog.show(s.cash());
+                        }
+                        showNoShift();
+                    } else {
+                        shiftLabel.setText(closeVm.errorMessage().get());
+                    }
+                },
+                err -> {
+                    shiftLabel.setText("Couldn't close the shift");
+                    LOG.log(System.Logger.Level.ERROR, "Close shift failed", err);
+                });
     }
 }

@@ -706,3 +706,9 @@
     -fx-cursor: hand;
 }
 .btn-danger:disabled { -fx-opacity: 0.55; }
+
+/* Slice 10 — shift close (variance + reconciliation result) */
+.shift-result .field-label { -fx-font-size: 14px; }
+.variance-balanced { -fx-text-fill: -fx-ink; -fx-font-weight: bold; }
+.variance-over { -fx-text-fill: -fx-primary; -fx-font-weight: bold; }
+.variance-short { -fx-text-fill: -fx-danger; -fx-font-weight: bold; }

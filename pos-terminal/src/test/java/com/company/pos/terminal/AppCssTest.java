@@ -113,4 +113,14 @@ class AppCssTest {
     void definesSliceTenVoidClass() throws Exception {
         assertTrue(css().contains(".btn-danger"), "missing style class: .btn-danger");
     }
+
+    @Test
+    void definesSliceTenShiftClasses() throws Exception {
+        String css = css();
+        for (String cls : new String[] {
+            ".variance-over", ".variance-short", ".variance-balanced", ".shift-result"
+        }) {
+            assertTrue(css.contains(cls), "missing style class: " + cls);
+        }
+    }
 }

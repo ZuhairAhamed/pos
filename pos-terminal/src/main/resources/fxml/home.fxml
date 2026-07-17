@@ -18,6 +18,7 @@
         <Label fx:id="userLabel" styleClass="subtitle"/>
         <Label fx:id="shiftLabel" styleClass="subtitle"/>
       </VBox>
+      <Button fx:id="closeShiftButton" text="Close shift" styleClass="btn-secondary"/>
       <Button fx:id="signOutButton" text="Sign out" styleClass="btn-secondary"/>
     </HBox>
 

@@ -287,3 +287,22 @@ The dine-in **order** screen now edits lines inline (like the retail cart):
 5. **Remove** — the `×` button removes an un-fired line.
 6. **Fired lock** — after **Fire to kitchen**, fired lines render muted with a `[fired]`
    badge and NO edit controls (no steppers, course dropdown, or remove).
+
+## Slice 10 — Void order + Shift close (manual E2E)
+
+**Prereq:** backend on `embedded,dev`; log in `manager`/`manager`.
+
+**Void order (order screen):**
+1. Open a table, add lines (optionally fire some). Tap **Void order** (red).
+2. In the confirm dialog, optionally type a reason; tap **Void order**.
+3. Enter a manager code + PIN in the approval dialog (`manager`/`manager`).
+4. On success the screen returns to the table map and the order is gone. A wrong PIN or a
+   non-manager account shows an error on the order screen and does not void.
+
+**Close shift (home screen):**
+1. With a shift open, the home screen shows a **Close shift** button.
+2. Tap it → the blind-count dialog (no expected amount shown). Enter the counted cash by
+   keyboard or the denomination helper; tap **Count & close**.
+3. The reconciliation result shows opening float, cash sales, pay-ins/outs, expected, counted,
+   and the variance labelled **Over / Short / Balanced** (word + colour).
+4. Home updates to "No shift open" and the Close shift button disappears.
