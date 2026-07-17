@@ -83,6 +83,15 @@ public interface DiningService {
      *  rounding remainder). Pure calculator — the order stays OPEN. */
     SplitQuoteView quoteSplitEven(UUID orderId, int ways);
 
+    /** As {@link #quoteSplitByItem(UUID, java.util.List)} but with the service charge waived when
+     *  {@code waiveServiceCharge} is true. Ungated preview. */
+    SplitQuoteView quoteSplitByItem(UUID orderId, java.util.List<java.util.List<UUID>> billLineIds,
+            boolean waiveServiceCharge);
+
+    /** As {@link #quoteSplitEven(UUID, int)} but with the service charge waived when
+     *  {@code waiveServiceCharge} is true. Ungated preview. */
+    SplitQuoteView quoteSplitEven(UUID orderId, int ways, boolean waiveServiceCharge);
+
     List<UUID> listOrderSaleIds(UUID orderId);
 
     void voidOrder(UUID orderId, String reason);

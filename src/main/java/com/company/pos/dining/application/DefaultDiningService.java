@@ -419,13 +419,19 @@ class DefaultDiningService implements DiningService {
 
     @Override
     public SplitQuoteView quoteSplitByItem(UUID orderId, List<List<UUID>> billLineIds) {
+        return quoteSplitByItem(orderId, billLineIds, false);
+    }
+
+    @Override
+    public SplitQuoteView quoteSplitByItem(UUID orderId, List<List<UUID>> billLineIds,
+            boolean waiveServiceCharge) {
         DiningOrder order = load(orderId);
         requireOpen(order);
         if (order.getLines().isEmpty()) {
             throw DomainException.validation("Cannot quote an empty order");
         }
         validatePartition(order, billLineIds);
-        boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
+        boolean applyServiceCharge = resolveApplyServiceCharge(order, waiveServiceCharge, true);
         List<QuoteView> bills = new ArrayList<>();
         for (List<UUID> lineIds : billLineIds) {
             UUID cartId = cartForLines(order, lineIds);
@@ -437,6 +443,11 @@ class DefaultDiningService implements DiningService {
 
     @Override
     public SplitQuoteView quoteSplitEven(UUID orderId, int ways) {
+        return quoteSplitEven(orderId, ways, false);
+    }
+
+    @Override
+    public SplitQuoteView quoteSplitEven(UUID orderId, int ways, boolean waiveServiceCharge) {
         DiningOrder order = load(orderId);
         requireOpen(order);
         if (order.getLines().isEmpty()) {
@@ -446,7 +457,7 @@ class DefaultDiningService implements DiningService {
             throw DomainException.validation("Even split requires at least 2 ways");
         }
         UUID cartId = priceCartFor(order);
-        boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
+        boolean applyServiceCharge = resolveApplyServiceCharge(order, waiveServiceCharge, true);
         QuoteView quote = sales.quote(cartId, applyServiceCharge);
         carts.close(cartId);
         if (quote.grandTotal().signum() <= 0) {

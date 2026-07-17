@@ -144,7 +144,8 @@ class DiningController {
     }
 
     /** Body for the split quote. BY_ITEM populates {@code bills}; EVEN populates {@code even}. */
-    record QuoteSplitRequest(SplitMode mode, List<QuoteBillInput> bills, QuoteEvenInput even) {
+    record QuoteSplitRequest(SplitMode mode, List<QuoteBillInput> bills, QuoteEvenInput even,
+            boolean waiveServiceCharge) {
     }
 
     record QuoteBillInput(List<UUID> lineIds) {
@@ -161,12 +162,13 @@ class DiningController {
         return switch (body.mode()) {
             case BY_ITEM -> dining.quoteSplitByItem(orderId,
                     body.bills() == null ? List.of()
-                            : body.bills().stream().map(QuoteBillInput::lineIds).toList());
+                            : body.bills().stream().map(QuoteBillInput::lineIds).toList(),
+                    body.waiveServiceCharge());
             case EVEN -> {
                 if (body.even() == null) {
                     throw DomainException.validation("Even split details are required");
                 }
-                yield dining.quoteSplitEven(orderId, body.even().ways());
+                yield dining.quoteSplitEven(orderId, body.even().ways(), body.waiveServiceCharge());
             }
         };
     }

@@ -80,4 +80,30 @@ class DiningServiceChargeWaiverQuoteTest {
         // The quote is an ungated preview — it must NOT throw the manager-only validation.
         assertThatCode(() -> dining.quoteOrder(orderId, Map.of(), null, true)).doesNotThrowAnyException();
     }
+
+    @Test
+    void waivedEvenSplitQuoteHasNoServiceCharge() {
+        UUID orderId = openDineInWithLine();
+
+        com.company.pos.dining.api.SplitQuoteView waived = dining.quoteSplitEven(orderId, 2, true);
+        com.company.pos.dining.api.SplitQuoteView withSc = dining.quoteSplitEven(orderId, 2, false);
+
+        assertThat(waived.order().serviceChargeAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(withSc.order().serviceChargeAmount()).isGreaterThan(BigDecimal.ZERO);
+        assertThat(waived.order().grandTotal()).isLessThan(withSc.order().grandTotal());
+    }
+
+    @Test
+    void waivedByItemSplitQuoteHasNoServiceCharge() {
+        UUID table = dining.registerTable(new RegisterTableCommand("SC-" + UUID.randomUUID(), 4)).id();
+        UUID orderId = dining.openOrder(new OpenOrderCommand(table, null), "alice").id();
+        var line = dining.addLine(orderId,
+                new AddLineCommand("BURGER", new BigDecimal("1"), null, CourseTag.MAIN), "alice")
+                .lines().get(0).id();
+
+        com.company.pos.dining.api.SplitQuoteView waived =
+                dining.quoteSplitByItem(orderId, java.util.List.of(java.util.List.of(line)), true);
+
+        assertThat(waived.bills().get(0).serviceChargeAmount()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
 }
