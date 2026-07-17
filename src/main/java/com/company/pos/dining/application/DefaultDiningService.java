@@ -361,13 +361,21 @@ class DefaultDiningService implements DiningService {
     @Transactional
     public QuoteView quoteOrder(UUID orderId, Map<String, DiscountInput> lineDiscounts,
             DiscountInput transactionDiscount) {
+        return quoteOrder(orderId, lineDiscounts, transactionDiscount, false);
+    }
+
+    @Override
+    @Transactional
+    public QuoteView quoteOrder(UUID orderId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount, boolean waiveServiceCharge) {
         DiningOrder order = load(orderId);
         requireOpen(order);
         if (order.getLines().isEmpty()) {
             throw DomainException.validation("Cannot quote an empty order");
         }
         UUID cartId = priceCartFor(order);
-        boolean applyServiceCharge = resolveApplyServiceCharge(order, false, false);
+        // Ungated preview: callerIsManager=true bypasses the manager throw; close is the real gate.
+        boolean applyServiceCharge = resolveApplyServiceCharge(order, waiveServiceCharge, true);
         QuoteView quote = sales.quote(cartId, lineDiscounts, transactionDiscount, applyServiceCharge);
         carts.close(cartId);
         return quote;

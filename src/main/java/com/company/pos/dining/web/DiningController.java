@@ -87,7 +87,7 @@ class DiningController {
 
     /** Body for the discount-aware quote. Nulls (or omitted fields) mean "no discounts". */
     record QuoteOrderRequest(Map<String, DiscountInput> lineDiscounts,
-            DiscountInput transactionDiscount) {
+            DiscountInput transactionDiscount, boolean waiveServiceCharge) {
         QuoteOrderRequest {
             lineDiscounts = lineDiscounts == null ? Map.of() : lineDiscounts;
         }
@@ -96,7 +96,8 @@ class DiningController {
     @PostMapping("/dining/orders/{orderId}/quote")
     QuoteView quoteOrderWithDiscounts(@PathVariable UUID orderId,
             @RequestBody QuoteOrderRequest body) {
-        return dining.quoteOrder(orderId, body.lineDiscounts(), body.transactionDiscount());
+        return dining.quoteOrder(orderId, body.lineDiscounts(), body.transactionDiscount(),
+                body.waiveServiceCharge());
     }
 
     @PostMapping("/dining/orders/{orderId}/lines")

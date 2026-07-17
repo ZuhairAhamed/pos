@@ -60,6 +60,12 @@ public interface DiningService {
     QuoteView quoteOrder(UUID orderId, Map<String, DiscountInput> lineDiscounts,
             DiscountInput transactionDiscount);
 
+    /** As {@link #quoteOrder(UUID, java.util.Map, DiscountInput)} but computes the total with the
+     *  service charge waived when {@code waiveServiceCharge} is true. Ungated PREVIEW — the manager
+     *  check is enforced at close, not here. */
+    QuoteView quoteOrder(UUID orderId, Map<String, DiscountInput> lineDiscounts,
+            DiscountInput transactionDiscount, boolean waiveServiceCharge);
+
     SaleView closeOrder(UUID orderId, CloseOrderCommand command, String cashierUsername,
             boolean callerIsManager);
 
