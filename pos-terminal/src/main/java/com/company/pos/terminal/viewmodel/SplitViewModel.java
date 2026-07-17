@@ -61,6 +61,10 @@ public class SplitViewModel {
     private volatile String quotedMode;
     private volatile int quotedWays;
 
+    // --- waiver state ---
+    private boolean waiveServiceCharge;
+    private String approvalToken;
+
     // --- tender state (index-aligned with bills/shares) ---
     private final List<String> methods = new ArrayList<>();
     private final List<BigDecimal> cashTendered = new ArrayList<>();
@@ -79,6 +83,27 @@ public class SplitViewModel {
     }
 
     public ReadOnlyStringProperty errorMessage() { return errorMessage.getReadOnlyProperty(); }
+
+    public void setWaiveServiceCharge(boolean waive) { this.waiveServiceCharge = waive; }
+
+    public void setApprovalToken(String token) { this.approvalToken = token; }
+
+    /** True when the current split quote includes a non-zero service charge (any bill / the order). */
+    public boolean quoteHasServiceCharge() {
+        if (quote == null) {
+            return false;
+        }
+        if (quote.order() != null && quote.order().serviceChargeAmount() != null) {
+            return quote.order().serviceChargeAmount().signum() > 0;
+        }
+        return quote.bills() != null && quote.bills().stream()
+                .anyMatch(b -> b.serviceChargeAmount() != null && b.serviceChargeAmount().signum() > 0);
+    }
+
+    /** Surfaces a message through the bound error property. */
+    public void setError(String message) {
+        ui.accept(() -> errorMessage.set(message));
+    }
 
     // --- load ---
 
@@ -192,12 +217,12 @@ public class SplitViewModel {
                     }
                 }
                 q = dining.quoteSplit(orderId, new QuoteSplitRequest(BY_ITEM,
-                        bills.stream().map(QuoteBillInput::new).toList(), null));
+                        bills.stream().map(QuoteBillInput::new).toList(), null, waiveServiceCharge));
                 quotedBills = bills;
                 quotedGuests = guests;
             } else {
                 q = dining.quoteSplit(orderId, new QuoteSplitRequest(EVEN, null,
-                        new QuoteEvenInput(ways)));
+                        new QuoteEvenInput(ways), waiveServiceCharge));
                 quotedBills = null;
                 quotedGuests = null;
             }
@@ -344,13 +369,15 @@ public class SplitViewModel {
                 bills.add(new BillRequest(quotedBills.get(i),
                         List.of(new TenderInput(method, amount, tendered)), Map.of(), null));
             }
-            req = new SplitCloseRequest(BY_ITEM, bills, null, false);
+            req = new SplitCloseRequest(BY_ITEM, bills, null, waiveServiceCharge);
         } else {
             req = new SplitCloseRequest(EVEN, null,
-                    new EvenSplitRequest(quotedWays, new ArrayList<>(methods)), false);
+                    new EvenSplitRequest(quotedWays, new ArrayList<>(methods)), waiveServiceCharge);
         }
         try {
-            results = dining.closeSplit(orderId, req);   // SYNCHRONOUS — control-flow state
+            results = approvalToken != null
+                    ? dining.closeSplit(orderId, req, approvalToken)
+                    : dining.closeSplit(orderId, req);   // SYNCHRONOUS — control-flow state
             ui.accept(() -> errorMessage.set(""));
             return true;
         } catch (ApiException e) {

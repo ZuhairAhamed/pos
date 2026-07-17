@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.DiningApi;
+import com.company.pos.terminal.api.ProblemDetail;
 import com.company.pos.terminal.api.dto.OrderLineView;
 import com.company.pos.terminal.api.dto.OrderView;
 import com.company.pos.terminal.api.dto.QuoteSplitRequest;
@@ -41,6 +42,14 @@ class SplitViewModelTest {
         return new SaleView(UUID.randomUUID(), receipt, new BigDecimal("30.00"),
                 new BigDecimal("4.50"), BigDecimal.ZERO, new BigDecimal(grand), "SAR",
                 BigDecimal.ZERO, List.of(), List.of());
+    }
+
+    /** EVEN split quote with 2 equal shares (and a non-zero service charge on the order). */
+    private static SplitQuoteView evenQuote() {
+        QuoteView order = new QuoteView("SAR", new BigDecimal("20.00"), BigDecimal.ZERO,
+                new BigDecimal("2.00"), new BigDecimal("3.00"), new BigDecimal("25.00"));
+        return new SplitQuoteView(null, order,
+                List.of(new BigDecimal("12.50"), new BigDecimal("12.50")));
     }
 
     /** Records requests, returns canned results. DiningApi methods are non-final instance
@@ -295,5 +304,84 @@ class SplitViewModelTest {
 
         while (!queue.isEmpty()) queue.poll().run();
         assertEquals("", vm.errorMessage().get());
+    }
+
+    @Test
+    void waivedSplitQuoteSendsFlag() {
+        boolean[] sawWaive = {false};
+        DiningApi dining = new DiningApi(null) {
+            @Override
+            public com.company.pos.terminal.api.dto.OrderView order(UUID id) {
+                return SplitViewModelTest.order(line(L1, "BURGER"), line(L2, "FRIES"), line(L3, "WATER"));
+            }
+            @Override
+            public SplitQuoteView quoteSplit(UUID orderId, QuoteSplitRequest req) {
+                sawWaive[0] = req.waiveServiceCharge();
+                return evenQuote();
+            }
+        };
+        SplitViewModel vm = new SplitViewModel(dining);
+        vm.load(ORDER_ID);
+        vm.setMode(SplitViewModel.EVEN);
+        vm.setWays(2);
+        vm.setWaiveServiceCharge(true);
+        assertTrue(vm.quoteSplit(ORDER_ID));
+        assertTrue(sawWaive[0]);
+    }
+
+    @Test
+    void closeAllWithTokenUsesTokenOverload() {
+        String[] sawToken = {null};
+        DiningApi dining = new DiningApi(null) {
+            @Override
+            public com.company.pos.terminal.api.dto.OrderView order(UUID id) {
+                return SplitViewModelTest.order(line(L1, "BURGER"), line(L2, "FRIES"), line(L3, "WATER"));
+            }
+            @Override
+            public SplitQuoteView quoteSplit(UUID orderId, QuoteSplitRequest req) { return evenQuote(); }
+            @Override
+            public List<SaleView> closeSplit(UUID orderId, SplitCloseRequest req, String bearerToken) {
+                sawToken[0] = bearerToken;
+                return List.of();
+            }
+        };
+        SplitViewModel vm = new SplitViewModel(dining);
+        vm.load(ORDER_ID);
+        vm.setMode(SplitViewModel.EVEN);
+        vm.setWays(2);
+        vm.setApprovalToken("mgr-token");
+        vm.setWaiveServiceCharge(true);
+        vm.quoteSplit(ORDER_ID);
+        // set a payment method for each of the 2 even guests so canCloseAll passes
+        vm.setMethod(0, "CARD");
+        vm.setMethod(1, "CARD");
+        vm.closeAll(ORDER_ID);
+        assertEquals("mgr-token", sawToken[0]);
+    }
+
+    @Test
+    void deferredDispatcherHoldsWaivedQuoteErrorUntilDrained() {
+        DiningApi dining = new DiningApi(null) {
+            @Override
+            public com.company.pos.terminal.api.dto.OrderView order(UUID id) {
+                return SplitViewModelTest.order(line(L1, "BURGER"), line(L2, "FRIES"), line(L3, "WATER"));
+            }
+            @Override
+            public SplitQuoteView quoteSplit(UUID orderId, QuoteSplitRequest req) {
+                throw new ApiException(400, new ProblemDetail("Bad Request", 400, "boom"), "HTTP 400");
+            }
+        };
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        SplitViewModel vm = new SplitViewModel(dining, queue::add);
+        vm.load(ORDER_ID);
+        while (!queue.isEmpty()) queue.poll().run();
+        vm.setMode(SplitViewModel.EVEN);
+        vm.setWays(2);
+        vm.setWaiveServiceCharge(true);
+        boolean ok = vm.quoteSplit(ORDER_ID);
+        assertFalse(ok);                                  // synchronous return
+        assertEquals("", vm.errorMessage().get());        // deferred: not applied yet
+        while (!queue.isEmpty()) queue.poll().run();
+        assertEquals("boom", vm.errorMessage().get());
     }
 }

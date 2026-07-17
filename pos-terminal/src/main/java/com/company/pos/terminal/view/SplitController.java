@@ -1,5 +1,7 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.ApiException;
+import com.company.pos.terminal.api.dto.ManagerAuth;
 import com.company.pos.terminal.api.dto.OrderLineView;
 import com.company.pos.terminal.api.dto.SalePaymentView;
 import com.company.pos.terminal.api.dto.SaleView;
@@ -64,6 +66,10 @@ public class SplitController {
     @FXML private VBox guestRows;
     @FXML private Button backButton;
     @FXML private Button closeAllButton;
+    @FXML private Button waiveButton;
+    @FXML private HBox waiveChipRow;
+    @FXML private Label waiveChipLabel;
+    @FXML private Button removeWaiveButton;
     @FXML private VBox resultBox;
     @FXML private VBox successBanner;
     @FXML private Label successCheck;
@@ -112,6 +118,8 @@ public class SplitController {
         continueButton.setOnAction(e -> quoteAndShowTender());
         backButton.setOnAction(e -> showPhase(partitionBox));
         closeAllButton.setOnAction(e -> closeAll());
+        waiveButton.setOnAction(e -> waiveTapped());
+        removeWaiveButton.setOnAction(e -> removeWaiver());
         doneButton.setOnAction(e -> navigator.toTableMap());
 
         continueButton.setDisable(true);
@@ -222,6 +230,7 @@ public class SplitController {
                         quoteBadge.setVisible(true);
                         quoteBadge.setManaged(true);
                         renderGuestRows();
+                        refreshWaiveControls(false);
                         showPhase(tenderBox);
                     }
                 },
@@ -306,6 +315,63 @@ public class SplitController {
 
     private void updateCloseAllState() {
         closeAllButton.setDisable(!vm.canCloseAll());
+    }
+
+    /** Show or hide the waive button / chip based on current VM state.
+     *  @param waived true when a waiver has just been successfully applied */
+    private void refreshWaiveControls(boolean waived) {
+        boolean scPresent = vm.quoteHasServiceCharge();
+        // Waive button: visible when SC is present in the quote AND no waiver applied yet
+        waiveButton.setVisible(scPresent && !waived);
+        waiveButton.setManaged(scPresent && !waived);
+        // Chip: visible when a waiver is active
+        waiveChipRow.setVisible(waived);
+        waiveChipRow.setManaged(waived);
+    }
+
+    private void waiveTapped() {
+        var creds = ManagerPinDialog.promptForApproval(
+                "Waiving the service charge requires manager approval");
+        if (creds.isEmpty()) {
+            return;
+        }
+        tenderBox.setDisable(true);
+        FxTasks.run(() -> {
+            ManagerAuth auth = services.authApi.pinLoginForToken(
+                    creds.get().cashierCode(), creds.get().pin());
+            if (!auth.isManager()) {
+                throw new ApiException(403, null, "This account is not a manager");
+            }
+            vm.setApprovalToken(auth.token());
+            vm.setWaiveServiceCharge(true);
+            vm.quoteSplit(orderId);                 // re-quote WITH the waiver, off-thread
+        }, () -> {
+            tenderBox.setDisable(false);
+            renderGuestRows();                      // repaint phase-2 amounts from the new quote
+            refreshWaiveControls(true);
+            waiveChipLabel.setText("Service charge waived");
+            updateCloseAllState();
+        }, err -> {
+            tenderBox.setDisable(false);
+            String msg = err.getMessage();
+            vm.setError(msg == null || msg.isBlank() ? "Manager approval failed" : msg);
+        });
+    }
+
+    private void removeWaiver() {
+        tenderBox.setDisable(true);
+        FxTasks.run(() -> {
+            vm.setWaiveServiceCharge(false);
+            vm.quoteSplit(orderId);
+        }, () -> {
+            tenderBox.setDisable(false);
+            renderGuestRows();
+            refreshWaiveControls(false);
+            updateCloseAllState();
+        }, err -> {
+            tenderBox.setDisable(false);
+            LOG.log(System.Logger.Level.ERROR, "Failed to re-quote after removing waiver", err);
+        });
     }
 
     private void closeAll() {

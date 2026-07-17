@@ -332,3 +332,19 @@ dine-in tables (T1–T6) plus counters.
    Go back to the table map — **T2 is free again** (its order is voided).
 4. **No targets:** with only one occupied table, tapping **Merge** shows the error line
    "No other occupied tables to merge".
+
+## Slice 13 — Service-charge waiver (manual E2E)
+
+**Prereq:** backend on `embedded,dev` with the service charge enabled
+(`service.charge.enabled=true`, `service.charge.percent` > 0 in the configuration store); log in
+(`manager`/`manager`).
+
+1. **Payment screen:** open a dine-in table, add lines, go to Pay. The total shows a service charge.
+   Tap **Waive service charge** → enter the manager PIN → the total drops the service charge, a
+   "Service charge waived" chip appears, and paying tenders the reduced total. Remove the chip to
+   restore the charge.
+2. **Non-manager path:** cancel the PIN or use a cashier account → no waiver is applied; the charge
+   stays.
+3. **Split screen:** open a dine-in table with lines, go to Split, partition/choose even, Continue.
+   In the tender phase tap **Waive service charge** → manager PIN → every guest's amount drops the
+   service charge. Close all bills.

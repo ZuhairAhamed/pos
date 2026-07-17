@@ -66,6 +66,12 @@
         <ScrollPane fitToWidth="true" styleClass="menu-scroll" VBox.vgrow="ALWAYS">
           <VBox fx:id="guestRows" spacing="12"/>
         </ScrollPane>
+        <Button fx:id="waiveButton" text="Waive service charge" styleClass="btn-secondary"
+                visible="false" managed="false"/>
+        <HBox fx:id="waiveChipRow" styleClass="chip-row" visible="false" managed="false">
+          <Label fx:id="waiveChipLabel" styleClass="discount-chip"/>
+          <Button fx:id="removeWaiveButton" text="✕" styleClass="chip-remove"/>
+        </HBox>
         <HBox spacing="12" maxWidth="Infinity">
           <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
           <Pane HBox.hgrow="ALWAYS"/>
