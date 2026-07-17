@@ -93,6 +93,10 @@ public class DiningOrder {
         this.status = OrderStatus.VOIDED;
     }
 
+    public void moveToTable(UUID targetTableId) {
+        this.tableId = targetTableId;
+    }
+
     public UUID getId() {
         return id;
     }

@@ -24,6 +24,10 @@ public interface DiningService {
 
     List<OpenOrderView> listOpenOrders();
 
+    /** Relocates an OPEN order to a different, active, free table. Fails if the order is not open,
+     *  the target is the same/unknown/inactive, or the target already has an open order. */
+    OrderView transferOrder(UUID orderId, UUID targetTableId);
+
     // --- fire to kitchen ---
     OrderView fireOrder(UUID orderId, String firedBy);
 

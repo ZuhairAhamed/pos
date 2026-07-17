@@ -146,6 +146,25 @@ class DefaultDiningService implements DiningService {
                 .toList();
     }
 
+    @Override
+    public OrderView transferOrder(UUID orderId, UUID targetTableId) {
+        DiningOrder order = load(orderId);
+        requireOpen(order);
+        if (order.getTableId().equals(targetTableId)) {
+            throw DomainException.validation("Order is already on that table");
+        }
+        DiningTable target = tables.findById(targetTableId)
+                .orElseThrow(() -> DomainException.notFound("No table " + targetTableId));
+        if (!target.isActive()) {
+            throw DomainException.validation("Table " + target.getLabel() + " is inactive");
+        }
+        if (orders.existsByTableIdAndStatus(targetTableId, OrderStatus.OPEN)) {
+            throw DomainException.conflict("Table " + target.getLabel() + " already has an open order");
+        }
+        order.moveToTable(targetTableId);
+        return toOrderView(orders.save(order));
+    }
+
     DiningOrder load(UUID orderId) {
         return orders.findById(orderId)
                 .orElseThrow(() -> DomainException.notFound("No order " + orderId));
