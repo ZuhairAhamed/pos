@@ -479,4 +479,83 @@ class OrderViewModelTest {
         while (!queue.isEmpty()) queue.poll().run();
         assertEquals("Table T2 already has an open order", vm.errorMessage().get());
     }
+
+    @Test
+    void mergeReturnsTrueOnSuccess() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        UUID[] captured = new UUID[1];
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView mergeOrders(UUID survivorId, UUID absorbedId) {
+                        captured[0] = absorbedId;
+                        return orderWith(List.of(line));
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        UUID absorbed = UUID.randomUUID();
+        assertTrue(vm.merge(absorbed));
+        assertEquals(absorbed, captured[0]);
+        assertEquals("", vm.errorMessage().get());
+    }
+
+    @Test
+    void mergeSurfacesErrorAndReturnsFalse() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView mergeOrders(UUID survivorId, UUID absorbedId) {
+                        throw new ApiException(400,
+                                new ProblemDetail("Bad Request", 400, "The selected order has no lines to merge"),
+                                "HTTP 400");
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        assertFalse(vm.merge(UUID.randomUUID()));
+        assertEquals("The selected order has no lines to merge", vm.errorMessage().get());
+    }
+
+    @Test
+    void deferredDispatcherHoldsMergeErrorUntilDrained() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView mergeOrders(UUID survivorId, UUID absorbedId) {
+                        throw new ApiException(400,
+                                new ProblemDetail("Bad Request", 400, "The selected order has no lines to merge"),
+                                "HTTP 400");
+                    }
+                };
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        OrderViewModel vm = new OrderViewModel(dining, cache(), queue::add);
+        vm.load(orderId);
+        while (!queue.isEmpty()) queue.poll().run();       // drain load → baseline
+        boolean result = vm.merge(UUID.randomUUID());
+        assertFalse(result);                               // synchronous return
+        assertEquals("", vm.errorMessage().get());         // deferred: error not applied yet
+        while (!queue.isEmpty()) queue.poll().run();
+        assertEquals("The selected order has no lines to merge", vm.errorMessage().get());
+    }
 }

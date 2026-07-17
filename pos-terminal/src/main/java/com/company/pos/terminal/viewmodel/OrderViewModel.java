@@ -158,6 +158,23 @@ public class OrderViewModel {
         }
     }
 
+    /**
+     * Merges another order into the current one. Returns true on success; on ApiException surfaces
+     * the message via errorMessage and returns false. The caller reloads the current order on
+     * success (the survivor is the viewed order).
+     */
+    public boolean merge(UUID absorbedOrderId) {
+        try {
+            dining.mergeOrders(order.id(), absorbedOrderId);
+            ui.accept(() -> errorMessage.set(""));
+            return true;
+        } catch (ApiException e) {
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
+            return false;
+        }
+    }
+
     /** Lets the controller surface a manager-approval failure on the bound error label. */
     public void setError(String message) {
         ui.accept(() -> errorMessage.set(message == null ? "" : message));
