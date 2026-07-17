@@ -400,6 +400,9 @@ public class OrderController implements Navigator.Screen {
     /** A floor ping arrived (on the WebSocket thread): re-check THIS order's status off the FX
      *  thread. Coalesced — at most one check in flight, and none once the screen is stale. */
     private void onFloorPing() {
+        if (vm == null || vm.currentOrder() == null) {
+            return; // order not loaded yet — a ping in the initial-load window is a no-op
+        }
         if (stale || !checkInFlight.compareAndSet(false, true)) {
             return;
         }
