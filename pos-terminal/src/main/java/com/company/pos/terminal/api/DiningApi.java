@@ -84,6 +84,17 @@ public class DiningApi {
         client.post("/dining/orders/" + orderId + "/fire", null, new TypeReference<OrderView>() {});
     }
 
+    /**
+     * Voids the whole order (MANAGER-gated on the server). {@code reason} is optional (may be
+     * blank) and URL-encoded. Authenticated with a one-shot manager {@code bearerToken}; a 401
+     * on this overridden call never clears the cashier session. 204 No Content.
+     */
+    public void voidOrder(UUID orderId, String reason, String bearerToken) {
+        String path = "/dining/orders/" + orderId + "/void?reason="
+                + URLEncoder.encode(reason == null ? "" : reason, StandardCharsets.UTF_8);
+        client.post(path, null, new TypeReference<Void>() {}, bearerToken);
+    }
+
     /** GET /dining/orders/{id}/quote — authoritative totals for a dine-in order (incl service charge). */
     public QuoteView quoteOrder(UUID orderId) {
         return client.get("/dining/orders/" + orderId + "/quote", new TypeReference<QuoteView>() {});

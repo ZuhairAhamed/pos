@@ -290,4 +290,16 @@ class DiningApiTest {
             assertTrue(stub.lastBody.contains("\"methods\":[\"CASH\",\"CARD\",\"CASH\"]"));
         }
     }
+
+    @Test
+    void voidOrderPostsToVoidEndpointWithReasonAndBearer() throws Exception {
+        try (StubServer stub = new StubServer(204, null, null)) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            api.voidOrder(ORDER_ID, "walk out", "mgr-token-123");
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/void", stub.lastPath);
+            assertTrue(stub.lastQuery.contains("reason=walk+out"), stub.lastQuery);
+            assertEquals("Bearer mgr-token-123", stub.lastAuth);
+        }
+    }
 }
