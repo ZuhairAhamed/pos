@@ -3,6 +3,7 @@ package com.company.pos.terminal.app;
 import com.company.pos.terminal.api.ApiClient;
 import com.company.pos.terminal.api.AuthApi;
 import com.company.pos.terminal.api.CartApi;
+import com.company.pos.terminal.api.CashDrawerApi;
 import com.company.pos.terminal.api.DiningApi;
 import com.company.pos.terminal.api.MenuApi;
 import com.company.pos.terminal.api.ProductApi;
@@ -10,7 +11,6 @@ import com.company.pos.terminal.api.RealtimeClient;
 import com.company.pos.terminal.api.RealtimeClients;
 import com.company.pos.terminal.api.SalesApi;
 import com.company.pos.terminal.api.SessionManager;
-import com.company.pos.terminal.api.CashDrawerApi;
 import com.company.pos.terminal.api.ShiftApi;
 import com.company.pos.terminal.config.TerminalConfig;
 
