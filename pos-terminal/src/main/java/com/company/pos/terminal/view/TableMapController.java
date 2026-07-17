@@ -1,5 +1,6 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.RealtimeClient;
 import com.company.pos.terminal.app.FxTasks;
 import com.company.pos.terminal.app.Navigator;
 import com.company.pos.terminal.app.Services;
@@ -37,6 +38,7 @@ public class TableMapController implements Navigator.Screen {
     private final TableMapViewModel vm;
     private final ToggleGroup segmentGroup = new ToggleGroup();
     private Timeline poller;
+    private RealtimeClient realtime;
 
     @FXML private Label storeLabel;
     @FXML private Label errorLabel;
@@ -89,9 +91,8 @@ public class TableMapController implements Navigator.Screen {
         poller = new Timeline(new KeyFrame(Duration.seconds(seconds), e -> refresh()));
         poller.setCycleCount(Timeline.INDEFINITE);
         poller.play();
-        if (services.config.realtimeEnabled()) {
-            services.realtimeClient.connect(this::refresh);
-        }
+        realtime = services.newRealtimeClient();
+        realtime.connect(this::refresh);
     }
 
     /** Show the region for the selected segment; the other is hidden and unmanaged. */
@@ -185,7 +186,9 @@ public class TableMapController implements Navigator.Screen {
     @Override
     public void onLeave() {
         stopPolling();
-        services.realtimeClient.close();
+        if (realtime != null) {
+            realtime.close();
+        }
     }
 
     private void stopPolling() {
