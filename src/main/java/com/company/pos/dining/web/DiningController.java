@@ -187,4 +187,9 @@ class DiningController {
     OrderView transferOrder(@PathVariable UUID orderId, @RequestParam UUID targetTableId) {
         return dining.transferOrder(orderId, targetTableId);
     }
+
+    @PostMapping("/dining/orders/{survivorOrderId}/merge")
+    OrderView mergeOrders(@PathVariable UUID survivorOrderId, @RequestParam UUID absorbedOrderId) {
+        return dining.mergeOrders(survivorOrderId, absorbedOrderId);
+    }
 }
