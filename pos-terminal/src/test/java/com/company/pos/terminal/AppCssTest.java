@@ -123,4 +123,9 @@ class AppCssTest {
             assertTrue(css.contains(cls), "missing style class: " + cls);
         }
     }
+
+    @Test
+    void definesSliceFifteenStaleClass() throws Exception {
+        assertTrue(css().contains(".stale-banner"), "missing style class: .stale-banner");
+    }
 }

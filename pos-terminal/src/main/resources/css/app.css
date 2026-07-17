@@ -718,3 +718,16 @@
 
 /* Slice 12 — merge-table picker */
 .merge-box { -fx-padding: 8; }
+
+
+/* Slice 15 — order stale-detection banner (amber-emphasis, uses existing tokens). */
+.stale-banner {
+    -fx-background-color: derive(-fx-accent, 60%);
+    -fx-text-fill: -fx-ink;
+    -fx-border-color: -fx-accent;
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 10 14;
+    -fx-font-weight: bold;
+}

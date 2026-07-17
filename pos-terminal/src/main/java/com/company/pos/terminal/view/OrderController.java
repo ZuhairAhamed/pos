@@ -1,11 +1,13 @@
 package com.company.pos.terminal.view;
 
 import com.company.pos.terminal.api.ApiException;
+import com.company.pos.terminal.api.RealtimeClient;
 import com.company.pos.terminal.api.dto.ManagerAuth;
 import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.TableView;
 import com.company.pos.terminal.order.MergeTargets;
 import com.company.pos.terminal.order.MoveTargets;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import com.company.pos.terminal.api.dto.ModifierGroupView;
 import com.company.pos.terminal.api.dto.OrderLineModifierView;
@@ -59,7 +61,7 @@ import javafx.scene.layout.VBox;
  * property). Unexpected task failures are logged via {@link System.Logger}; VM-surfaced business
  * errors flow through the bound {@code errorMessage()} property.
  */
-public class OrderController {
+public class OrderController implements Navigator.Screen {
 
     private static final System.Logger LOG = System.getLogger(OrderController.class.getName());
 
@@ -71,11 +73,15 @@ public class OrderController {
     private final UUID orderId;
     private OrderViewModel vm;
     private MenuCache cache;
+    private RealtimeClient realtime;
+    private final AtomicBoolean checkInFlight = new AtomicBoolean(false);
+    private boolean stale;
 
     @FXML private VBox lineBox;
     @FXML private Label emptyLabel;
     @FXML private Label subtotalLabel;
     @FXML private Label errorLabel;
+    @FXML private Label staleBanner;
     @FXML private Button fireButton;
     @FXML private Button splitButton;
     @FXML private Button payButton;
@@ -148,6 +154,9 @@ public class OrderController {
                     splitButton.setDisable(vm.lines().isEmpty());
                 },
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to load order " + orderId, err));
+
+        realtime = services.newRealtimeClient();
+        realtime.connect(this::onFloorPing);
     }
 
     /** One tab per category (MenuCache already folds null/blank categories into "Other"). */
@@ -386,6 +395,61 @@ public class OrderController {
                             err -> LOG.log(System.Logger.Level.ERROR, "Failed to merge orders", err));
                 },
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to load orders for merge", err));
+    }
+
+    /** A floor ping arrived (on the WebSocket thread): re-check THIS order's status off the FX
+     *  thread. Coalesced — at most one check in flight, and none once the screen is stale. */
+    private void onFloorPing() {
+        if (stale || !checkInFlight.compareAndSet(false, true)) {
+            return;
+        }
+        OrderViewModel.RecheckResult[] holder = { OrderViewModel.RecheckResult.UNKNOWN };
+        FxTasks.run(
+                () -> holder[0] = vm.recheck(),
+                () -> {
+                    checkInFlight.set(false);
+                    if (holder[0] == OrderViewModel.RecheckResult.STALE) {
+                        lockStale();
+                    }
+                },
+                err -> {
+                    checkInFlight.set(false);
+                    LOG.log(System.Logger.Level.ERROR, "Order re-check failed", err);
+                });
+    }
+
+    /** Lock every editing control; keep "Back to tables" live; show the stale banner. */
+    private void lockStale() {
+        stale = true;
+        lineBox.setDisable(true);
+        categoryTabs.setDisable(true);
+        fireButton.setDisable(true);
+        voidButton.setDisable(true);
+        moveButton.setDisable(true);
+        mergeButton.setDisable(true);
+        splitButton.setDisable(true);
+        payButton.setDisable(true);
+        String status = vm.currentOrder() == null ? null : vm.currentOrder().status();
+        staleBanner.setText(staleMessage(status));
+        staleBanner.setManaged(true);
+        staleBanner.setVisible(true);
+    }
+
+    private static String staleMessage(String status) {
+        String what = "changed";
+        if ("VOIDED".equals(status)) {
+            what = "voided";
+        } else if ("CLOSED".equals(status)) {
+            what = "paid/closed";
+        }
+        return "This order was " + what + " on another terminal. Return to tables.";
+    }
+
+    @Override
+    public void onLeave() {
+        if (realtime != null) {
+            realtime.close();
+        }
     }
 
     private void pay() {

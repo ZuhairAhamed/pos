@@ -81,6 +81,37 @@ public class OrderViewModel {
         apply(() -> dining.order(orderId));
     }
 
+    /** Outcome of a post-ping re-check: the order is still OPEN (lines refreshed), it has gone to a
+     *  terminal state (VOIDED/CLOSED → STALE), or the check could not be completed (UNKNOWN). */
+    public enum RecheckResult { OPEN, STALE, UNKNOWN }
+
+    /**
+     * Re-reads the order after a floor-change ping. OPEN → refreshes {@link #lines()} +
+     * {@link #subtotalText()} and returns OPEN. A non-OPEN status → returns STALE (the current
+     * order is updated so the caller can read its status; displayed lines are left intact for
+     * locking). An {@link ApiException} (network or 404) → returns UNKNOWN without locking.
+     * Synchronous on the calling thread — the controller runs it off the FX thread.
+     */
+    public RecheckResult recheck() {
+        OrderView refreshed;
+        try {
+            refreshed = dining.order(order.id());
+        } catch (ApiException e) {
+            return RecheckResult.UNKNOWN;
+        }
+        order = refreshed;
+        if (!"OPEN".equals(refreshed.status())) {
+            return RecheckResult.STALE;
+        }
+        List<OrderLineView> nextLines = refreshed.lines() == null ? List.of() : refreshed.lines();
+        String subtotal = SubtotalCalculator.estimate(refreshed, cache).toPlainString();
+        ui.accept(() -> {
+            lines.setAll(nextLines);
+            subtotalText.set(subtotal);
+        });
+        return RecheckResult.OPEN;
+    }
+
     public void addLine(
             String sku, BigDecimal qty, String note, String course, List<UUID> optionIds) {
         apply(() -> dining.addLine(order.id(), new AddLineRequest(sku, qty, note, course, optionIds)));

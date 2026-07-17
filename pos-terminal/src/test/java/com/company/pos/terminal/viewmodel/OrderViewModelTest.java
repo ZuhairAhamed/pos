@@ -14,6 +14,8 @@ import com.company.pos.terminal.api.dto.ProductView;
 import com.company.pos.terminal.order.MenuCache;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -557,5 +559,106 @@ class OrderViewModelTest {
         assertEquals("", vm.errorMessage().get());         // deferred: error not applied yet
         while (!queue.isEmpty()) queue.poll().run();
         assertEquals("The selected order has no lines to merge", vm.errorMessage().get());
+    }
+
+    // ---- Recheck tests (Task 2: stale-detection) ----------------------------------------
+
+    /** An order in a given lifecycle status with no lines. */
+    private OrderView orderStatus(String status) {
+        return new OrderView(
+                orderId, tableId, "DINE_IN", status, "clerk", Instant.now(), null, null, List.of());
+    }
+
+    /** DiningApi whose order() returns `load` on the first call, then `recheck` on every call after. */
+    private DiningApi diningReturning(OrderView load, OrderView recheck) {
+        return new DiningApi(null) {
+            private boolean loaded;
+            @Override
+            public OrderView order(UUID id) {
+                if (!loaded) {
+                    loaded = true;
+                    return load;
+                }
+                return recheck;
+            }
+        };
+    }
+
+    @Test
+    void recheckOpenRefreshesLinesFromServer() {
+        OrderLineView added =
+                new OrderLineView(
+                        UUID.randomUUID(), "BURGER", new BigDecimal("1"), null, "MAIN", null,
+                        List.of());
+        OrderViewModel vm =
+                new OrderViewModel(diningReturning(orderWith(List.of()), orderWith(List.of(added))),
+                        cache());
+        vm.load(orderId);
+        assertEquals(0, vm.lines().size());
+        assertEquals(OrderViewModel.RecheckResult.OPEN, vm.recheck());
+        assertEquals(1, vm.lines().size());
+    }
+
+    @Test
+    void recheckVoidedReturnsStale() {
+        OrderViewModel vm =
+                new OrderViewModel(diningReturning(orderWith(List.of()), orderStatus("VOIDED")),
+                        cache());
+        vm.load(orderId);
+        assertEquals(OrderViewModel.RecheckResult.STALE, vm.recheck());
+        assertEquals("VOIDED", vm.currentOrder().status());
+    }
+
+    @Test
+    void recheckClosedReturnsStale() {
+        OrderViewModel vm =
+                new OrderViewModel(diningReturning(orderWith(List.of()), orderStatus("CLOSED")),
+                        cache());
+        vm.load(orderId);
+        assertEquals(OrderViewModel.RecheckResult.STALE, vm.recheck());
+    }
+
+    @Test
+    void recheckApiExceptionReturnsUnknownAndKeepsState() {
+        DiningApi dining =
+                new DiningApi(null) {
+                    private boolean loaded;
+                    @Override
+                    public OrderView order(UUID id) {
+                        if (!loaded) {
+                            loaded = true;
+                            return orderWith(List.of());
+                        }
+                        throw new ApiException(0, null, "Cannot reach store server");
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        assertEquals(OrderViewModel.RecheckResult.UNKNOWN, vm.recheck());
+        assertEquals("OPEN", vm.currentOrder().status());
+    }
+
+    @Test
+    void recheckHoldsLineRefreshUntilDispatcherDrains() {
+        OrderLineView added =
+                new OrderLineView(
+                        UUID.randomUUID(), "BURGER", new BigDecimal("1"), null, "MAIN", null,
+                        List.of());
+        Deque<Runnable> queue = new ArrayDeque<>();
+        OrderViewModel vm =
+                new OrderViewModel(diningReturning(orderWith(List.of()), orderWith(List.of(added))),
+                        cache(), queue::add);
+        vm.load(orderId);
+        while (!queue.isEmpty()) {
+            queue.poll().run();
+        }
+        assertEquals(0, vm.lines().size());
+        // Return value is correct immediately; the observable update is still queued.
+        assertEquals(OrderViewModel.RecheckResult.OPEN, vm.recheck());
+        assertEquals(0, vm.lines().size());
+        while (!queue.isEmpty()) {
+            queue.poll().run();
+        }
+        assertEquals(1, vm.lines().size());
     }
 }

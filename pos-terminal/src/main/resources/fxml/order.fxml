@@ -28,6 +28,8 @@
 
       <!-- Error banner: danger style, hidden (and not laid out) when empty. -->
       <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
+      <!-- Stale banner: shown when the order was changed on another terminal; the screen locks. -->
+      <Label fx:id="staleBanner" styleClass="stale-banner" wrapText="true" maxWidth="Infinity" managed="false" visible="false"/>
 
       <HBox spacing="12">
         <Button fx:id="fireButton" text="Fire to kitchen" styleClass="btn-primary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
