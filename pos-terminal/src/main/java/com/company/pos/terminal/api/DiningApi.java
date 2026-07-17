@@ -90,6 +90,12 @@ public class DiningApi {
                 null, new TypeReference<OrderView>() {});
     }
 
+    /** POST /dining/orders/{survivorOrderId}/merge?absorbedOrderId=... — folds another order in. */
+    public OrderView mergeOrders(UUID survivorOrderId, UUID absorbedOrderId) {
+        return client.post("/dining/orders/" + survivorOrderId + "/merge?absorbedOrderId=" + absorbedOrderId,
+                null, new TypeReference<OrderView>() {});
+    }
+
     /**
      * Voids the whole order (MANAGER-gated on the server). {@code reason} is optional (may be
      * blank) and URL-encoded. Authenticated with a one-shot manager {@code bearerToken}; a 401

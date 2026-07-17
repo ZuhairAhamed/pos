@@ -315,4 +315,17 @@ class DiningApiTest {
             assertEquals("targetTableId=44444444-4444-4444-4444-444444444444", stub.lastQuery);
         }
     }
+
+    @Test
+    void mergeOrdersPostsAbsorbedIdAndParsesOrder() throws Exception {
+        try (StubServer stub = new StubServer(200, ORDER_JSON, "application/json")) {
+            DiningApi api = new DiningApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            java.util.UUID absorbed = java.util.UUID.fromString("55555555-5555-5555-5555-555555555555");
+            OrderView v = api.mergeOrders(ORDER_ID, absorbed);
+            assertEquals("OPEN", v.status());
+            assertEquals("POST", stub.lastMethod);
+            assertEquals("/dining/orders/33333333-3333-3333-3333-333333333333/merge", stub.lastPath);
+            assertEquals("absorbedOrderId=55555555-5555-5555-5555-555555555555", stub.lastQuery);
+        }
+    }
 }
