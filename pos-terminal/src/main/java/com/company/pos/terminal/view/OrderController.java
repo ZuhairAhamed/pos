@@ -376,14 +376,13 @@ public class OrderController {
                     if (absorbed.isEmpty()) {
                         return;
                     }
-                    boolean[] holder = {false};
                     FxTasks.run(
-                            () -> holder[0] = vm.merge(absorbed.get()),
                             () -> {
-                                if (holder[0]) {
+                                if (vm.merge(absorbed.get())) {
                                     vm.load(orderId);
                                 }
                             },
+                            () -> {},
                             err -> LOG.log(System.Logger.Level.ERROR, "Failed to merge orders", err));
                 },
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to load orders for merge", err));
