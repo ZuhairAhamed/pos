@@ -10,7 +10,9 @@ import com.company.pos.dining.api.AddLineCommand;
 import com.company.pos.dining.api.BillInput;
 import com.company.pos.dining.api.CloseOrderCommand;
 import com.company.pos.dining.api.CourseTag;
+import com.company.pos.dining.api.DiningFloorChanged;
 import com.company.pos.dining.api.EvenSplitInput;
+import com.company.pos.dining.api.FloorChangeType;
 import com.company.pos.dining.api.SplitCloseCommand;
 import com.company.pos.dining.api.DiningService;
 import com.company.pos.dining.api.KitchenTicketsFired;
@@ -98,7 +100,9 @@ class DefaultDiningService implements DiningService {
                 ? command.seats()
                 : config.getInt(SettingKey.DINING_TABLE_DEFAULT_SEATS);
         DiningTable table = new DiningTable(Identifiers.newId(), label, seats);
-        return toTableView(tables.save(table));
+        DiningTable saved = tables.save(table);
+        publishFloorChanged(FloorChangeType.TABLE_REGISTERED, saved.getId(), null);
+        return toTableView(saved);
     }
 
     @Override
@@ -106,6 +110,7 @@ class DefaultDiningService implements DiningService {
         DiningTable table = tables.findById(tableId)
                 .orElseThrow(() -> DomainException.notFound("No table " + tableId));
         table.setActive(false);
+        publishFloorChanged(FloorChangeType.TABLE_DEACTIVATED, tableId, null);
     }
 
     @Override
@@ -128,7 +133,9 @@ class DefaultDiningService implements DiningService {
         ServiceType type = command.serviceType() != null ? command.serviceType() : ServiceType.DINE_IN;
         DiningOrder order = new DiningOrder(Identifiers.newId(), table.getId(), type, openedBy,
                 Instant.now());
-        return toOrderView(orders.save(order));
+        DiningOrder saved = orders.save(order);
+        publishFloorChanged(FloorChangeType.ORDER_OPENED, saved.getTableId(), saved.getId());
+        return toOrderView(saved);
     }
 
     @Override
@@ -163,7 +170,9 @@ class DefaultDiningService implements DiningService {
             throw DomainException.conflict("Table " + target.getLabel() + " already has an open order");
         }
         order.moveToTable(targetTableId);
-        return toOrderView(orders.save(order));
+        DiningOrder saved = orders.save(order);
+        publishFloorChanged(FloorChangeType.ORDER_TRANSFERRED, saved.getTableId(), saved.getId());
+        return toOrderView(saved);
     }
 
     @Override
@@ -194,12 +203,18 @@ class DefaultDiningService implements DiningService {
             survivor.addLine(copy);
         }
         absorbed.voidOrder();
-        return toOrderView(orders.save(survivor));
+        DiningOrder saved = orders.save(survivor);
+        publishFloorChanged(FloorChangeType.ORDER_MERGED, saved.getTableId(), saved.getId());
+        return toOrderView(saved);
     }
 
     DiningOrder load(UUID orderId) {
         return orders.findById(orderId)
                 .orElseThrow(() -> DomainException.notFound("No order " + orderId));
+    }
+
+    private void publishFloorChanged(FloorChangeType change, UUID tableId, UUID orderId) {
+        events.publish(new DiningFloorChanged(change, tableId, orderId, Instant.now()));
     }
 
     OrderView toOrderView(DiningOrder o) {
@@ -235,6 +250,7 @@ class DefaultDiningService implements DiningService {
             }
         }
         order.addLine(line);
+        publishFloorChanged(FloorChangeType.LINE_ADDED, order.getTableId(), order.getId());
         return toOrderView(order);
     }
 
@@ -253,6 +269,7 @@ class DefaultDiningService implements DiningService {
         line.setQty(qty);
         line.setNote(note);
         line.setCourse(course);
+        publishFloorChanged(FloorChangeType.LINE_UPDATED, order.getTableId(), order.getId());
         return toOrderView(order);
     }
 
@@ -265,6 +282,7 @@ class DefaultDiningService implements DiningService {
             throw DomainException.validation("Line " + lineId + " was already sent to the kitchen");
         }
         order.removeLine(line);
+        publishFloorChanged(FloorChangeType.LINE_REMOVED, order.getTableId(), order.getId());
         return toOrderView(order);
     }
 
@@ -305,6 +323,7 @@ class DefaultDiningService implements DiningService {
         String tableLabel = tables.findById(order.getTableId())
                 .map(DiningTable::getLabel).orElse("?");
         events.publish(new KitchenTicketsFired(order.getId(), tableLabel, now, firedLines));
+        publishFloorChanged(FloorChangeType.ORDER_FIRED, order.getTableId(), order.getId());
         return toOrderView(order);
     }
 
@@ -332,6 +351,7 @@ class DefaultDiningService implements DiningService {
 
         carts.close(cartId);
         order.close(sale.id(), Instant.now());
+        publishFloorChanged(FloorChangeType.ORDER_CLOSED, order.getTableId(), order.getId());
         return sale;
     }
 
@@ -414,6 +434,7 @@ class DefaultDiningService implements DiningService {
         for (SaleView sale : results) {
             orderSales.save(new DiningOrderSale(Identifiers.newId(), order.getId(), sale.id()));
         }
+        publishFloorChanged(FloorChangeType.ORDER_SPLIT_CLOSED, order.getTableId(), order.getId());
         return results;
     }
 
@@ -597,6 +618,7 @@ class DefaultDiningService implements DiningService {
         DiningOrder order = load(orderId);
         requireOpen(order);
         order.voidOrder();
+        publishFloorChanged(FloorChangeType.ORDER_VOIDED, order.getTableId(), order.getId());
     }
 
     private TableView toTableView(DiningTable t) {
