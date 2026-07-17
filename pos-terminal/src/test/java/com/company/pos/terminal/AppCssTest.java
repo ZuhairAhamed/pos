@@ -128,4 +128,9 @@ class AppCssTest {
     void definesSliceFifteenStaleClass() throws Exception {
         assertTrue(css().contains(".stale-banner"), "missing style class: .stale-banner");
     }
+
+    @Test
+    void definesSliceSixteenDrawerClass() throws Exception {
+        assertTrue(css().contains(".drawer-modal"), "missing style class: .drawer-modal");
+    }
 }

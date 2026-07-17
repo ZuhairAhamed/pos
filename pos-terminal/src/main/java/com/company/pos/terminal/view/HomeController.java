@@ -1,15 +1,21 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.dto.CashMovementView;
+import com.company.pos.terminal.api.dto.DrawerReconciliation;
 import com.company.pos.terminal.api.dto.ShiftSummary;
 import com.company.pos.terminal.api.dto.ShiftView;
 import com.company.pos.terminal.app.FxTasks;
 import com.company.pos.terminal.app.Navigator;
 import com.company.pos.terminal.app.Services;
+import com.company.pos.terminal.view.CashMovementDialog.CashMovementInput;
+import com.company.pos.terminal.view.DrawerActivityDialog.DrawerAction;
+import com.company.pos.terminal.viewmodel.CashDrawerViewModel;
 import com.company.pos.terminal.viewmodel.CloseShiftViewModel;
 import com.company.pos.terminal.viewmodel.StartShiftViewModel;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javafx.application.Platform;
@@ -34,6 +40,7 @@ public class HomeController {
     private final Navigator navigator;
     private final StartShiftViewModel shiftVm;
     private final CloseShiftViewModel closeVm;
+    private final CashDrawerViewModel drawerVm;
     private ShiftView openShift;
 
     @FXML private Label userLabel;
@@ -42,12 +49,14 @@ public class HomeController {
     @FXML private Button dineInButton;
     @FXML private Button retailButton;
     @FXML private Button closeShiftButton;
+    @FXML private Button drawerButton;
 
     public HomeController(Services services, Navigator navigator) {
         this.services = services;
         this.navigator = navigator;
         this.shiftVm = new StartShiftViewModel(services.shiftApi, Platform::runLater);
         this.closeVm = new CloseShiftViewModel(services.shiftApi, Platform::runLater);
+        this.drawerVm = new CashDrawerViewModel(services.cashDrawerApi, Platform::runLater);
     }
 
     @FXML
@@ -64,6 +73,9 @@ public class HomeController {
         closeShiftButton.setOnAction(e -> closeShift());
         closeShiftButton.setVisible(false);
         closeShiftButton.setManaged(false);
+        drawerButton.setOnAction(e -> openDrawer());
+        drawerButton.setVisible(false);
+        drawerButton.setManaged(false);
         checkShift();
     }
 
@@ -115,6 +127,8 @@ public class HomeController {
         shiftLabel.setText("Shift open since " + OPENED_AT.format(shift.openedAt()));
         closeShiftButton.setVisible(true);
         closeShiftButton.setManaged(true);
+        drawerButton.setVisible(true);
+        drawerButton.setManaged(true);
     }
 
     private void showNoShift() {
@@ -122,6 +136,52 @@ public class HomeController {
         shiftLabel.setText("No shift open — cash reports unavailable");
         closeShiftButton.setVisible(false);
         closeShiftButton.setManaged(false);
+        drawerButton.setVisible(false);
+        drawerButton.setManaged(false);
+    }
+
+    /** Drawer peek: fetch activity → show blind-safe view → optionally record a movement → loop. */
+    private void openDrawer() {
+        if (openShift == null) {
+            return;
+        }
+        final DrawerReconciliation[] holder = new DrawerReconciliation[1];
+        FxTasks.run(
+                () -> holder[0] = drawerVm.loadActivity(),
+                () -> {
+                    if (holder[0] == null) {
+                        shiftLabel.setText(drawerVm.errorMessage().get());
+                        return;
+                    }
+                    DrawerActivityDialog.promptForAction(holder[0], services.config.terminalId())
+                            .flatMap(action -> CashMovementDialog
+                                    .prompt(action, services.config.terminalId())
+                                    .map(input -> Map.entry(action, input)))
+                            .ifPresent(e -> submitMovement(e.getKey(), e.getValue()));
+                },
+                err -> {
+                    shiftLabel.setText("Drawer unavailable");
+                    LOG.log(System.Logger.Level.ERROR, "Load drawer activity failed", err);
+                });
+    }
+
+    private void submitMovement(DrawerAction action, CashMovementInput input) {
+        final CashMovementView[] holder = new CashMovementView[1];
+        FxTasks.run(
+                () -> holder[0] = action == DrawerAction.PAY_IN
+                        ? drawerVm.payIn(input.amount(), input.reason())
+                        : drawerVm.payOut(input.amount(), input.reason()),
+                () -> {
+                    if (holder[0] != null) {
+                        openDrawer();   // re-fetch → show refreshed activity → allow another
+                    } else {
+                        shiftLabel.setText(drawerVm.errorMessage().get());
+                    }
+                },
+                err -> {
+                    shiftLabel.setText("Couldn't record the movement");
+                    LOG.log(System.Logger.Level.ERROR, "Cash movement failed", err);
+                });
     }
 
     /** Close the shift: blind count → close → reconciliation result → no-shift state. */

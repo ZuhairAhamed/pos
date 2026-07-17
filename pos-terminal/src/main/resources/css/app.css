@@ -730,3 +730,14 @@
     -fx-padding: 10 14;
     -fx-font-weight: bold;
 }
+
+/* Slice 16 — cash-drawer management modals */
+.drawer-modal {
+    -fx-background-color: -fx-surface;
+}
+.drawer-modal .header-panel {
+    -fx-background-color: -fx-primary;
+}
+.drawer-modal .header-panel .label {
+    -fx-text-fill: white;
+}
