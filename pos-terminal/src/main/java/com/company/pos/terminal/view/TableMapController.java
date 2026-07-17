@@ -89,6 +89,9 @@ public class TableMapController implements Navigator.Screen {
         poller = new Timeline(new KeyFrame(Duration.seconds(seconds), e -> refresh()));
         poller.setCycleCount(Timeline.INDEFINITE);
         poller.play();
+        if (services.config.realtimeEnabled()) {
+            services.realtimeClient.connect(this::refresh);
+        }
     }
 
     /** Show the region for the selected segment; the other is hidden and unmanaged. */
@@ -182,6 +185,7 @@ public class TableMapController implements Navigator.Screen {
     @Override
     public void onLeave() {
         stopPolling();
+        services.realtimeClient.close();
     }
 
     private void stopPolling() {

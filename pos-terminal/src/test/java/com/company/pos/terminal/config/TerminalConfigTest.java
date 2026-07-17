@@ -23,9 +23,9 @@ class TerminalConfigTest {
     }
 
     @Test
-    void pollIntervalFallsBackToFiveWhenMissing() {
+    void pollIntervalFallsBackToFortyFiveWhenMissing() {
         TerminalConfig cfg = TerminalConfig.from(new Properties());
-        assertEquals(5, cfg.pollIntervalSeconds());
+        assertEquals(45, cfg.pollIntervalSeconds());
     }
 
     @Test
@@ -94,5 +94,23 @@ class TerminalConfigTest {
         TerminalConfig cfg = TerminalConfig.load();
         assertEquals("Counter ", cfg.takeawayLabelPrefix(),
                 "shipped pos-terminal.properties must keep the trailing space so counter labels match");
+    }
+
+    @Test
+    void realtimeDefaultsOnWithFloorPathAndForty5sFallbackPoll() {
+        TerminalConfig c = TerminalConfig.from(new Properties());
+        assertTrue(c.realtimeEnabled());
+        assertEquals("/ws/floor", c.realtimePath());
+        assertEquals(45, c.pollIntervalSeconds());
+    }
+
+    @Test
+    void realtimeCanBeDisabledAndPathOverridden() {
+        Properties p = new Properties();
+        p.setProperty("realtime.enabled", "false");
+        p.setProperty("realtime.path", "/ws/custom");
+        TerminalConfig c = TerminalConfig.from(p);
+        assertFalse(c.realtimeEnabled());
+        assertEquals("/ws/custom", c.realtimePath());
     }
 }

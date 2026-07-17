@@ -13,12 +13,14 @@ public final class TerminalConfig {
     private final boolean reducedMotion;
     private final String takeawayLabelPrefix;
     private final Duration dwellAttention;
+    private final boolean realtimeEnabled;
+    private final String realtimePath;
 
     private TerminalConfig(Properties p) {
         this.serverBaseUrl = p.getProperty("server.base-url", "http://localhost:8080");
         this.terminalId = p.getProperty("terminal.id", "T01");
         this.storeId = p.getProperty("store.id", "S01");
-        String rawInterval = p.getProperty("poll.interval.seconds", "5");
+        String rawInterval = p.getProperty("poll.interval.seconds", "45");
         try {
             this.pollIntervalSeconds = Integer.parseInt(rawInterval);
         } catch (NumberFormatException e) {
@@ -34,6 +36,8 @@ public final class TerminalConfig {
             throw new IllegalArgumentException(
                     "dining.dwell.attention.minutes must be an integer, got: " + rawDwell, e);
         }
+        this.realtimeEnabled = Boolean.parseBoolean(p.getProperty("realtime.enabled", "true"));
+        this.realtimePath = p.getProperty("realtime.path", "/ws/floor");
     }
 
     public static TerminalConfig from(Properties p) {
@@ -48,7 +52,7 @@ public final class TerminalConfig {
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read pos-terminal.properties", e);
         }
-        for (String key : new String[]{"server.base-url", "terminal.id", "store.id", "poll.interval.seconds", "ui.reduced-motion", "dining.takeaway.label-prefix", "dining.dwell.attention.minutes"}) {
+        for (String key : new String[]{"server.base-url", "terminal.id", "store.id", "poll.interval.seconds", "ui.reduced-motion", "dining.takeaway.label-prefix", "dining.dwell.attention.minutes", "realtime.enabled", "realtime.path"}) {
             String override = System.getProperty(key);
             if (override != null) p.setProperty(key, override);
         }
@@ -62,4 +66,6 @@ public final class TerminalConfig {
     public boolean reducedMotion() { return reducedMotion; }
     public String takeawayLabelPrefix() { return takeawayLabelPrefix; }
     public Duration dwellAttention() { return dwellAttention; }
+    public boolean realtimeEnabled() { return realtimeEnabled; }
+    public String realtimePath() { return realtimePath; }
 }
