@@ -30,6 +30,12 @@
       <Button fx:id="removeDiscountButton" text="✕" styleClass="btn-secondary"/>
     </HBox>
 
+    <!-- Service-charge waiver chip (manager-gated; visible only when SC is waived). -->
+    <HBox fx:id="waiveChipRow" spacing="8" alignment="CENTER" visible="false" managed="false" maxWidth="Infinity">
+      <Label fx:id="waiveChipLabel" styleClass="discount-chip"/>
+      <Button fx:id="removeWaiveButton" text="✕" styleClass="btn-secondary"/>
+    </HBox>
+
     <Label fx:id="errorLabel" styleClass="error-banner" wrapText="true" maxWidth="Infinity"/>
 
     <!-- Tender entry: shown until paid. -->
@@ -74,6 +80,8 @@
         <Button fx:id="addTenderButton" text="Add partial tender" styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
         <Button fx:id="cancelButton" text="Cancel" styleClass="btn-secondary" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
       </HBox>
+      <Button fx:id="waiveButton" text="Waive service charge" styleClass="btn-secondary"
+              visible="false" managed="false" maxWidth="Infinity"/>
     </VBox>
 
     <!-- Receipt: hidden until a checkout succeeds. -->

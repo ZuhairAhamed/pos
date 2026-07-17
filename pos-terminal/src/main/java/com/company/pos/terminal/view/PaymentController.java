@@ -104,6 +104,10 @@ public class PaymentController {
     @FXML private HBox discountChipRow;
     @FXML private Label discountChipLabel;
     @FXML private Button removeDiscountButton;
+    @FXML private Button waiveButton;
+    @FXML private HBox waiveChipRow;
+    @FXML private Label waiveChipLabel;
+    @FXML private Button removeWaiveButton;
     // Read by background lambdas (quote fetch, checkout gateway) — hence volatile. Plain fields
     // are the synchronous source of truth; observables/labels are FX-thread mirrors.
     private volatile DiscountInput discount;
@@ -112,6 +116,7 @@ public class PaymentController {
     // One-shot manager approval token: attached to exactly one checkout call, discarded on
     // success. Never stored in SessionManager — the cashier stays signed in.
     private volatile String pendingApprovalToken;
+    private volatile boolean waiveServiceCharge;
 
     public PaymentController(Services services, Navigator navigator, Mode mode, UUID id,
             BigDecimal estimatedTotal) {
@@ -131,7 +136,7 @@ public class PaymentController {
                     pendingApprovalToken);
         }
         return tenders -> services.diningApi.close(id,
-                new CloseOrderRequest(tenders, Map.of(), discount, false),
+                new CloseOrderRequest(tenders, Map.of(), discount, waiveServiceCharge),
                 pendingApprovalToken);
     }
 
@@ -154,6 +159,8 @@ public class PaymentController {
         cancelButton.setOnAction(e -> cancel());
         discountButton.setOnAction(e -> applyDiscount());
         removeDiscountButton.setOnAction(e -> removeDiscount());
+        waiveButton.setOnAction(e -> waiveServiceChargeTapped());
+        removeWaiveButton.setOnAction(e -> removeWaiver());
         reprintButton.setOnAction(e -> reprint());
         emailReceiptButton.setOnAction(e -> showEmailDialog());
         emailCancelButton.setOnAction(e -> hideEmailDialog());
@@ -200,7 +207,7 @@ public class PaymentController {
                 () -> {
                     holder[0] = (mode == Mode.RETAIL)
                             ? services.salesApi.quote(id, discount)
-                            : services.diningApi.quoteOrder(id, discount);
+                            : services.diningApi.quoteOrder(id, discount, waiveServiceCharge);
                     if (policy == null) {
                         try {
                             policy = services.salesApi.discountPolicy();
@@ -239,6 +246,16 @@ public class PaymentController {
             discountChipLabel.setText("Discount −" + money(q.discountTotal(), cur)
                     + " · " + discount.reasonCode());
         }
+        boolean scPresent = mode != Mode.RETAIL && q.serviceChargeAmount() != null
+                && q.serviceChargeAmount().signum() > 0;
+        // Show the Waive button only when there is a service charge to waive and it isn't already waived.
+        waiveButton.setVisible(scPresent && !waiveServiceCharge);
+        waiveButton.setManaged(scPresent && !waiveServiceCharge);
+        waiveChipRow.setVisible(waiveServiceCharge);
+        waiveChipRow.setManaged(waiveServiceCharge);
+        if (waiveServiceCharge) {
+            waiveChipLabel.setText("Service charge waived");
+        }
         vm.setAuthoritativeTotal(q.grandTotal());
         setTendersEnabled(true);
     }
@@ -269,6 +286,41 @@ public class PaymentController {
         requote();
     }
 
+    /** Waiving the service charge is manager-only: collect the PIN upfront, capture the one-shot
+     *  token, then set the flag and re-quote so the previewed/tendered total drops the charge. */
+    private void waiveServiceChargeTapped() {
+        if (!quoteLoaded || waiveServiceCharge) {
+            return;
+        }
+        var creds = ManagerPinDialog.promptForApproval(
+                "Waiving the service charge requires manager approval");
+        if (creds.isEmpty()) {
+            return;
+        }
+        setBusy(true);
+        FxTasks.run(() -> {
+            ManagerAuth auth = services.authApi.pinLoginForToken(
+                    creds.get().cashierCode(), creds.get().pin());
+            if (!auth.isManager()) {
+                throw new ApiException(403, null, "This account is not a manager");
+            }
+            pendingApprovalToken = auth.token();
+        }, () -> {
+            setBusy(false);
+            waiveServiceCharge = true;
+            requote();
+        }, err -> {
+            setBusy(false);
+            String msg = err.getMessage();
+            vm.setError(msg == null || msg.isBlank() ? "Manager approval failed" : msg);
+        });
+    }
+
+    private void removeWaiver() {
+        waiveServiceCharge = false;
+        requote();
+    }
+
     /** Re-lock tenders and fetch the quote again — the same gate as the initial load, so the
      *  big total is never a number the server hasn't confirmed. */
     private void requote() {
@@ -277,6 +329,8 @@ public class PaymentController {
         quoteBadge.setManaged(false);
         discountChipRow.setVisible(false);
         discountChipRow.setManaged(false);
+        waiveChipRow.setVisible(false);
+        waiveChipRow.setManaged(false);
         totalLabel.setText("Fetching total…");
         loadQuote();
     }
