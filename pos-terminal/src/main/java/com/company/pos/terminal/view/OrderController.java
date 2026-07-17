@@ -2,6 +2,10 @@ package com.company.pos.terminal.view;
 
 import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.dto.ManagerAuth;
+import com.company.pos.terminal.api.dto.OpenOrderView;
+import com.company.pos.terminal.api.dto.TableView;
+import com.company.pos.terminal.order.MoveTargets;
+import java.util.concurrent.atomic.AtomicReference;
 import com.company.pos.terminal.api.dto.ModifierGroupView;
 import com.company.pos.terminal.api.dto.OrderLineModifierView;
 import com.company.pos.terminal.api.dto.OrderLineView;
@@ -76,6 +80,7 @@ public class OrderController {
     @FXML private Button payButton;
     @FXML private Button backButton;
     @FXML private Button voidButton;
+    @FXML private Button moveButton;
     @FXML private TabPane categoryTabs;
 
     public OrderController(Services services, Navigator navigator, UUID orderId) {
@@ -96,6 +101,8 @@ public class OrderController {
         backButton.setOnAction(e -> navigator.toTableMap());
         voidButton.setOnAction(e -> voidOrder());
         voidButton.setDisable(true);
+        moveButton.setOnAction(e -> moveTable());
+        moveButton.setDisable(true);
 
         // Nothing is actionable until the catalog + order have loaded.
         payButton.setDisable(true);
@@ -127,6 +134,7 @@ public class OrderController {
         payButton.setDisable(false);
         fireButton.setDisable(false);
         voidButton.setDisable(false);
+        moveButton.setDisable(false);
 
         FxTasks.run(
                 () -> vm.load(orderId),
@@ -310,6 +318,38 @@ public class OrderController {
                     vm.setError(msg == null || msg.isBlank() ? "Manager approval failed" : msg);
                     LOG.log(System.Logger.Level.ERROR, "Void approval failed", err);
                 });
+    }
+
+    /** Move the order to another table: fetch free tables → pick one → transfer → tables. */
+    private void moveTable() {
+        AtomicReference<List<TableView>> free = new AtomicReference<>();
+        FxTasks.run(
+                () -> {
+                    List<TableView> tables = services.diningApi.tables();
+                    List<OpenOrderView> open = services.diningApi.openOrders();
+                    free.set(MoveTargets.freeTargets(tables, open, vm.currentOrder().tableId()));
+                },
+                () -> {
+                    List<TableView> targets = free.get();
+                    if (targets.isEmpty()) {
+                        vm.setError("No free tables available");
+                        return;
+                    }
+                    Optional<UUID> target = MoveTableDialog.promptForTarget(targets);
+                    if (target.isEmpty()) {
+                        return;
+                    }
+                    boolean[] holder = {false};
+                    FxTasks.run(
+                            () -> holder[0] = vm.transfer(target.get()),
+                            () -> {
+                                if (holder[0]) {
+                                    navigator.toTableMap();
+                                }
+                            },
+                            err -> LOG.log(System.Logger.Level.ERROR, "Failed to transfer order", err));
+                },
+                err -> LOG.log(System.Logger.Level.ERROR, "Failed to load tables for move", err));
     }
 
     private void pay() {

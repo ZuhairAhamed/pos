@@ -306,3 +306,16 @@ The dine-in **order** screen now edits lines inline (like the retail cart):
 3. The reconciliation result shows opening float, cash sales, pay-ins/outs, expected, counted,
    and the variance labelled **Over / Short / Balanced** (word + colour).
 4. Home updates to "No shift open" and the Close shift button disappears.
+
+## Slice 11 — Table transfer (manual E2E)
+
+**Prereq:** backend on `embedded,dev`; log in (`manager`/`manager`). Seeded floor has several
+dine-in tables (T1–T6) plus counters.
+
+1. Open a table (e.g. T1), add a line or two. Tap **Move table**.
+2. The picker lists only **free, active** tables (not T1, not any occupied table). Tap one.
+3. The screen returns to the table map; the order now sits on the chosen table (its lines and
+   any fired state came along). The old table is free again.
+4. **Occupied target:** if you attempt a move while the only other tables are occupied, the
+   picker shows just the genuinely free ones; if none are free, an error line reads
+   "No free tables available".

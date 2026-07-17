@@ -32,6 +32,7 @@
       <HBox spacing="12">
         <Button fx:id="fireButton" text="Fire to kitchen" styleClass="btn-primary" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
         <Button fx:id="voidButton" text="Void order" styleClass="btn-danger"/>
+        <Button fx:id="moveButton" text="Move table" styleClass="btn-secondary"/>
       </HBox>
 
       <HBox spacing="12">
