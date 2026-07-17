@@ -307,4 +307,86 @@ class OrderViewModelTest {
         while (!queue.isEmpty()) queue.poll().run();       // drain the course write
         assertEquals("DESSERT", vm.lines().get(0).course());
     }
+
+    @Test
+    void voidOrderReturnsTrueOnSuccess() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        boolean[] called = {false};
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public void voidOrder(UUID orderId, String reason, String bearerToken) {
+                        called[0] = true;
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        assertTrue(vm.voidOrder("walkout", "tok"));
+        assertTrue(called[0]);
+        assertEquals("", vm.errorMessage().get());
+    }
+
+    @Test
+    void voidOrderSurfacesErrorAndReturnsFalse() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public void voidOrder(UUID orderId, String reason, String bearerToken) {
+                        throw new ApiException(
+                                403, new ProblemDetail("Forbidden", 403, "Manager role required"), "HTTP 403");
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        assertFalse(vm.voidOrder("x", "tok"));
+        assertEquals("Manager role required", vm.errorMessage().get());
+    }
+
+    @Test
+    void deferredDispatcherHoldsVoidErrorUntilDrained() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public void voidOrder(UUID orderId, String reason, String bearerToken) {
+                        throw new ApiException(
+                                403, new ProblemDetail("Forbidden", 403, "Manager role required"), "HTTP 403");
+                    }
+                };
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        OrderViewModel vm = new OrderViewModel(dining, cache(), queue::add);
+        vm.load(orderId);
+        while (!queue.isEmpty()) queue.poll().run();       // drain load → baseline
+        boolean result = vm.voidOrder("x", "tok");
+        assertFalse(result);                               // synchronous return
+        assertEquals("", vm.errorMessage().get());         // deferred: error not applied yet
+        while (!queue.isEmpty()) queue.poll().run();       // drain the error write
+        assertEquals("Manager role required", vm.errorMessage().get());
+    }
+
+    @Test
+    void setErrorSurfacesMessage() {
+        OrderViewModel vm = new OrderViewModel(new DiningApi(null), cache());
+        vm.setError("Manager approval failed");
+        assertEquals("Manager approval failed", vm.errorMessage().get());
+    }
 }

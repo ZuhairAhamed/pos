@@ -125,6 +125,28 @@ public class OrderViewModel {
     }
 
     /**
+     * Voids the whole order using a one-shot manager token. Returns true on success; on
+     * ApiException surfaces the message via errorMessage and returns false. No line refresh —
+     * the caller navigates away on success.
+     */
+    public boolean voidOrder(String reason, String bearerToken) {
+        try {
+            dining.voidOrder(order.id(), reason, bearerToken);
+            ui.accept(() -> errorMessage.set(""));
+            return true;
+        } catch (ApiException e) {
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
+            return false;
+        }
+    }
+
+    /** Lets the controller surface a manager-approval failure on the bound error label. */
+    public void setError(String message) {
+        ui.accept(() -> errorMessage.set(message == null ? "" : message));
+    }
+
+    /**
      * Runs the server call, and on success swaps in the returned order and rebuilds lines +
      * subtotal. On {@link ApiException} it surfaces the message and leaves the current state intact.
      */
