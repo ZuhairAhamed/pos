@@ -1,5 +1,7 @@
 package com.company.pos.terminal.view;
 
+import com.company.pos.terminal.api.ApiException;
+import com.company.pos.terminal.api.dto.ManagerAuth;
 import com.company.pos.terminal.api.dto.ModifierGroupView;
 import com.company.pos.terminal.api.dto.OrderLineModifierView;
 import com.company.pos.terminal.api.dto.OrderLineView;
@@ -73,6 +75,7 @@ public class OrderController {
     @FXML private Button splitButton;
     @FXML private Button payButton;
     @FXML private Button backButton;
+    @FXML private Button voidButton;
     @FXML private TabPane categoryTabs;
 
     public OrderController(Services services, Navigator navigator, UUID orderId) {
@@ -91,6 +94,8 @@ public class OrderController {
         splitButton.setOnAction(e -> navigator.toSplit(orderId));
         payButton.setOnAction(e -> pay());
         backButton.setOnAction(e -> navigator.toTableMap());
+        voidButton.setOnAction(e -> voidOrder());
+        voidButton.setDisable(true);
 
         // Nothing is actionable until the catalog + order have loaded.
         payButton.setDisable(true);
@@ -121,6 +126,7 @@ public class OrderController {
 
         payButton.setDisable(false);
         fireButton.setDisable(false);
+        voidButton.setDisable(false);
 
         FxTasks.run(
                 () -> vm.load(orderId),
@@ -270,6 +276,40 @@ public class OrderController {
                 vm::fire,
                 () -> {},
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to fire order", err));
+    }
+
+    /** Void the whole order: confirm (+optional reason) → manager PIN → one-shot void → tables. */
+    private void voidOrder() {
+        Optional<String> reason = VoidConfirmDialog.promptForReason();
+        if (reason.isEmpty()) {
+            return;
+        }
+        Optional<ManagerPinDialog.Credentials> creds =
+                ManagerPinDialog.promptForApproval("Manager approval required to void this order");
+        if (creds.isEmpty()) {
+            return;
+        }
+        String r = reason.get();
+        ManagerPinDialog.Credentials c = creds.get();
+        boolean[] holder = {false};
+        FxTasks.run(
+                () -> {
+                    ManagerAuth auth = services.authApi.pinLoginForToken(c.cashierCode(), c.pin());
+                    if (!auth.isManager()) {
+                        throw new ApiException(403, null, "This account is not a manager");
+                    }
+                    holder[0] = vm.voidOrder(r, auth.token());
+                },
+                () -> {
+                    if (holder[0]) {
+                        navigator.toTableMap();
+                    }
+                },
+                err -> {
+                    String msg = err.getMessage();
+                    vm.setError(msg == null || msg.isBlank() ? "Manager approval failed" : msg);
+                    LOG.log(System.Logger.Level.ERROR, "Void approval failed", err);
+                });
     }
 
     private void pay() {

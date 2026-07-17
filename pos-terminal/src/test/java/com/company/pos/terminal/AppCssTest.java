@@ -108,4 +108,9 @@ class AppCssTest {
         assertTrue(css.contains(".cart-line.order-line-fired"),
                 "fired-row muted style must use a live (non-.list-cell) selector");
     }
+
+    @Test
+    void definesSliceTenVoidClass() throws Exception {
+        assertTrue(css().contains(".btn-danger"), "missing style class: .btn-danger");
+    }
 }
