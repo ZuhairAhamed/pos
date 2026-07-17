@@ -400,4 +400,83 @@ class OrderViewModelTest {
         while (!queue.isEmpty()) queue.poll().run();
         assertEquals("boom", vm.errorMessage().get());
     }
+
+    @Test
+    void transferReturnsTrueOnSuccess() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        UUID[] captured = new UUID[1];
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView transferOrder(UUID oid, UUID targetTableId) {
+                        captured[0] = targetTableId;
+                        return orderWith(List.of(line));
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        UUID target = UUID.randomUUID();
+        assertTrue(vm.transfer(target));
+        assertEquals(target, captured[0]);
+        assertEquals("", vm.errorMessage().get());
+    }
+
+    @Test
+    void transferSurfacesErrorAndReturnsFalse() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView transferOrder(UUID oid, UUID targetTableId) {
+                        throw new ApiException(409,
+                                new ProblemDetail("Conflict", 409, "Table T2 already has an open order"),
+                                "HTTP 409");
+                    }
+                };
+        OrderViewModel vm = new OrderViewModel(dining, cache());
+        vm.load(orderId);
+        assertFalse(vm.transfer(UUID.randomUUID()));
+        assertEquals("Table T2 already has an open order", vm.errorMessage().get());
+    }
+
+    @Test
+    void deferredDispatcherHoldsTransferErrorUntilDrained() {
+        OrderLineView line =
+                new OrderLineView(firedLineId, "BURGER", new BigDecimal("1"), null, "MAIN", null, List.of());
+        DiningApi dining =
+                new DiningApi(null) {
+                    @Override
+                    public OrderView order(UUID id) {
+                        return orderWith(List.of(line));
+                    }
+
+                    @Override
+                    public OrderView transferOrder(UUID oid, UUID targetTableId) {
+                        throw new ApiException(409,
+                                new ProblemDetail("Conflict", 409, "Table T2 already has an open order"),
+                                "HTTP 409");
+                    }
+                };
+        java.util.ArrayDeque<Runnable> queue = new java.util.ArrayDeque<>();
+        OrderViewModel vm = new OrderViewModel(dining, cache(), queue::add);
+        vm.load(orderId);
+        while (!queue.isEmpty()) queue.poll().run();       // drain load → baseline
+        boolean result = vm.transfer(UUID.randomUUID());
+        assertFalse(result);                               // synchronous return
+        assertEquals("", vm.errorMessage().get());         // deferred: error not applied yet
+        while (!queue.isEmpty()) queue.poll().run();
+        assertEquals("Table T2 already has an open order", vm.errorMessage().get());
+    }
 }

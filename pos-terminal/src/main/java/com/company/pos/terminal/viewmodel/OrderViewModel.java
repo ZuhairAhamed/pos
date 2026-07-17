@@ -141,6 +141,23 @@ public class OrderViewModel {
         }
     }
 
+    /**
+     * Transfers the current order to another table. Returns true on success; on ApiException
+     * surfaces the message via errorMessage and returns false. The caller navigates away on
+     * success — no line refresh is done here.
+     */
+    public boolean transfer(UUID targetTableId) {
+        try {
+            dining.transferOrder(order.id(), targetTableId);
+            ui.accept(() -> errorMessage.set(""));
+            return true;
+        } catch (ApiException e) {
+            String msg = messageOf(e);
+            ui.accept(() -> errorMessage.set(msg));
+            return false;
+        }
+    }
+
     /** Lets the controller surface a manager-approval failure on the bound error label. */
     public void setError(String message) {
         ui.accept(() -> errorMessage.set(message == null ? "" : message));
