@@ -15,11 +15,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.WebSocket;
-import java.time.Duration;
-import java.util.List;
+import java.net.http.WebSocketHandshakeException;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,9 +61,16 @@ class RealtimeFloorEndToEndTest {
                                 new WebSocket.Listener() {})
                         .get(5, TimeUnit.SECONDS))
                 .satisfies(ex -> {
-                    // The JDK WebSocket client wraps the HTTP 401 response in an ExecutionException.
-                    // The message may not contain "401" verbatim — we assert the connection failed.
-                    assertThat(ex).isInstanceOf(java.util.concurrent.ExecutionException.class);
+                    // JDK WebSocket client wraps a non-101 HTTP response in an ExecutionException
+                    // whose cause is a WebSocketHandshakeException carrying the HTTP response.
+                    assertThat(ex).isInstanceOf(ExecutionException.class);
+                    Throwable cause = ex.getCause();
+                    assertThat(cause)
+                            .as("cause must be a WebSocketHandshakeException (HTTP 401, not server-down or route-broken)")
+                            .isInstanceOf(WebSocketHandshakeException.class);
+                    assertThat(((WebSocketHandshakeException) cause).getResponse().statusCode())
+                            .as("unauthenticated handshake must be rejected with HTTP 401")
+                            .isEqualTo(401);
                 });
     }
 
@@ -87,7 +95,8 @@ class RealtimeFloorEndToEndTest {
                 .get(5, TimeUnit.SECONDS);
 
         // A dining write → DiningFloorChanged → after-commit fan-out → the socket receives a ping.
-        dining.registerTable(new RegisterTableCommand("WS-E2E-1", 4));
+        // Use a unique label per run so repeated runs within the same Spring context don't clash.
+        dining.registerTable(new RegisterTableCommand("WS-E2E-" + UUID.randomUUID(), 4));
 
         assertThat(frame.await(10, TimeUnit.SECONDS)).isTrue();
         ws.sendClose(WebSocket.NORMAL_CLOSURE, "done");
@@ -101,6 +110,9 @@ class RealtimeFloorEndToEndTest {
                                 "{\"username\":\"wspush\",\"password\":\"pw\"}"))
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
+        assertThat(resp.statusCode())
+                .as("login must succeed before parsing token (got body: %s)", resp.body())
+                .isEqualTo(200);
         return mapper.readTree(resp.body()).get("token").asText();
     }
 }
