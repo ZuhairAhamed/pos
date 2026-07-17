@@ -319,3 +319,16 @@ dine-in tables (T1–T6) plus counters.
 4. **Occupied target:** if you attempt a move while the only other tables are occupied, the
    picker shows just the genuinely free ones; if none are free, an error line reads
    "No free tables available".
+
+## Slice 12 — Table merge (manual E2E)
+
+**Prereq:** backend on `embedded,dev`; log in (`manager`/`manager`). Seeded floor has several
+dine-in tables (T1–T6) plus counters.
+
+1. Open two tables (e.g. T1 and T2), add a line or two to each; fire one of T2's lines.
+2. On T1's order screen, tap **Merge**. The picker lists only **other occupied dine-in** tables
+   (T2 appears with its line count; free tables and counters/takeaway do not). Tap T2.
+3. The screen stays on T1 and now shows both tables' lines; T2's fired line arrived **still fired**.
+   Go back to the table map — **T2 is free again** (its order is voided).
+4. **No targets:** with only one occupied table, tapping **Merge** shows the error line
+   "No other occupied tables to merge".

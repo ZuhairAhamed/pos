@@ -4,6 +4,7 @@ import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.dto.ManagerAuth;
 import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.TableView;
+import com.company.pos.terminal.order.MergeTargets;
 import com.company.pos.terminal.order.MoveTargets;
 import java.util.concurrent.atomic.AtomicReference;
 import com.company.pos.terminal.api.dto.ModifierGroupView;
@@ -81,6 +82,7 @@ public class OrderController {
     @FXML private Button backButton;
     @FXML private Button voidButton;
     @FXML private Button moveButton;
+    @FXML private Button mergeButton;
     @FXML private TabPane categoryTabs;
 
     public OrderController(Services services, Navigator navigator, UUID orderId) {
@@ -103,6 +105,8 @@ public class OrderController {
         voidButton.setDisable(true);
         moveButton.setOnAction(e -> moveTable());
         moveButton.setDisable(true);
+        mergeButton.setOnAction(e -> mergeTable());
+        mergeButton.setDisable(true);
 
         // Nothing is actionable until the catalog + order have loaded.
         payButton.setDisable(true);
@@ -135,6 +139,7 @@ public class OrderController {
         fireButton.setDisable(false);
         voidButton.setDisable(false);
         moveButton.setDisable(false);
+        mergeButton.setDisable(false);
 
         FxTasks.run(
                 () -> vm.load(orderId),
@@ -350,6 +355,38 @@ public class OrderController {
                             err -> LOG.log(System.Logger.Level.ERROR, "Failed to transfer order", err));
                 },
                 err -> LOG.log(System.Logger.Level.ERROR, "Failed to load tables for move", err));
+    }
+
+    /** Merge another occupied table's order into this one: fetch targets → pick → merge → reload. */
+    private void mergeTable() {
+        AtomicReference<List<OpenOrderView>> candidates = new AtomicReference<>();
+        FxTasks.run(
+                () -> {
+                    List<TableView> tables = services.diningApi.tables();
+                    List<OpenOrderView> open = services.diningApi.openOrders();
+                    candidates.set(MergeTargets.occupiedTargets(tables, open, vm.currentOrder().tableId()));
+                },
+                () -> {
+                    List<OpenOrderView> targets = candidates.get();
+                    if (targets.isEmpty()) {
+                        vm.setError("No other occupied tables to merge");
+                        return;
+                    }
+                    Optional<UUID> absorbed = MergeTableDialog.promptForTarget(targets);
+                    if (absorbed.isEmpty()) {
+                        return;
+                    }
+                    boolean[] holder = {false};
+                    FxTasks.run(
+                            () -> holder[0] = vm.merge(absorbed.get()),
+                            () -> {
+                                if (holder[0]) {
+                                    vm.load(orderId);
+                                }
+                            },
+                            err -> LOG.log(System.Logger.Level.ERROR, "Failed to merge orders", err));
+                },
+                err -> LOG.log(System.Logger.Level.ERROR, "Failed to load orders for merge", err));
     }
 
     private void pay() {

@@ -715,3 +715,6 @@
 
 /* Slice 11 — move-table picker */
 .move-box { -fx-padding: 8; }
+
+/* Slice 12 — merge-table picker */
+.merge-box { -fx-padding: 8; }
