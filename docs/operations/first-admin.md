@@ -14,8 +14,10 @@ optionally, a PIN):
 Using `htpasswd` (from apache2-utils / httpd-tools):
 
 ```bash
-htpasswd -bnBC 10 "" 'YOUR_PASSWORD' | tr -d ':\n' | sed 's/^\$2y/\$2a/'
+htpasswd -bnBC 10 "" 'YOUR_PASSWORD' | tr -d ':\n'
 ```
+
+Spring's `BCryptPasswordEncoder` accepts `$2a$`, `$2b$`, and `$2y$` bcrypt hashes directly, so no prefix rewriting is needed.
 
 Or with Python:
 
@@ -41,7 +43,9 @@ VALUES (gen_random_uuid(), 'admin', 'Store Admin',
 Notes:
 - `roles` is a comma-separated list of role names (`RoleSetConverter`), e.g. `ADMIN` or
   `CASHIER,MANAGER,ADMIN`.
-- `gen_random_uuid()` requires the `pgcrypto` extension; otherwise supply a literal UUID.
+- `gen_random_uuid()` is a built-in on Postgres 13+ (no extension needed). On Postgres 12 or
+  older it requires the `pgcrypto` extension (`CREATE EXTENSION IF NOT EXISTS pgcrypto;`).
+  Alternatively, supply a literal UUID string for the `id` value (the column is `VARCHAR(36)`).
 - Set `pin_hash` and `cashier_code` if you generated a PIN in step 1 (both, or neither).
 
 ## 3. Verify
