@@ -22,10 +22,10 @@ import org.springframework.stereotype.Service;
 
 /**
  * Staff-user lifecycle use cases. Deliberately carries NO class-level {@code @Transactional}:
- * like {@link AuthService}, it writes to the tamper-evident audit trail via {@code REQUIRES_NEW},
- * which on single-connection SQLite would deadlock inside an outer transaction. Each method does
- * its repository write (auto-committed) then records audit separately. Uniqueness is pre-checked
- * for a friendly error and backed by DB unique constraints for the race.
+ * each method does its repository write (auto-committed) then calls {@code audit.record(...)}
+ * with REQUIRED propagation, which runs without an enclosing transaction — avoiding a second
+ * concurrent connection on single-writer SQLite. Uniqueness is pre-checked for a friendly
+ * error and backed by DB unique constraints for the race.
  */
 @Service
 public class UserAdminService {
@@ -46,6 +46,9 @@ public class UserAdminService {
         }
         if (cmd.password() == null || cmd.password().isBlank()) {
             throw DomainException.validation("Password is required");
+        }
+        if (cmd.displayName() == null || cmd.displayName().isBlank()) {
+            throw DomainException.validation("Display name is required");
         }
         if (cmd.roles() == null || cmd.roles().isEmpty()) {
             throw DomainException.validation("At least one role is required");
@@ -85,6 +88,9 @@ public class UserAdminService {
     }
 
     public UserView updateUser(UUID id, UpdateUserCommand cmd) {
+        if (cmd.displayName() == null || cmd.displayName().isBlank()) {
+            throw DomainException.validation("Display name is required");
+        }
         if (cmd.roles() == null || cmd.roles().isEmpty()) {
             throw DomainException.validation("At least one role is required");
         }

@@ -115,4 +115,11 @@ class UserAdminServiceTest {
         svc.reactivate(bob.id());
         assertThat(svc.getUser(bob.id()).enabled()).isTrue();
     }
+
+    @Test
+    void rejectsBlankDisplayName() {
+        assertThatThrownBy(() -> svc.createUser(
+                new CreateUserCommand("dan", "  ", "pw", Set.of(Role.CASHIER), null, null)))
+                .isInstanceOf(DomainException.class);
+    }
 }

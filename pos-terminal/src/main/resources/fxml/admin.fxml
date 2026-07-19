@@ -15,7 +15,7 @@
       <Pane HBox.hgrow="ALWAYS"/>
       <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
     </HBox>
-    <HBox fx:id="tileRow" spacing="32" alignment="CENTER">
+    <HBox spacing="32" alignment="CENTER">
       <Button fx:id="staffButton" text="Staff" styleClass="home-tile"/>
     </HBox>
   </VBox>
