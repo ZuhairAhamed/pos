@@ -46,6 +46,7 @@ public class HomeController {
     @FXML private Label userLabel;
     @FXML private Label shiftLabel;
     @FXML private Button signOutButton;
+    @FXML private Button adminButton;
     @FXML private Button dineInButton;
     @FXML private Button retailButton;
     @FXML private Button closeShiftButton;
@@ -76,6 +77,10 @@ public class HomeController {
         drawerButton.setOnAction(e -> openDrawer());
         drawerButton.setVisible(false);
         drawerButton.setManaged(false);
+        boolean showAdmin = services.session.isManager();   // MANAGER or ADMIN
+        adminButton.setVisible(showAdmin);
+        adminButton.setManaged(showAdmin);
+        adminButton.setOnAction(e -> navigator.toAdmin());
         checkShift();
     }
 

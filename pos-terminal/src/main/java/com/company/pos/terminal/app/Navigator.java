@@ -79,6 +79,18 @@ public class Navigator {
         setScene("/fxml/home.fxml", controller);
     }
 
+    public void toAdmin() {
+        com.company.pos.terminal.view.AdminController controller =
+                new com.company.pos.terminal.view.AdminController(services, this);
+        setScene("/fxml/admin.fxml", controller);
+    }
+
+    public void toStaff() {
+        com.company.pos.terminal.view.StaffController controller =
+                new com.company.pos.terminal.view.StaffController(services, this);
+        setScene("/fxml/staff.fxml", controller);
+    }
+
     public void toRetail() {
         com.company.pos.terminal.view.RetailController controller =
                 new com.company.pos.terminal.view.RetailController(services, this);

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<!-- Shared manager/admin area. Tiles are shown per-role; Staff is ADMIN-only. -->
+<StackPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <VBox alignment="CENTER" spacing="32" maxWidth="-Infinity">
+    <HBox spacing="16" alignment="CENTER" maxWidth="Infinity">
+      <Label text="Admin" styleClass="title"/>
+      <Pane HBox.hgrow="ALWAYS"/>
+      <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+    </HBox>
+    <HBox fx:id="tileRow" spacing="32" alignment="CENTER">
+      <Button fx:id="staffButton" text="Staff" styleClass="home-tile"/>
+    </HBox>
+  </VBox>
+</StackPane>

@@ -20,6 +20,7 @@
       </VBox>
       <Button fx:id="drawerButton" text="Drawer" styleClass="btn-secondary"/>
       <Button fx:id="closeShiftButton" text="Close shift" styleClass="btn-secondary"/>
+      <Button fx:id="adminButton" text="Admin" styleClass="btn-secondary"/>
       <Button fx:id="signOutButton" text="Sign out" styleClass="btn-secondary"/>
     </HBox>
 
