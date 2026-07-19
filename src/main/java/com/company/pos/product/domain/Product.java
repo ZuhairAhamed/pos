@@ -138,4 +138,34 @@ public class Product {
     public void setActive(boolean active) {
         this.active = active;
     }
+
+    public void rename(String name) {
+        setName(name);
+    }
+
+    public void changeCategory(UUID categoryId, String categoryName) {
+        setCategoryId(categoryId);
+        setCategoryName(categoryName);
+    }
+
+    public void changePrice(BigDecimal unitPrice, String currencyCode) {
+        setUnitPrice(unitPrice);
+        setCurrencyCode(currencyCode);
+    }
+
+    public void changeBarcode(String barcode) {
+        setBarcode(barcode);
+    }
+
+    public void changeUnitOfMeasure(String unitOfMeasure) {
+        setUnitOfMeasure(unitOfMeasure);
+    }
+
+    public void activate() {
+        setActive(true);
+    }
+
+    public void deactivate() {
+        setActive(false);
+    }
 }
