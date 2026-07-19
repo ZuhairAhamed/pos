@@ -6,6 +6,7 @@ import com.company.pos.terminal.api.CartApi;
 import com.company.pos.terminal.api.CashDrawerApi;
 import com.company.pos.terminal.api.DiningApi;
 import com.company.pos.terminal.api.MenuApi;
+import com.company.pos.terminal.api.ProductAdminApi;
 import com.company.pos.terminal.api.ProductApi;
 import com.company.pos.terminal.api.RealtimeClient;
 import com.company.pos.terminal.api.RealtimeClients;
@@ -27,6 +28,7 @@ public final class Services {
     public final ApiClient apiClient;
     public final AuthApi authApi;
     public final ProductApi productApi;
+    public final ProductAdminApi productAdminApi;
     public final MenuApi menuApi;
     public final DiningApi diningApi;
     public final SalesApi salesApi;
@@ -41,6 +43,7 @@ public final class Services {
         this.apiClient = new ApiClient(config.serverBaseUrl(), session);
         this.authApi = new AuthApi(apiClient, session);
         this.productApi = new ProductApi(apiClient);
+        this.productAdminApi = new ProductAdminApi(apiClient);
         this.menuApi = new MenuApi(apiClient);
         this.diningApi = new DiningApi(apiClient);
         this.salesApi = new SalesApi(apiClient);
