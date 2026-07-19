@@ -1,0 +1,5 @@
+package com.company.pos.product.api;
+
+public enum ProductChangeType {
+    CREATED, UPDATED, PRICE_CHANGED, DEACTIVATED, REACTIVATED, CATEGORY_CREATED
+}
