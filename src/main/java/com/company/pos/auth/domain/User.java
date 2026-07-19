@@ -94,4 +94,34 @@ public class User {
     public boolean isEnabled() {
         return enabled;
     }
+
+    /** Changes the human-facing name. Username stays immutable (it is the actor key on history rows). */
+    public void rename(String displayName) {
+        this.displayName = displayName;
+    }
+
+    /** Replaces the role set wholesale. */
+    public void changeRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
+
+    /** Replaces the BCrypt password hash (already encoded by the caller). */
+    public void resetPassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    /** Replaces (or clears, when null) the BCrypt PIN hash (already encoded by the caller). */
+    public void resetPin(String pinHash) {
+        this.pinHash = pinHash;
+    }
+
+    /** Marks the account usable. */
+    public void enable() {
+        this.enabled = true;
+    }
+
+    /** Soft-disables the account (never hard-deleted — history references the username). */
+    public void disable() {
+        this.enabled = false;
+    }
 }
