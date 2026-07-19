@@ -127,10 +127,14 @@ class ProductAdminServiceTest {
     @Test
     void deactivateThenReactivate() {
         svc.createProduct(cola());
+        events.clear();
         svc.deactivate("COLA");
         assertThat(catalog.findBySku("COLA").orElseThrow().active()).isFalse();
+        assertThat(events.typesFor("COLA")).contains(ProductChangeType.DEACTIVATED);
+        events.clear();
         svc.reactivate("COLA");
         assertThat(catalog.findBySku("COLA").orElseThrow().active()).isTrue();
+        assertThat(events.typesFor("COLA")).contains(ProductChangeType.REACTIVATED);
     }
 
     interface Events {
