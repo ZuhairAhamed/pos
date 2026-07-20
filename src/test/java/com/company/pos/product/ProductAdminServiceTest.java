@@ -125,6 +125,28 @@ class ProductAdminServiceTest {
     }
 
     @Test
+    void updateWithNoCategoryLeavesExistingCategory() {
+        svc.createProduct(cola()); // creates with categoryName "Beverages"
+        events.clear();
+        ProductView v = svc.updateProduct("COLA",
+                new UpdateProductCommand("Cola", null, null, new BigDecimal("5.00"), "SAR", "EA", null));
+        assertThat(v.categoryName()).isEqualTo("Beverages");
+    }
+
+    @Test
+    void updateUnknownSkuThrowsNotFound() {
+        assertThatThrownBy(() -> svc.updateProduct("NOPE",
+                new UpdateProductCommand("X", null, null, new BigDecimal("1.00"), "SAR", "EA", null)))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void deactivateUnknownSkuThrowsNotFound() {
+        assertThatThrownBy(() -> svc.deactivate("NOPE"))
+                .isInstanceOf(DomainException.class);
+    }
+
+    @Test
     void deactivateThenReactivate() {
         svc.createProduct(cola());
         events.clear();

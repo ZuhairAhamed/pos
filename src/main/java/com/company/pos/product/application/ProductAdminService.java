@@ -87,7 +87,8 @@ public class ProductAdminService {
         String actor = actor();
         BigDecimal oldPrice = p.getUnitPrice();
 
-        Category category = resolveCategory(cmd.categoryCode(), cmd.categoryName(), actor);
+        boolean categorySupplied =
+                trimToNull(cmd.categoryCode()) != null || trimToNull(cmd.categoryName()) != null;
         String currency = trimToNull(cmd.currencyCode());
         if (currency == null) {
             currency = p.getCurrencyCode() != null ? p.getCurrencyCode()
@@ -99,8 +100,11 @@ public class ProductAdminService {
         }
 
         p.rename(name);
-        p.changeCategory(category == null ? null : category.getId(),
-                category == null ? null : category.getName());
+        if (categorySupplied) {
+            Category category = resolveCategory(cmd.categoryCode(), cmd.categoryName(), actor);
+            p.changeCategory(category.getId(), category.getName());
+        }
+        // else: leave the product's existing category unchanged
         p.changePrice(price, currency);
         p.changeUnitOfMeasure(uom);
         p.changeBarcode(trimToNull(cmd.barcode()));
