@@ -18,6 +18,7 @@ public class AdminController {
     @FXML private Button staffButton;
     @FXML private Button productsButton;
     @FXML private Button kitchenButton;
+    @FXML private Button tablesButton;
 
     public AdminController(Services services, Navigator navigator) {
         this.services = services;
@@ -38,5 +39,8 @@ public class AdminController {
         kitchenButton.setVisible(manager);
         kitchenButton.setManaged(manager);
         kitchenButton.setOnAction(e -> navigator.toKitchenRouting());
+        tablesButton.setVisible(manager);
+        tablesButton.setManaged(manager);
+        tablesButton.setOnAction(e -> navigator.toTables());
     }
 }

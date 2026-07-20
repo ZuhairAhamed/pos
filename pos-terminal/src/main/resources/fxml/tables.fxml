@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="screen" spacing="16" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <HBox spacing="16" alignment="CENTER_LEFT">
+    <Label text="Dining tables" styleClass="title"/>
+    <Pane HBox.hgrow="ALWAYS"/>
+    <Label fx:id="errorLabel" styleClass="error-text"/>
+    <TextField fx:id="searchField" promptText="Search label"/>
+    <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+  </HBox>
+
+  <TableView fx:id="table" VBox.vgrow="ALWAYS">
+    <columns>
+      <TableColumn fx:id="labelCol" text="Label" prefWidth="260"/>
+      <TableColumn fx:id="seatsCol" text="Seats" prefWidth="100"/>
+      <TableColumn fx:id="typeCol" text="Type" prefWidth="140"/>
+      <TableColumn fx:id="statusCol" text="Status" prefWidth="140"/>
+    </columns>
+  </TableView>
+
+  <HBox spacing="12" alignment="CENTER_LEFT">
+    <Button fx:id="newButton" text="New" styleClass="btn-primary"/>
+    <Button fx:id="editButton" text="Edit"/>
+    <Button fx:id="deactivateButton" text="Deactivate"/>
+    <Button fx:id="reactivateButton" text="Reactivate"/>
+  </HBox>
+</VBox>
