@@ -23,7 +23,10 @@ import com.company.pos.dining.api.OrderStatus;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.ServiceType;
+import com.company.pos.dining.api.TableChangeType;
+import com.company.pos.dining.api.TableChanged;
 import com.company.pos.dining.api.TableView;
+import com.company.pos.dining.api.UpdateTableCommand;
 import com.company.pos.dining.domain.DiningOrder;
 import com.company.pos.dining.domain.DiningOrderSale;
 import com.company.pos.dining.domain.DiningTable;
@@ -55,6 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,6 +107,7 @@ class DefaultDiningService implements DiningService {
         DiningTable table = new DiningTable(Identifiers.newId(), label, seats);
         DiningTable saved = tables.save(table);
         publishFloorChanged(FloorChangeType.TABLE_REGISTERED, saved.getId(), null);
+        publishTableChanged(TableChangeType.CREATED, saved);
         return toTableView(saved);
     }
 
@@ -109,8 +115,45 @@ class DefaultDiningService implements DiningService {
     public void deactivateTable(UUID tableId) {
         DiningTable table = tables.findById(tableId)
                 .orElseThrow(() -> DomainException.notFound("No table " + tableId));
+        if (orders.existsByTableIdAndStatus(tableId, OrderStatus.OPEN)) {
+            throw DomainException.conflict("Table has an open order and cannot be deactivated");
+        }
         table.setActive(false);
         publishFloorChanged(FloorChangeType.TABLE_DEACTIVATED, tableId, null);
+        publishTableChanged(TableChangeType.DEACTIVATED, table);
+    }
+
+    @Override
+    public TableView updateTable(UUID tableId, UpdateTableCommand command) {
+        DiningTable table = tables.findById(tableId)
+                .orElseThrow(() -> DomainException.notFound("No table " + tableId));
+        if (command.label() == null || command.label().isBlank()) {
+            throw DomainException.validation("Table label is required");
+        }
+        String label = command.label().trim();
+        if (!label.equals(table.getLabel())) {
+            tables.findByLabel(label).ifPresent(t -> {
+                throw DomainException.conflict("Table " + label + " already exists");
+            });
+        }
+        if (command.seats() == null || command.seats() < 1) {
+            throw DomainException.validation("Seats must be a positive number");
+        }
+        table.rename(label);
+        table.reseat(command.seats());
+        publishFloorChanged(FloorChangeType.TABLE_UPDATED, table.getId(), null);
+        publishTableChanged(TableChangeType.UPDATED, table);
+        return toTableView(table);
+    }
+
+    @Override
+    public TableView reactivateTable(UUID tableId) {
+        DiningTable table = tables.findById(tableId)
+                .orElseThrow(() -> DomainException.notFound("No table " + tableId));
+        table.setActive(true);
+        publishFloorChanged(FloorChangeType.TABLE_REACTIVATED, table.getId(), null);
+        publishTableChanged(TableChangeType.REACTIVATED, table);
+        return toTableView(table);
     }
 
     @Override
@@ -215,6 +258,16 @@ class DefaultDiningService implements DiningService {
 
     private void publishFloorChanged(FloorChangeType change, UUID tableId, UUID orderId) {
         events.publish(new DiningFloorChanged(change, tableId, orderId, Instant.now()));
+    }
+
+    private void publishTableChanged(TableChangeType type, DiningTable table) {
+        events.publish(new TableChanged(table.getId().toString(), type, actor(),
+                table.getLabel(), table.getSeats(), table.isActive()));
+    }
+
+    private static String actor() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        return a != null ? a.getName() : "system";
     }
 
     OrderView toOrderView(DiningOrder o) {

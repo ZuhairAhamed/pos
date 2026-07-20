@@ -15,6 +15,10 @@ public interface DiningService {
 
     void deactivateTable(UUID tableId);
 
+    TableView updateTable(UUID tableId, UpdateTableCommand command);
+
+    TableView reactivateTable(UUID tableId);
+
     List<TableView> listTables();
 
     // --- orders ---

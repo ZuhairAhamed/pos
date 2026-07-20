@@ -55,4 +55,12 @@ public class DiningTable {
     public void setActive(boolean active) {
         this.active = active;
     }
+
+    public void rename(String label) {
+        this.label = label;
+    }
+
+    public void reseat(int seats) {
+        this.seats = seats;
+    }
 }

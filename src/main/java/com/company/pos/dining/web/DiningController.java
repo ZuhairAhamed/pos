@@ -11,6 +11,7 @@ import com.company.pos.dining.api.OpenOrderView;
 import com.company.pos.dining.api.OrderView;
 import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.dining.api.SplitMode;
+import com.company.pos.dining.api.UpdateTableCommand;
 import com.company.pos.dining.api.SplitQuoteView;
 import com.company.pos.dining.api.TableView;
 import com.company.pos.sales.api.DiscountInput;
@@ -57,6 +58,18 @@ class DiningController {
     @PreAuthorize("hasRole('MANAGER')")
     void deactivateTable(@PathVariable UUID tableId) {
         dining.deactivateTable(tableId);
+    }
+
+    @PutMapping("/dining/tables/{tableId}")
+    @PreAuthorize("hasRole('MANAGER')")
+    TableView updateTable(@PathVariable UUID tableId, @RequestBody UpdateTableCommand body) {
+        return dining.updateTable(tableId, body);
+    }
+
+    @PostMapping("/dining/tables/{tableId}/reactivate")
+    @PreAuthorize("hasRole('MANAGER')")
+    TableView reactivateTable(@PathVariable UUID tableId) {
+        return dining.reactivateTable(tableId);
     }
 
     @GetMapping("/dining/tables")
