@@ -91,6 +91,12 @@ public class Navigator {
         setScene("/fxml/staff.fxml", controller);
     }
 
+    public void toProducts() {
+        com.company.pos.terminal.view.ProductsController controller =
+                new com.company.pos.terminal.view.ProductsController(services, this);
+        setScene("/fxml/products.fxml", controller);
+    }
+
     public void toRetail() {
         com.company.pos.terminal.view.RetailController controller =
                 new com.company.pos.terminal.view.RetailController(services, this);
