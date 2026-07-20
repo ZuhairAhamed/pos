@@ -5,6 +5,7 @@ import com.company.pos.terminal.api.AuthApi;
 import com.company.pos.terminal.api.CartApi;
 import com.company.pos.terminal.api.CashDrawerApi;
 import com.company.pos.terminal.api.DiningApi;
+import com.company.pos.terminal.api.KitchenApi;
 import com.company.pos.terminal.api.MenuApi;
 import com.company.pos.terminal.api.ProductAdminApi;
 import com.company.pos.terminal.api.ProductApi;
@@ -36,6 +37,7 @@ public final class Services {
     public final ShiftApi shiftApi;
     public final CashDrawerApi cashDrawerApi;
     public final UsersApi usersApi;
+    public final KitchenApi kitchenApi;
 
     public Services() {
         this.config = TerminalConfig.load();
@@ -51,6 +53,7 @@ public final class Services {
         this.shiftApi = new ShiftApi(apiClient);
         this.cashDrawerApi = new CashDrawerApi(apiClient);
         this.usersApi = new UsersApi(apiClient);
+        this.kitchenApi = new KitchenApi(apiClient);
     }
 
     /** A fresh realtime push client for one screen's lifecycle (connect on enter, close on leave).
