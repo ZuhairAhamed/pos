@@ -36,6 +36,7 @@ class SettingValidationTest {
     @Test
     void percentChecked() {
         assertNull(SettingValidation.validate("PERCENT", "10"));
+        assertNull(SettingValidation.validate("PERCENT", "100"));
         assertNotNull(SettingValidation.validate("PERCENT", "150"));
     }
 

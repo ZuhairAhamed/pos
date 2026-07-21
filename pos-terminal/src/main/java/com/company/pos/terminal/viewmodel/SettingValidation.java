@@ -45,8 +45,9 @@ public final class SettingValidation {
                         ? "Must be a percentage between 0 and 100" : null;
             }
             case "CSV": {
-                boolean hasToken = value != null
-                        && Arrays.stream(value.split(",")).anyMatch(t -> !t.isBlank());
+                boolean hasToken = value != null && value.lines()
+                        .flatMap(l -> Arrays.stream(l.split(",")))
+                        .anyMatch(t -> !t.isBlank());
                 return hasToken ? null : "Enter at least one value";
             }
             default:
