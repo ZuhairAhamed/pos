@@ -1,5 +1,7 @@
 package com.company.pos.configuration.api;
 
+import java.util.List;
+
 public interface ConfigurationService {
 
     String getString(SettingKey key);
@@ -9,4 +11,6 @@ public interface ConfigurationService {
     boolean getBoolean(SettingKey key);
 
     void put(SettingKey key, String value);
+
+    List<SettingView> list();
 }

@@ -36,4 +36,22 @@ class ConfigurationServiceTest {
 
         assertThat(configuration.getBoolean(SettingKey.TAX_INCLUSIVE)).isTrue();
     }
+
+    @Test
+    void rejectsInvalidValueOnPut() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> configuration.put(SettingKey.VAT_RATE, "abc"))
+                .isInstanceOf(com.company.pos.common.exception.DomainException.class);
+    }
+
+    @Test
+    void listReturnsAllKeysTyped() {
+        java.util.List<com.company.pos.configuration.api.SettingView> all = configuration.list();
+        assertThat(all).hasSize(SettingKey.values().length);
+        assertThat(all).anySatisfy(v -> {
+            assertThat(v.name()).isEqualTo("VAT_RATE");
+            assertThat(v.type()).isEqualTo("DECIMAL");
+            assertThat(v.defaultValue()).isEqualTo("0.15");
+        });
+    }
 }

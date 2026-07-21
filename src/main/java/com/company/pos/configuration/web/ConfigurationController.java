@@ -5,10 +5,13 @@ import com.company.pos.common.exception.DomainException;
 import com.company.pos.configuration.api.ConfigurationService;
 import com.company.pos.configuration.api.SettingChanged;
 import com.company.pos.configuration.api.SettingKey;
+import com.company.pos.configuration.api.SettingView;
 import java.security.Principal;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +27,12 @@ class ConfigurationController {
     ConfigurationController(ConfigurationService config, DomainEvents events) {
         this.config = config;
         this.events = events;
+    }
+
+    @GetMapping("/config")
+    @PreAuthorize("hasRole('ADMIN')")
+    List<SettingView> list() {
+        return config.list();
     }
 
     @PutMapping("/config/{key}")

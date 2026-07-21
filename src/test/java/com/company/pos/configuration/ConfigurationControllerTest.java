@@ -59,4 +59,32 @@ class ConfigurationControllerTest {
                         .content("{\"value\":\"x\"}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void adminCanListSettings() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/config")
+                        .with(jwt().jwt(j -> j.subject("admin"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .jsonPath("$[?(@.name=='VAT_RATE')].type").value("DECIMAL"));
+    }
+
+    @Test
+    void nonAdminCannotListSettings() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/config")
+                        .with(jwt().jwt(j -> j.subject("mgr"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_MANAGER"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void invalidValueIsRejected() throws Exception {
+        mvc.perform(put("/config/VAT_RATE")
+                        .with(jwt().jwt(j -> j.subject("admin"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"value\":\"abc\"}"))
+                .andExpect(status().isBadRequest());
+    }
 }
