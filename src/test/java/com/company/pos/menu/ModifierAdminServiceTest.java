@@ -116,10 +116,27 @@ class ModifierAdminServiceTest {
         assertThat(view.assignedSkus()).isEmpty();
     }
 
+    @Test
+    void deactivateThenReactivateGroupFlipsAndPublishes() {
+        ModifierGroupView g = menu.createModifierGroup(new CreateModifierGroupCommand("Add-ons", 0, 2));
+        menu.deactivateModifierGroup(g.id());
+        assertThat(activeOfGroup(g.id())).isFalse();
+        menu.reactivateModifierGroup(g.id());
+        assertThat(activeOfGroup(g.id())).isTrue();
+        assertThat(typesFor(g.id().toString()))
+                .contains(MenuChangeType.GROUP_DEACTIVATED, MenuChangeType.GROUP_REACTIVATED);
+    }
+
     private boolean activeOf(UUID groupId, UUID optionId) {
         return menu.listModifierGroups().stream()
                 .filter(v -> v.id().equals(groupId)).findFirst().orElseThrow()
                 .options().stream().filter(o -> o.id().equals(optionId)).findFirst().orElseThrow()
+                .active();
+    }
+
+    private boolean activeOfGroup(UUID groupId) {
+        return menu.listModifierGroups().stream()
+                .filter(v -> v.id().equals(groupId)).findFirst().orElseThrow()
                 .active();
     }
 
