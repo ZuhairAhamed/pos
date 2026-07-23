@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="screen" spacing="16" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <HBox spacing="16" alignment="CENTER_LEFT">
+    <Label text="Modifier builder" styleClass="title"/>
+    <Pane HBox.hgrow="ALWAYS"/>
+    <Label fx:id="errorLabel" styleClass="error-text"/>
+    <TextField fx:id="searchField" promptText="Search group"/>
+    <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+  </HBox>
+
+  <TableView fx:id="groupsTable" VBox.vgrow="ALWAYS">
+    <columns>
+      <TableColumn fx:id="gNameCol" text="Group" prefWidth="240"/>
+      <TableColumn fx:id="gSelCol" text="Selections" prefWidth="120"/>
+      <TableColumn fx:id="gOptCol" text="Options" prefWidth="90"/>
+      <TableColumn fx:id="gStatusCol" text="Status" prefWidth="120"/>
+    </columns>
+  </TableView>
+  <HBox spacing="12" alignment="CENTER_LEFT">
+    <Button fx:id="newGroupButton" text="New group" styleClass="btn-primary"/>
+    <Button fx:id="editGroupButton" text="Edit"/>
+    <Button fx:id="deactivateGroupButton" text="Deactivate"/>
+    <Button fx:id="reactivateGroupButton" text="Reactivate"/>
+  </HBox>
+
+  <Label fx:id="detailTitle" text="Select a group" styleClass="subtitle"/>
+  <HBox spacing="24" VBox.vgrow="ALWAYS">
+    <VBox spacing="8" HBox.hgrow="ALWAYS">
+      <Label text="Options" styleClass="field-label"/>
+      <TableView fx:id="optionsTable" VBox.vgrow="ALWAYS">
+        <columns>
+          <TableColumn fx:id="oNameCol" text="Option" prefWidth="200"/>
+          <TableColumn fx:id="oPriceCol" text="Price delta" prefWidth="120"/>
+          <TableColumn fx:id="oStatusCol" text="Status" prefWidth="110"/>
+        </columns>
+      </TableView>
+      <HBox spacing="12" alignment="CENTER_LEFT">
+        <Button fx:id="addOptionButton" text="Add option"/>
+        <Button fx:id="editOptionButton" text="Edit"/>
+        <Button fx:id="deactivateOptionButton" text="Deactivate"/>
+        <Button fx:id="reactivateOptionButton" text="Reactivate"/>
+      </HBox>
+    </VBox>
+    <VBox spacing="8" prefWidth="260">
+      <Label text="Assigned products" styleClass="field-label"/>
+      <ListView fx:id="assignedList" VBox.vgrow="ALWAYS"/>
+      <HBox spacing="12" alignment="CENTER_LEFT">
+        <Button fx:id="assignButton" text="Assign"/>
+        <Button fx:id="unassignButton" text="Unassign"/>
+      </HBox>
+    </VBox>
+  </HBox>
+</VBox>

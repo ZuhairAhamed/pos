@@ -115,6 +115,12 @@ public class Navigator {
         setScene("/fxml/settings.fxml", controller);
     }
 
+    public void toMenu() {
+        com.company.pos.terminal.view.ModifierBuilderController controller =
+                new com.company.pos.terminal.view.ModifierBuilderController(services, this);
+        setScene("/fxml/modifier-builder.fxml", controller);
+    }
+
     public void toRetail() {
         com.company.pos.terminal.view.RetailController controller =
                 new com.company.pos.terminal.view.RetailController(services, this);

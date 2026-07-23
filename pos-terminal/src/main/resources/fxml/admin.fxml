@@ -21,6 +21,7 @@
       <Button fx:id="kitchenButton" text="Kitchen" styleClass="home-tile"/>
       <Button fx:id="tablesButton" text="Tables" styleClass="home-tile"/>
       <Button fx:id="settingsButton" text="Settings" styleClass="home-tile"/>
+      <Button fx:id="menuButton" text="Menu" styleClass="home-tile"/>
     </HBox>
   </VBox>
 </StackPane>
