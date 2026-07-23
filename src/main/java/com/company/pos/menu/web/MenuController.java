@@ -5,8 +5,11 @@ import com.company.pos.menu.api.AddVariantMemberCommand;
 import com.company.pos.menu.api.CreateModifierGroupCommand;
 import com.company.pos.menu.api.CreateVariantGroupCommand;
 import com.company.pos.menu.api.MenuService;
+import com.company.pos.menu.api.ModifierGroupAdminView;
 import com.company.pos.menu.api.ModifierGroupView;
 import com.company.pos.menu.api.ModifierOptionView;
+import com.company.pos.menu.api.UpdateModifierGroupCommand;
+import com.company.pos.menu.api.UpdateOptionCommand;
 import com.company.pos.menu.api.VariantGroupView;
 import com.company.pos.menu.api.VariantMemberView;
 import java.util.List;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -65,6 +69,46 @@ class MenuController {
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     void deactivateGroup(@PathVariable UUID groupId) {
         menu.deactivateModifierGroup(groupId);
+    }
+
+    @GetMapping("/menu/modifier-groups")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    List<ModifierGroupAdminView> listGroups() {
+        return menu.listModifierGroups();
+    }
+
+    @PutMapping("/menu/modifier-groups/{groupId}")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    ModifierGroupView updateGroup(@PathVariable UUID groupId, @RequestBody UpdateModifierGroupCommand body) {
+        return menu.updateModifierGroup(groupId, body);
+    }
+
+    @PostMapping("/menu/modifier-groups/{groupId}/reactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void reactivateGroup(@PathVariable UUID groupId) {
+        menu.reactivateModifierGroup(groupId);
+    }
+
+    @PutMapping("/menu/modifier-groups/{groupId}/options/{optionId}")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    ModifierOptionView updateOption(@PathVariable UUID groupId, @PathVariable UUID optionId,
+            @RequestBody UpdateOptionCommand body) {
+        return menu.updateOption(groupId, optionId, body);
+    }
+
+    @DeleteMapping("/menu/modifier-groups/{groupId}/options/{optionId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void deactivateOption(@PathVariable UUID groupId, @PathVariable UUID optionId) {
+        menu.deactivateOption(groupId, optionId);
+    }
+
+    @PostMapping("/menu/modifier-groups/{groupId}/options/{optionId}/reactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void reactivateOption(@PathVariable UUID groupId, @PathVariable UUID optionId) {
+        menu.reactivateOption(groupId, optionId);
     }
 
     // --- variant admin (MANAGER/ADMIN) ---

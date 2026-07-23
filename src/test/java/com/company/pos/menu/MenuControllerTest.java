@@ -3,6 +3,7 @@ package com.company.pos.menu;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.company.pos.support.DatabaseCleaner;
@@ -77,6 +78,41 @@ class MenuControllerTest {
         mvc.perform(post("/menu/variant-groups").with(cashier())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Draft Beer\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCanListModifierGroups() throws Exception {
+        mvc.perform(get("/menu/modifier-groups").with(manager()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cashierCannotListModifierGroups() throws Exception {
+        mvc.perform(get("/menu/modifier-groups").with(cashier()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerEditsModifierGroup() throws Exception {
+        String created = mvc.perform(post("/menu/modifier-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Add-ons\",\"minSelections\":0,\"maxSelections\":2}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+
+        mvc.perform(put("/menu/modifier-groups/" + id).with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extras\",\"minSelections\":1,\"maxSelections\":3}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cashierCannotEditModifierGroup() throws Exception {
+        mvc.perform(put("/menu/modifier-groups/" + java.util.UUID.randomUUID()).with(cashier())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extras\",\"minSelections\":1,\"maxSelections\":3}"))
                 .andExpect(status().isForbidden());
     }
 }
