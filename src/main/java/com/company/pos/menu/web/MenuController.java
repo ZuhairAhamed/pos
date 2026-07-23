@@ -12,6 +12,9 @@ import com.company.pos.menu.api.UpdateModifierGroupCommand;
 import com.company.pos.menu.api.UpdateOptionCommand;
 import com.company.pos.menu.api.VariantGroupView;
 import com.company.pos.menu.api.VariantMemberView;
+import com.company.pos.menu.api.UpdateVariantGroupCommand;
+import com.company.pos.menu.api.UpdateVariantMemberCommand;
+import com.company.pos.menu.api.VariantGroupAdminView;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -131,6 +134,49 @@ class MenuController {
     @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
     void deactivateVariantGroup(@PathVariable UUID groupId) {
         menu.deactivateVariantGroup(groupId);
+    }
+
+    // --- variant admin ---
+    @GetMapping("/menu/variant-groups/admin")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    List<VariantGroupAdminView> listVariantGroupsAdmin() {
+        return menu.listVariantGroupsAdmin();
+    }
+
+    @PutMapping("/menu/variant-groups/{id}")
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    VariantGroupAdminView updateVariantGroup(@PathVariable UUID id,
+            @RequestBody UpdateVariantGroupCommand body) {
+        return menu.updateVariantGroup(id, body);
+    }
+
+    @PostMapping("/menu/variant-groups/{id}/reactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void reactivateVariantGroup(@PathVariable UUID id) {
+        menu.reactivateVariantGroup(id);
+    }
+
+    @PutMapping("/menu/variant-groups/{groupId}/members/{memberId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void updateVariantMember(@PathVariable UUID groupId, @PathVariable UUID memberId,
+            @RequestBody UpdateVariantMemberCommand body) {
+        menu.updateVariantMember(groupId, memberId, body);
+    }
+
+    @DeleteMapping("/menu/variant-groups/{groupId}/members/{memberId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void deactivateVariantMember(@PathVariable UUID groupId, @PathVariable UUID memberId) {
+        menu.deactivateVariantMember(groupId, memberId);
+    }
+
+    @PostMapping("/menu/variant-groups/{groupId}/members/{memberId}/reactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAnyRole('MANAGER','ADMIN')")
+    void reactivateVariantMember(@PathVariable UUID groupId, @PathVariable UUID memberId) {
+        menu.reactivateVariantMember(groupId, memberId);
     }
 
     // --- reads (any authenticated caller) ---

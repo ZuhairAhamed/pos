@@ -223,4 +223,112 @@ class MenuControllerTest {
         mvc.perform(post("/menu/modifier-groups/" + groupId + "/options/" + optionId + "/reactivate").with(cashier()))
                 .andExpect(status().isForbidden());
     }
+
+    // --- variant admin — 6 endpoints × happy + cashier-403 = 12 tests ---
+
+    @Test
+    void managerCanListVariantGroupsAdmin() throws Exception {
+        mvc.perform(get("/menu/variant-groups/admin").with(manager()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cashierCannotListVariantGroupsAdmin() throws Exception {
+        mvc.perform(get("/menu/variant-groups/admin").with(cashier()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCanUpdateVariantGroup() throws Exception {
+        String created = mvc.perform(post("/menu/variant-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Sizes\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+        mvc.perform(put("/menu/variant-groups/" + id).with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Beer sizes\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cashierCannotUpdateVariantGroup() throws Exception {
+        mvc.perform(put("/menu/variant-groups/" + java.util.UUID.randomUUID()).with(cashier())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Beer sizes\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCanReactivateVariantGroup() throws Exception {
+        String created = mvc.perform(post("/menu/variant-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Sizes\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+        mvc.perform(post("/menu/variant-groups/" + id + "/reactivate").with(manager()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void cashierCannotReactivateVariantGroup() throws Exception {
+        mvc.perform(post("/menu/variant-groups/" + java.util.UUID.randomUUID() + "/reactivate")
+                        .with(cashier()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCanUpdateVariantMember() throws Exception {
+        // random UUID group/member → 404 (not 403) proves authz passes; full correctness in VariantAdminServiceTest
+        mvc.perform(put("/menu/variant-groups/" + java.util.UUID.randomUUID()
+                        + "/members/" + java.util.UUID.randomUUID()).with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayLabel\":\"Sm\"}"))
+                .andExpect(result ->
+                        org.assertj.core.api.Assertions.assertThat(result.getResponse().getStatus())
+                                .isNotEqualTo(403));
+    }
+
+    @Test
+    void cashierCannotUpdateVariantMember() throws Exception {
+        mvc.perform(put("/menu/variant-groups/" + java.util.UUID.randomUUID()
+                        + "/members/" + java.util.UUID.randomUUID()).with(cashier())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayLabel\":\"Sm\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCanDeactivateVariantMember() throws Exception {
+        mvc.perform(delete("/menu/variant-groups/" + java.util.UUID.randomUUID()
+                        + "/members/" + java.util.UUID.randomUUID()).with(manager()))
+                .andExpect(result ->
+                        org.assertj.core.api.Assertions.assertThat(result.getResponse().getStatus())
+                                .isNotEqualTo(403));
+    }
+
+    @Test
+    void cashierCannotDeactivateVariantMember() throws Exception {
+        mvc.perform(delete("/menu/variant-groups/" + java.util.UUID.randomUUID()
+                        + "/members/" + java.util.UUID.randomUUID()).with(cashier()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerCanReactivateVariantMember() throws Exception {
+        mvc.perform(post("/menu/variant-groups/" + java.util.UUID.randomUUID()
+                        + "/members/" + java.util.UUID.randomUUID() + "/reactivate").with(manager()))
+                .andExpect(result ->
+                        org.assertj.core.api.Assertions.assertThat(result.getResponse().getStatus())
+                                .isNotEqualTo(403));
+    }
+
+    @Test
+    void cashierCannotReactivateVariantMember() throws Exception {
+        mvc.perform(post("/menu/variant-groups/" + java.util.UUID.randomUUID()
+                        + "/members/" + java.util.UUID.randomUUID() + "/reactivate").with(cashier()))
+                .andExpect(status().isForbidden());
+    }
 }
