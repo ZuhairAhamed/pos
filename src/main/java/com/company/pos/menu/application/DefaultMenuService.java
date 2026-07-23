@@ -1,16 +1,23 @@
 package com.company.pos.menu.application;
 
+import com.company.pos.common.events.DomainEvents;
 import com.company.pos.common.exception.DomainException;
 import com.company.pos.common.util.Identifiers;
 import com.company.pos.menu.api.AddOptionCommand;
 import com.company.pos.menu.api.AddVariantMemberCommand;
 import com.company.pos.menu.api.CreateModifierGroupCommand;
 import com.company.pos.menu.api.CreateVariantGroupCommand;
+import com.company.pos.menu.api.MenuChangeType;
+import com.company.pos.menu.api.MenuChanged;
 import com.company.pos.menu.api.MenuService;
+import com.company.pos.menu.api.ModifierGroupAdminView;
 import com.company.pos.menu.api.ModifierGroupView;
+import com.company.pos.menu.api.ModifierOptionAdminView;
 import com.company.pos.menu.api.ModifierOptionView;
 import com.company.pos.menu.api.ModifierResolution;
 import com.company.pos.menu.api.ResolvedModifier;
+import com.company.pos.menu.api.UpdateModifierGroupCommand;
+import com.company.pos.menu.api.UpdateOptionCommand;
 import com.company.pos.menu.api.VariantGroupView;
 import com.company.pos.menu.api.VariantMemberView;
 import com.company.pos.menu.domain.ModifierGroup;
@@ -31,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,16 +53,19 @@ class DefaultMenuService implements MenuService {
     private final ProductCatalog products;
     private final VariantGroupRepository variantGroups;
     private final VariantMemberRepository variantMembers;
+    private final DomainEvents events;
 
     DefaultMenuService(ModifierGroupRepository groups, ModifierOptionRepository options,
             ModifierGroupAssignmentRepository assignments, ProductCatalog products,
-            VariantGroupRepository variantGroups, VariantMemberRepository variantMembers) {
+            VariantGroupRepository variantGroups, VariantMemberRepository variantMembers,
+            DomainEvents events) {
         this.groups = groups;
         this.options = options;
         this.assignments = assignments;
         this.products = products;
         this.variantGroups = variantGroups;
         this.variantMembers = variantMembers;
+        this.events = events;
     }
 
     @Override
@@ -61,13 +73,13 @@ class DefaultMenuService implements MenuService {
         if (command.name() == null || command.name().isBlank()) {
             throw DomainException.validation("Modifier group name is required");
         }
-        if (command.minSelections() < 0 || command.maxSelections() < command.minSelections()
-                || command.maxSelections() < 1) {
-            throw DomainException.validation("Invalid min/max selections");
-        }
+        validateSelections(command.minSelections(), command.maxSelections());
         ModifierGroup g = new ModifierGroup(Identifiers.newId(), command.name().trim(),
                 command.minSelections(), command.maxSelections());
-        return toGroupView(groups.save(g));
+        ModifierGroup saved = groups.save(g);
+        events.publish(new MenuChanged(saved.getId().toString(), MenuChangeType.GROUP_CREATED,
+                actor(), null, null, null));
+        return toGroupView(saved);
     }
 
     @Override
@@ -82,6 +94,8 @@ class DefaultMenuService implements MenuService {
         ModifierOption o = new ModifierOption(Identifiers.newId(), groupId, command.name().trim(),
                 command.priceDelta());
         o = options.save(o);
+        events.publish(new MenuChanged(o.getId().toString(), MenuChangeType.OPTION_ADDED,
+                actor(), null, null, null));
         return new ModifierOptionView(o.getId(), o.getName(), o.getPriceDelta());
     }
 
@@ -94,16 +108,79 @@ class DefaultMenuService implements MenuService {
             return; // idempotent
         }
         assignments.save(new ModifierGroupAssignment(Identifiers.newId(), groupId, sku));
+        events.publish(new MenuChanged(groupId.toString(), MenuChangeType.GROUP_ASSIGNED,
+                actor(), sku, null, null));
     }
 
     @Override
     public void unassignGroupFromSku(UUID groupId, String sku) {
         assignments.deleteByGroupIdAndSku(groupId, sku);
+        events.publish(new MenuChanged(groupId.toString(), MenuChangeType.GROUP_UNASSIGNED,
+                actor(), sku, null, null));
     }
 
     @Override
     public void deactivateModifierGroup(UUID groupId) {
         loadGroup(groupId).setActive(false);
+        events.publish(new MenuChanged(groupId.toString(), MenuChangeType.GROUP_DEACTIVATED,
+                actor(), null, null, null));
+    }
+
+    @Override
+    public ModifierGroupView updateModifierGroup(UUID groupId, UpdateModifierGroupCommand command) {
+        ModifierGroup g = loadGroup(groupId);
+        if (command.name() == null || command.name().isBlank()) {
+            throw DomainException.validation("Modifier group name is required");
+        }
+        validateSelections(command.minSelections(), command.maxSelections());
+        g.rename(command.name().trim());
+        g.setSelections(command.minSelections(), command.maxSelections());
+        events.publish(new MenuChanged(g.getId().toString(), MenuChangeType.GROUP_UPDATED,
+                actor(), null, null, null));
+        return toGroupView(g);
+    }
+
+    @Override
+    public void reactivateModifierGroup(UUID groupId) {
+        loadGroup(groupId).setActive(true);
+        events.publish(new MenuChanged(groupId.toString(), MenuChangeType.GROUP_REACTIVATED,
+                actor(), null, null, null));
+    }
+
+    @Override
+    public ModifierOptionView updateOption(UUID groupId, UUID optionId, UpdateOptionCommand command) {
+        loadGroup(groupId);
+        ModifierOption o = loadOption(groupId, optionId);
+        if (command.name() == null || command.name().isBlank()) {
+            throw DomainException.validation("Option name is required");
+        }
+        if (command.priceDelta() == null) {
+            throw DomainException.validation("Option priceDelta is required (may be 0)");
+        }
+        BigDecimal oldPrice = o.getPriceDelta();
+        BigDecimal newPrice = command.priceDelta();
+        boolean priceChanged = oldPrice.compareTo(newPrice) != 0;
+        o.rename(command.name().trim());
+        o.reprice(newPrice);
+        events.publish(new MenuChanged(o.getId().toString(), MenuChangeType.OPTION_UPDATED,
+                actor(), null, priceChanged ? oldPrice : null, priceChanged ? newPrice : null));
+        return new ModifierOptionView(o.getId(), o.getName(), o.getPriceDelta());
+    }
+
+    @Override
+    public void deactivateOption(UUID groupId, UUID optionId) {
+        setOptionActive(groupId, optionId, false, MenuChangeType.OPTION_DEACTIVATED);
+    }
+
+    @Override
+    public void reactivateOption(UUID groupId, UUID optionId) {
+        setOptionActive(groupId, optionId, true, MenuChangeType.OPTION_REACTIVATED);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ModifierGroupAdminView> listModifierGroups() {
+        return groups.findAll().stream().map(this::toAdminView).collect(Collectors.toList());
     }
 
     @Override
@@ -206,9 +283,42 @@ class DefaultMenuService implements MenuService {
         return new VariantGroupView(g.getId(), g.getName(), members);
     }
 
+    private void setOptionActive(UUID groupId, UUID optionId, boolean active, MenuChangeType type) {
+        loadGroup(groupId);
+        ModifierOption o = loadOption(groupId, optionId);
+        o.setActive(active);
+        events.publish(new MenuChanged(o.getId().toString(), type, actor(), null, null, null));
+    }
+
+    private ModifierOption loadOption(UUID groupId, UUID optionId) {
+        ModifierOption o = options.findById(optionId)
+                .orElseThrow(() -> DomainException.notFound("No option " + optionId));
+        if (!o.getGroupId().equals(groupId)) {
+            throw DomainException.validation("Option " + optionId + " does not belong to group " + groupId);
+        }
+        return o;
+    }
+
     private ModifierGroup loadGroup(UUID groupId) {
         return groups.findById(groupId)
                 .orElseThrow(() -> DomainException.notFound("No modifier group " + groupId));
+    }
+
+    private void validateSelections(int min, int max) {
+        if (min < 0 || max < min || max < 1) {
+            throw DomainException.validation("Invalid min/max selections");
+        }
+    }
+
+    private ModifierGroupAdminView toAdminView(ModifierGroup g) {
+        List<ModifierOptionAdminView> opts = options.findByGroupId(g.getId()).stream()
+                .map(o -> new ModifierOptionAdminView(o.getId(), o.getName(), o.getPriceDelta(), o.isActive()))
+                .collect(Collectors.toList());
+        List<String> skus = assignments.findByGroupId(g.getId()).stream()
+                .map(ModifierGroupAssignment::getSku)
+                .collect(Collectors.toList());
+        return new ModifierGroupAdminView(g.getId(), g.getName(), g.getMinSelections(),
+                g.getMaxSelections(), g.isActive(), opts, skus);
     }
 
     private ModifierGroupView toGroupView(ModifierGroup g) {
@@ -218,5 +328,10 @@ class DefaultMenuService implements MenuService {
                 .collect(Collectors.toList());
         return new ModifierGroupView(g.getId(), g.getName(), g.getMinSelections(),
                 g.getMaxSelections(), opts);
+    }
+
+    private static String actor() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        return a != null ? a.getName() : "system";
     }
 }

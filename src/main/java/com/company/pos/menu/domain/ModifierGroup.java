@@ -62,4 +62,13 @@ public class ModifierGroup {
     public void setActive(boolean active) {
         this.active = active;
     }
+
+    public void rename(String name) {
+        this.name = name;
+    }
+
+    public void setSelections(int minSelections, int maxSelections) {
+        this.minSelections = minSelections;
+        this.maxSelections = maxSelections;
+    }
 }

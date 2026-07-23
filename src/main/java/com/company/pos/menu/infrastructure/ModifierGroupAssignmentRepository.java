@@ -12,4 +12,6 @@ public interface ModifierGroupAssignmentRepository extends JpaRepository<Modifie
     boolean existsByGroupIdAndSku(UUID groupId, String sku);
 
     void deleteByGroupIdAndSku(UUID groupId, String sku);
+
+    List<ModifierGroupAssignment> findByGroupId(UUID groupId);
 }

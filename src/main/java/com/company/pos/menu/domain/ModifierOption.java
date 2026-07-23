@@ -64,4 +64,12 @@ public class ModifierOption {
     public void setActive(boolean active) {
         this.active = active;
     }
+
+    public void rename(String name) {
+        this.name = name;
+    }
+
+    public void reprice(BigDecimal priceDelta) {
+        this.priceDelta = priceDelta;
+    }
 }

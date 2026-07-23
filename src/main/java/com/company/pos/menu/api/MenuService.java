@@ -16,6 +16,18 @@ public interface MenuService {
 
     void deactivateModifierGroup(UUID groupId);
 
+    ModifierGroupView updateModifierGroup(UUID groupId, UpdateModifierGroupCommand command);
+
+    void reactivateModifierGroup(UUID groupId);
+
+    ModifierOptionView updateOption(UUID groupId, UUID optionId, UpdateOptionCommand command);
+
+    void deactivateOption(UUID groupId, UUID optionId);
+
+    void reactivateOption(UUID groupId, UUID optionId);
+
+    List<ModifierGroupAdminView> listModifierGroups();
+
     // --- variant admin (MANAGER/ADMIN) ---
     VariantGroupView createVariantGroup(CreateVariantGroupCommand command);
 
