@@ -46,4 +46,8 @@ public class VariantGroup {
     public void setActive(boolean active) {
         this.active = active;
     }
+
+    public void rename(String name) {
+        this.name = name;
+    }
 }

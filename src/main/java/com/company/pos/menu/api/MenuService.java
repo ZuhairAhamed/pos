@@ -35,6 +35,18 @@ public interface MenuService {
 
     void deactivateVariantGroup(UUID variantGroupId);
 
+    VariantGroupAdminView updateVariantGroup(UUID variantGroupId, UpdateVariantGroupCommand command);
+
+    VariantGroupAdminView reactivateVariantGroup(UUID variantGroupId);
+
+    void updateVariantMember(UUID variantGroupId, UUID memberId, UpdateVariantMemberCommand command);
+
+    void deactivateVariantMember(UUID variantGroupId, UUID memberId);
+
+    void reactivateVariantMember(UUID variantGroupId, UUID memberId);
+
+    List<VariantGroupAdminView> listVariantGroupsAdmin();
+
     // --- queries (any authenticated caller / used by cart + dining) ---
     List<ModifierGroupView> groupsForSku(String sku);
 

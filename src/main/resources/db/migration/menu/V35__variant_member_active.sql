@@ -1,0 +1,1 @@
+ALTER TABLE variant_member ADD COLUMN active BOOLEAN NOT NULL DEFAULT true;

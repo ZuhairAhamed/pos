@@ -27,6 +27,9 @@ public class VariantMember {
     @Column(name = "display_label", nullable = false, length = 100)
     private String displayLabel;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
     protected VariantMember() {
     }
 
@@ -51,5 +54,21 @@ public class VariantMember {
 
     public String getDisplayLabel() {
         return displayLabel;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void relabel(String displayLabel) {
+        this.displayLabel = displayLabel;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
+    public void reactivate() {
+        this.active = true;
     }
 }

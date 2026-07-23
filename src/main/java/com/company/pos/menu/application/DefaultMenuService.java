@@ -18,7 +18,11 @@ import com.company.pos.menu.api.ModifierResolution;
 import com.company.pos.menu.api.ResolvedModifier;
 import com.company.pos.menu.api.UpdateModifierGroupCommand;
 import com.company.pos.menu.api.UpdateOptionCommand;
+import com.company.pos.menu.api.UpdateVariantGroupCommand;
+import com.company.pos.menu.api.UpdateVariantMemberCommand;
+import com.company.pos.menu.api.VariantGroupAdminView;
 import com.company.pos.menu.api.VariantGroupView;
+import com.company.pos.menu.api.VariantMemberAdminView;
 import com.company.pos.menu.api.VariantMemberView;
 import com.company.pos.menu.domain.ModifierGroup;
 import com.company.pos.menu.domain.ModifierGroupAssignment;
@@ -246,6 +250,8 @@ class DefaultMenuService implements MenuService {
             throw DomainException.validation("Variant group name is required");
         }
         VariantGroup g = variantGroups.save(new VariantGroup(Identifiers.newId(), command.name().trim()));
+        events.publish(new MenuChanged(g.getId().toString(), MenuChangeType.VARIANT_GROUP_CREATED,
+                actor(), null, null, null));
         return toVariantView(g);
     }
 
@@ -255,8 +261,15 @@ class DefaultMenuService implements MenuService {
                 .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId));
         products.findBySku(command.sku())
                 .orElseThrow(() -> DomainException.validation("Unknown sku " + command.sku()));
+        boolean dupActive = variantMembers.findByVariantGroupId(variantGroupId).stream()
+                .anyMatch(m -> m.isActive() && m.getSku().equals(command.sku()));
+        if (dupActive) {
+            throw DomainException.validation("SKU " + command.sku() + " is already active in this group");
+        }
         VariantMember m = variantMembers.save(new VariantMember(Identifiers.newId(),
                 variantGroupId, command.sku(), command.displayLabel()));
+        events.publish(new MenuChanged(m.getId().toString(), MenuChangeType.VARIANT_MEMBER_ADDED,
+                actor(), command.sku(), null, null));
         return new VariantMemberView(m.getSku(), m.getDisplayLabel());
     }
 
@@ -265,6 +278,66 @@ class DefaultMenuService implements MenuService {
         variantGroups.findById(variantGroupId)
                 .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId))
                 .setActive(false);
+        events.publish(new MenuChanged(variantGroupId.toString(), MenuChangeType.VARIANT_GROUP_DEACTIVATED,
+                actor(), null, null, null));
+    }
+
+    @Override
+    public VariantGroupAdminView updateVariantGroup(UUID variantGroupId, UpdateVariantGroupCommand command) {
+        VariantGroup g = variantGroups.findById(variantGroupId)
+                .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId));
+        if (command.name() == null || command.name().isBlank()) {
+            throw DomainException.validation("Variant group name is required");
+        }
+        g.rename(command.name().trim());
+        events.publish(new MenuChanged(g.getId().toString(), MenuChangeType.VARIANT_GROUP_UPDATED,
+                actor(), null, null, null));
+        return toVariantAdminView(g);
+    }
+
+    @Override
+    public VariantGroupAdminView reactivateVariantGroup(UUID variantGroupId) {
+        VariantGroup g = variantGroups.findById(variantGroupId)
+                .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId));
+        g.setActive(true);
+        events.publish(new MenuChanged(g.getId().toString(), MenuChangeType.VARIANT_GROUP_REACTIVATED,
+                actor(), null, null, null));
+        return toVariantAdminView(g);
+    }
+
+    @Override
+    public void updateVariantMember(UUID variantGroupId, UUID memberId, UpdateVariantMemberCommand command) {
+        VariantMember m = loadMember(variantGroupId, memberId);
+        if (command.displayLabel() == null || command.displayLabel().isBlank()) {
+            throw DomainException.validation("Display label is required");
+        }
+        m.relabel(command.displayLabel().trim());
+        events.publish(new MenuChanged(m.getId().toString(), MenuChangeType.VARIANT_MEMBER_UPDATED,
+                actor(), m.getSku(), null, null));
+    }
+
+    @Override
+    public void deactivateVariantMember(UUID variantGroupId, UUID memberId) {
+        VariantMember m = loadMember(variantGroupId, memberId);
+        m.deactivate();
+        events.publish(new MenuChanged(m.getId().toString(), MenuChangeType.VARIANT_MEMBER_DEACTIVATED,
+                actor(), m.getSku(), null, null));
+    }
+
+    @Override
+    public void reactivateVariantMember(UUID variantGroupId, UUID memberId) {
+        VariantMember m = loadMember(variantGroupId, memberId);
+        m.reactivate();
+        events.publish(new MenuChanged(m.getId().toString(), MenuChangeType.VARIANT_MEMBER_REACTIVATED,
+                actor(), m.getSku(), null, null));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VariantGroupAdminView> listVariantGroupsAdmin() {
+        return variantGroups.findAll().stream()
+                .map(this::toVariantAdminView)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -278,9 +351,29 @@ class DefaultMenuService implements MenuService {
 
     private VariantGroupView toVariantView(VariantGroup g) {
         List<VariantMemberView> members = variantMembers.findByVariantGroupId(g.getId()).stream()
+                .filter(VariantMember::isActive)
                 .map(m -> new VariantMemberView(m.getSku(), m.getDisplayLabel()))
                 .collect(Collectors.toList());
         return new VariantGroupView(g.getId(), g.getName(), members);
+    }
+
+    private VariantMember loadMember(UUID variantGroupId, UUID memberId) {
+        variantGroups.findById(variantGroupId)
+                .orElseThrow(() -> DomainException.notFound("No variant group " + variantGroupId));
+        VariantMember m = variantMembers.findById(memberId)
+                .orElseThrow(() -> DomainException.notFound("No variant member " + memberId));
+        if (!m.getVariantGroupId().equals(variantGroupId)) {
+            throw DomainException.validation(
+                    "Member " + memberId + " does not belong to group " + variantGroupId);
+        }
+        return m;
+    }
+
+    private VariantGroupAdminView toVariantAdminView(VariantGroup g) {
+        List<VariantMemberAdminView> members = variantMembers.findByVariantGroupId(g.getId()).stream()
+                .map(m -> new VariantMemberAdminView(m.getId(), m.getSku(), m.getDisplayLabel(), m.isActive()))
+                .collect(Collectors.toList());
+        return new VariantGroupAdminView(g.getId(), g.getName(), g.isActive(), members);
     }
 
     private void setOptionActive(UUID groupId, UUID optionId, boolean active, MenuChangeType type) {
