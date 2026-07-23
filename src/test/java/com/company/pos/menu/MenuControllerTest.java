@@ -1,6 +1,7 @@
 package com.company.pos.menu;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -113,6 +114,113 @@ class MenuControllerTest {
         mvc.perform(put("/menu/modifier-groups/" + java.util.UUID.randomUUID()).with(cashier())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Extras\",\"minSelections\":1,\"maxSelections\":3}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerReactivatesModifierGroup() throws Exception {
+        String created = mvc.perform(post("/menu/modifier-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Add-ons\",\"minSelections\":0,\"maxSelections\":2}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(created, "$.id");
+
+        mvc.perform(post("/menu/modifier-groups/" + id + "/reactivate").with(manager()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void cashierCannotReactivateModifierGroup() throws Exception {
+        mvc.perform(post("/menu/modifier-groups/" + java.util.UUID.randomUUID() + "/reactivate").with(cashier()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerUpdatesOption() throws Exception {
+        String groupCreated = mvc.perform(post("/menu/modifier-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Add-ons\",\"minSelections\":0,\"maxSelections\":2}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String groupId = com.jayway.jsonpath.JsonPath.read(groupCreated, "$.id");
+
+        String optionCreated = mvc.perform(post("/menu/modifier-groups/" + groupId + "/options").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extra Cheese\",\"priceDelta\":\"1.50\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String optionId = com.jayway.jsonpath.JsonPath.read(optionCreated, "$.id");
+
+        mvc.perform(put("/menu/modifier-groups/" + groupId + "/options/" + optionId).with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extra Cheddar\",\"priceDelta\":\"2.00\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void cashierCannotUpdateOption() throws Exception {
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        java.util.UUID optionId = java.util.UUID.randomUUID();
+        mvc.perform(put("/menu/modifier-groups/" + groupId + "/options/" + optionId).with(cashier())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extra Cheddar\",\"price\":\"2.00\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerDeactivatesOption() throws Exception {
+        String groupCreated = mvc.perform(post("/menu/modifier-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Add-ons\",\"minSelections\":0,\"maxSelections\":2}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String groupId = com.jayway.jsonpath.JsonPath.read(groupCreated, "$.id");
+
+        String optionCreated = mvc.perform(post("/menu/modifier-groups/" + groupId + "/options").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extra Cheese\",\"priceDelta\":\"1.50\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String optionId = com.jayway.jsonpath.JsonPath.read(optionCreated, "$.id");
+
+        mvc.perform(delete("/menu/modifier-groups/" + groupId + "/options/" + optionId).with(manager()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void cashierCannotDeactivateOption() throws Exception {
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        java.util.UUID optionId = java.util.UUID.randomUUID();
+        mvc.perform(delete("/menu/modifier-groups/" + groupId + "/options/" + optionId).with(cashier()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void managerReactivatesOption() throws Exception {
+        String groupCreated = mvc.perform(post("/menu/modifier-groups").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Add-ons\",\"minSelections\":0,\"maxSelections\":2}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String groupId = com.jayway.jsonpath.JsonPath.read(groupCreated, "$.id");
+
+        String optionCreated = mvc.perform(post("/menu/modifier-groups/" + groupId + "/options").with(manager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Extra Cheese\",\"priceDelta\":\"1.50\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String optionId = com.jayway.jsonpath.JsonPath.read(optionCreated, "$.id");
+
+        mvc.perform(post("/menu/modifier-groups/" + groupId + "/options/" + optionId + "/reactivate").with(manager()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void cashierCannotReactivateOption() throws Exception {
+        java.util.UUID groupId = java.util.UUID.randomUUID();
+        java.util.UUID optionId = java.util.UUID.randomUUID();
+        mvc.perform(post("/menu/modifier-groups/" + groupId + "/options/" + optionId + "/reactivate").with(cashier()))
                 .andExpect(status().isForbidden());
     }
 }
