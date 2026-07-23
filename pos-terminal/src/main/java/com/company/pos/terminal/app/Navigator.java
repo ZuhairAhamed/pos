@@ -121,6 +121,12 @@ public class Navigator {
         setScene("/fxml/modifier-builder.fxml", controller);
     }
 
+    public void toVariants() {
+        com.company.pos.terminal.view.VariantBuilderController controller =
+                new com.company.pos.terminal.view.VariantBuilderController(services, this);
+        setScene("/fxml/variant-builder.fxml", controller);
+    }
+
     public void toRetail() {
         com.company.pos.terminal.view.RetailController controller =
                 new com.company.pos.terminal.view.RetailController(services, this);

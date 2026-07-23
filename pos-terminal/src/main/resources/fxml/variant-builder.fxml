@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox styleClass="screen" spacing="16" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <HBox spacing="16" alignment="CENTER_LEFT">
+    <Label text="Variant builder" styleClass="title"/>
+    <Pane HBox.hgrow="ALWAYS"/>
+    <Label fx:id="errorLabel" styleClass="error-text"/>
+    <TextField fx:id="searchField" promptText="Search group"/>
+    <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+  </HBox>
+
+  <TableView fx:id="groupsTable" VBox.vgrow="ALWAYS">
+    <columns>
+      <TableColumn fx:id="gNameCol" text="Group" prefWidth="260"/>
+      <TableColumn fx:id="gMemberCol" text="Members" prefWidth="100"/>
+      <TableColumn fx:id="gStatusCol" text="Status" prefWidth="120"/>
+    </columns>
+  </TableView>
+  <HBox spacing="12" alignment="CENTER_LEFT">
+    <Button fx:id="newGroupButton" text="New group" styleClass="btn-primary"/>
+    <Button fx:id="editGroupButton" text="Rename"/>
+    <Button fx:id="deactivateGroupButton" text="Deactivate"/>
+    <Button fx:id="reactivateGroupButton" text="Reactivate"/>
+  </HBox>
+
+  <Label fx:id="detailTitle" text="Select a group" styleClass="subtitle"/>
+
+  <TableView fx:id="membersTable" VBox.vgrow="ALWAYS">
+    <columns>
+      <TableColumn fx:id="mSkuCol" text="SKU" prefWidth="160"/>
+      <TableColumn fx:id="mLabelCol" text="Label" prefWidth="240"/>
+      <TableColumn fx:id="mStatusCol" text="Status" prefWidth="120"/>
+    </columns>
+  </TableView>
+  <HBox spacing="12" alignment="CENTER_LEFT">
+    <Button fx:id="addMemberButton" text="Add member" styleClass="btn-primary"/>
+    <Button fx:id="editMemberButton" text="Relabel"/>
+    <Button fx:id="deactivateMemberButton" text="Deactivate"/>
+    <Button fx:id="reactivateMemberButton" text="Reactivate"/>
+  </HBox>
+</VBox>
