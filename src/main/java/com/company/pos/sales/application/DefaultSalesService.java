@@ -302,6 +302,14 @@ class DefaultSalesService implements SalesService {
 
     @Override
     @Transactional(readOnly = true)
+    public SaleView getSaleByReceipt(String receiptNumber) {
+        Sale sale = sales.findByReceiptNumber(receiptNumber)
+                .orElseThrow(() -> DomainException.notFound("No sale with receipt " + receiptNumber));
+        return toView(sale, payments.findBySale(sale.getId()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public void reprint(UUID saleId) {
         Sale sale = sales.findById(saleId)
                 .orElseThrow(() -> DomainException.notFound("No sale " + saleId));

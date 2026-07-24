@@ -74,6 +74,11 @@ class SalesController {
         return sales.getSale(saleId);
     }
 
+    @GetMapping("/sales/by-receipt/{receiptNumber}")
+    SaleView getByReceipt(@PathVariable String receiptNumber) {
+        return sales.getSaleByReceipt(receiptNumber);
+    }
+
     @PostMapping("/sales/{saleId}/reprint")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     void reprint(@PathVariable UUID saleId) {

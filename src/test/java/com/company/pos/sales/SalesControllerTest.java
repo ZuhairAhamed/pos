@@ -118,4 +118,28 @@ class SalesControllerTest {
                         .content("{\"email\":\"guest@example.com\"}"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    void getByReceiptReturnsSale() throws Exception {
+        UUID cart = carts.createCart();
+        carts.addLine(cart, "COLA", new BigDecimal("1"));
+        String body = mvc.perform(post("/sales").with(jwt().jwt(j -> j.subject("cashier1")))
+                        .contentType("application/json")
+                        .content("{\"cartId\":\"" + cart + "\",\"tenders\":[{\"method\":\"CASH\",\"tendered\":10.00}]}"))
+                .andReturn().getResponse().getContentAsString();
+        String receipt = com.jayway.jsonpath.JsonPath.read(body, "$.receiptNumber");
+        String saleId = com.jayway.jsonpath.JsonPath.read(body, "$.id");
+
+        mvc.perform(get("/sales/by-receipt/" + receipt).with(jwt().jwt(j -> j.subject("cashier1"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(saleId))
+                .andExpect(jsonPath("$.receiptNumber").value(receipt))
+                .andExpect(jsonPath("$.lines[0].lineNo").exists());
+    }
+
+    @Test
+    void getByReceiptUnknownReturnsNotFound() throws Exception {
+        mvc.perform(get("/sales/by-receipt/NOPE-404-0").with(jwt().jwt(j -> j.subject("cashier1"))))
+                .andExpect(status().isNotFound());
+    }
 }

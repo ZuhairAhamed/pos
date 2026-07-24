@@ -18,6 +18,9 @@ public interface SalesService {
 
     SaleView getSale(UUID saleId);
 
+    /** Fetch a committed sale by its unique receipt number; 404 (NOT_FOUND) when absent. */
+    SaleView getSaleByReceipt(String receiptNumber);
+
     void reprint(UUID saleId);
 
     /**
