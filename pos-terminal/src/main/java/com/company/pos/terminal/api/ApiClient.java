@@ -87,6 +87,39 @@ public class ApiClient {
         }
     }
 
+    /** Raw-text GET (no JSON deserialization) — for CSV report export. Same auth/error semantics
+     *  as the JSON methods: non-2xx throws ApiException; a session 401 clears the session. */
+    public String getText(String path) {
+        try {
+            HttpRequest.Builder b = HttpRequest.newBuilder()
+                    .uri(URI.create(baseUrl + path))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Accept", "text/csv")
+                    .GET();
+            if (session.token() != null) {
+                b.header("Authorization", "Bearer " + session.token());
+            }
+            HttpResponse<String> resp = http.send(b.build(), HttpResponse.BodyHandlers.ofString());
+            int sc = resp.statusCode();
+            if (sc == 401) {
+                session.clear();
+            }
+            if (sc < 200 || sc >= 300) {
+                throw toApiException(sc, resp.body());
+            }
+            return resp.body() == null ? "" : resp.body();
+        } catch (ApiException e) {
+            throw e;
+        } catch (java.io.IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new ApiException(0, null, "Cannot reach store server: " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw new ApiException(-1, null, "Client error: " + e.getMessage());
+        }
+    }
+
     private ApiException toApiException(int status, String body) {
         ProblemDetail pd = null;
         if (body != null && !body.isBlank()) {
