@@ -23,6 +23,7 @@
       <Button fx:id="settingsButton" text="Settings" styleClass="home-tile"/>
       <Button fx:id="menuButton" text="Modifiers" styleClass="home-tile"/>
       <Button fx:id="variantsButton" text="Variants" styleClass="home-tile"/>
+      <Button fx:id="reportsButton" text="Reports" styleClass="home-tile"/>
     </HBox>
   </VBox>
 </StackPane>

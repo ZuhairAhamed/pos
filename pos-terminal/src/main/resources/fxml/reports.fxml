@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <top>
+        <VBox spacing="8" styleClass="screen-header">
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <Label text="Reports" styleClass="title"/>
+                <Label fx:id="errorLabel" styleClass="error-text"/>
+                <Pane HBox.hgrow="ALWAYS"/>
+                <Button fx:id="exportButton" text="Export CSV" styleClass="btn-secondary"/>
+                <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+            </HBox>
+            <HBox fx:id="typeRow" spacing="8"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <ToggleButton fx:id="todayChip" text="Today" styleClass="chip"/>
+                <ToggleButton fx:id="yesterdayChip" text="Yesterday" styleClass="chip"/>
+                <ToggleButton fx:id="last7Chip" text="Last 7 days" styleClass="chip"/>
+                <ToggleButton fx:id="monthChip" text="This month" styleClass="chip"/>
+                <ToggleButton fx:id="customChip" text="Custom" styleClass="chip"/>
+                <HBox fx:id="customRow" spacing="8" alignment="CENTER_LEFT">
+                    <Label text="From"/>
+                    <DatePicker fx:id="fromPicker"/>
+                    <Label text="To"/>
+                    <DatePicker fx:id="toPicker"/>
+                    <Button fx:id="runButton" text="Run" styleClass="btn-primary"/>
+                </HBox>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <StackPane fx:id="resultArea" styleClass="report-result"/>
+    </center>
+</BorderPane>
