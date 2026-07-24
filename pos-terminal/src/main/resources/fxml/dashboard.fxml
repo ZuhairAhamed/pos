@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <top>
+        <HBox spacing="16" alignment="CENTER_LEFT" styleClass="screen-header">
+            <Label text="Dashboard" styleClass="title"/>
+            <Label fx:id="errorLabel" styleClass="error-text"/>
+            <Pane HBox.hgrow="ALWAYS"/>
+            <Button fx:id="refreshButton" text="Refresh" styleClass="btn-secondary"/>
+            <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+        </HBox>
+    </top>
+    <center>
+        <VBox spacing="16" styleClass="dashboard-body">
+            <FlowPane fx:id="kpiRow" hgap="16" vgap="16"/>
+            <HBox spacing="16" VBox.vgrow="ALWAYS">
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label text="Best sellers" styleClass="section-label"/>
+                    <TableView fx:id="bestSellersTable" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="bsNameCol" text="Item"/>
+                            <TableColumn fx:id="bsQtyCol" text="Qty"/>
+                            <TableColumn fx:id="bsRevenueCol" text="Revenue"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label text="Low stock" styleClass="section-label"/>
+                    <TableView fx:id="lowStockTable" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="lsNameCol" text="Item"/>
+                            <TableColumn fx:id="lsOnHandCol" text="On hand"/>
+                            <TableColumn fx:id="lsReorderCol" text="Reorder"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+                <VBox spacing="6" HBox.hgrow="ALWAYS">
+                    <Label text="Open shifts" styleClass="section-label"/>
+                    <TableView fx:id="shiftsTable" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="shTerminalCol" text="Terminal"/>
+                            <TableColumn fx:id="shOpenedByCol" text="Opened by"/>
+                            <TableColumn fx:id="shOpenedAtCol" text="Opened at"/>
+                        </columns>
+                    </TableView>
+                    <Label fx:id="activeCashiersLabel" styleClass="subtitle"/>
+                </VBox>
+            </HBox>
+        </VBox>
+    </center>
+</BorderPane>

@@ -52,6 +52,7 @@ public class HomeController {
     @FXML private Button closeShiftButton;
     @FXML private Button drawerButton;
     @FXML private Button kitchenButton;
+    @FXML private Button dashboardButton;
 
     public HomeController(Services services, Navigator navigator) {
         this.services = services;
@@ -83,6 +84,10 @@ public class HomeController {
         adminButton.setVisible(showAdmin);
         adminButton.setManaged(showAdmin);
         adminButton.setOnAction(e -> navigator.toAdmin());
+        boolean showDashboard = services.session.isManager();
+        dashboardButton.setVisible(showDashboard);
+        dashboardButton.setManaged(showDashboard);
+        dashboardButton.setOnAction(e -> navigator.toDashboard());
         checkShift();
     }
 

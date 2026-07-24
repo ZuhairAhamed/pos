@@ -133,6 +133,12 @@ public class Navigator {
         setScene("/fxml/variant-builder.fxml", controller);
     }
 
+    public void toDashboard() {
+        com.company.pos.terminal.view.DashboardController controller =
+                new com.company.pos.terminal.view.DashboardController(services, this);
+        setScene("/fxml/dashboard.fxml", controller);
+    }
+
     public void toRetail() {
         com.company.pos.terminal.view.RetailController controller =
                 new com.company.pos.terminal.view.RetailController(services, this);
