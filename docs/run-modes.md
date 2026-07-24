@@ -551,5 +551,35 @@ service charge from `QUICK_SERVICE` orders by construction.
 the `attention` flag indicates whether the order has exceeded a configured dwell threshold
 (`dining.dwell.attention.minutes`, default 45 min) and may need intervention.
 
-Deferred: menu modifiers/variants, kitchen-print routing, shift-level reconciliation, and
-customer notifications.
+Deferred: menu modifiers/variants, shift-level reconciliation, and customer notifications.
+
+## Kitchen Display System (KDS — Restaurant track)
+
+The `kitchen` module manages ticket lifecycle for display-station screens. Tickets are created
+automatically when an order is fired and follow the state machine:
+`QUEUED → IN_PROGRESS → READY → SERVED` (with `CANCELLED` as the terminal void state).
+
+```
+GET    /kitchen/tickets?station=          (authenticated)               -> [KitchenTicketView...]
+POST   /kitchen/tickets/{id}/advance      {"expectedState":"<state>"}   -> KitchenTicketView
+POST   /kitchen/tickets/{id}/recall       {"expectedState":"<state>"}   -> KitchenTicketView
+```
+
+- `GET /kitchen/tickets?station=` — returns all active (non-SERVED, non-CANCELLED) tickets,
+  optionally filtered by station label. Authenticated; any role.
+- `POST /kitchen/tickets/{id}/advance` — advances the ticket one step forward in the state
+  machine (e.g. `QUEUED → IN_PROGRESS`). Body `{"expectedState":"<current>"}` provides
+  optimistic-concurrency guard; returns **409 Conflict** if the ticket's actual state does
+  not match `expectedState`.
+- `POST /kitchen/tickets/{id}/recall` — steps the ticket one state back (e.g.
+  `IN_PROGRESS → QUEUED`). Subject to the configurable recall window: a recall is rejected
+  after `KITCHEN_TICKET_RECALL_WINDOW_SECONDS` seconds (default `180`) have elapsed since
+  the last transition. Body `{"expectedState":"<current>"}` — same 409 guard as advance.
+
+**Config key:** `KITCHEN_TICKET_RECALL_WINDOW_SECONDS` (default `180`) sets the recall
+time-limit in seconds via the `configuration` settings store.
+
+**Realtime push:** every ticket state change publishes a `KitchenTicketChanged` event through
+the outbox; the `realtime` module re-broadcasts it as an invalidation ping on `/ws/floor`
+with `"topic":"KITCHEN"`. The terminal KDS screen subscribes to the `KITCHEN` topic and
+re-fetches `GET /kitchen/tickets` on each ping (polling retained as a ~45 s fallback).
