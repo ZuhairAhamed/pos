@@ -28,6 +28,7 @@ public class DiningFloorChangedListener {
     public void on(DiningFloorChanged event) {
         ObjectNode ping = mapper.createObjectNode();
         ping.put("type", "FLOOR_CHANGED");
+        ping.put("topic", "FLOOR");
         ping.put("change", event.change().name());
         if (event.at() != null) {
             ping.put("at", event.at().toString());
