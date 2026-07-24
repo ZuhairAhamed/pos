@@ -194,6 +194,8 @@ pays the cash refund out of the open drawer (a no-op, not an error, when no draw
 `sync` uploads the return to the ERP as an idempotent credit note (stuck behind the Phase 3b
 drain/replay when the ERP is offline).
 
+**Terminal surfaces Returns (terminal slice 19)** — the JavaFX terminal now exposes returns as a **Returns** screen (Home tile, visible to all; the refund is manager-PIN-gated at submit) that looks up a sale by receipt via the new **`GET /sales/by-receipt/{receiptNumber}`** (authenticated) and posts the existing MANAGER-gated `POST /returns` with a one-shot manager token — terminal slice 19.
+
 Deferred: blind/unreferenced returns, cashier returns with manager-approval thresholds,
 damaged-goods/no-restock, exchanges, refunding to a different tender, and returns reporting.
 
