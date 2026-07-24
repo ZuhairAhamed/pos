@@ -325,4 +325,26 @@ class TableMapViewModelTest {
         assertTrue(cell(vm, t1).foodReady());
         assertFalse(cell(vm, t2).foodReady());
     }
+
+    /** Regression: kitchen KDS endpoint down must not break floor rendering (defensive catch). */
+    @Test
+    void kitchenFailureDoesNotBreakFloor() {
+        Deque<Runnable> queue = new ArrayDeque<>();
+        KitchenTicketApi failingTickets = new KitchenTicketApi(null) {
+            @Override
+            public List<KitchenTicketView> list() {
+                throw new ApiException(503, new ProblemDetail("Unavailable", 503, "kitchen down"),
+                        "HTTP 503");
+            }
+        };
+        TableMapViewModel vm = new TableMapViewModel(diningWithOneSeated(), failingTickets,
+                queue::add, "Counter ", Duration.ofMinutes(45), fixedClock);
+        vm.refresh();
+        while (!queue.isEmpty()) queue.poll().run();
+        // Floor still renders despite kitchen failure.
+        assertEquals(2, vm.cells().size());
+        assertTrue(vm.cells().stream().noneMatch(TableCell::foodReady));
+        // Kitchen outage must NOT surface as a floor error.
+        assertEquals("", vm.errorMessage().get());
+    }
 }
