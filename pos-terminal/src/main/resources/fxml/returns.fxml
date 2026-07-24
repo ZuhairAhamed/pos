@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <top>
+        <VBox spacing="8" styleClass="screen-header">
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <Label text="Returns" styleClass="title"/>
+                <Label fx:id="errorLabel" styleClass="error-text"/>
+                <Pane HBox.hgrow="ALWAYS"/>
+                <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+            </HBox>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Receipt #"/>
+                <TextField fx:id="receiptField" promptText="e.g. S01-T01-42"/>
+                <Button fx:id="findButton" text="Find sale" styleClass="btn-primary"/>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <StackPane fx:id="bodyArea" styleClass="returns-body">
+            <VBox fx:id="stagePane" spacing="12" visible="false" managed="false">
+                <Label fx:id="saleHeaderLabel" styleClass="section-label"/>
+                <TableView fx:id="linesTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colName" text="Item"/>
+                        <TableColumn fx:id="colSku" text="SKU"/>
+                        <TableColumn fx:id="colSold" text="Qty sold"/>
+                        <TableColumn fx:id="colLineTotal" text="Line total"/>
+                        <TableColumn fx:id="colReturnQty" text="Return qty"/>
+                    </columns>
+                </TableView>
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <Button fx:id="returnAllButton" text="Return all" styleClass="btn-secondary"/>
+                    <Pane HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="estimateLabel" styleClass="subtitle"/>
+                    <Button fx:id="processButton" text="Process return" styleClass="btn-primary"/>
+                </HBox>
+            </VBox>
+            <VBox fx:id="resultPane" spacing="12" visible="false" managed="false">
+                <Label fx:id="creditNoteLabel" styleClass="title"/>
+                <Label fx:id="refundTotalLabel" styleClass="section-label"/>
+                <TableView fx:id="refundsTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colRefundMethod" text="Method"/>
+                        <TableColumn fx:id="colRefundAmount" text="Refunded"/>
+                    </columns>
+                </TableView>
+                <HBox spacing="12">
+                    <Button fx:id="newReturnButton" text="New return" styleClass="btn-secondary"/>
+                    <Button fx:id="doneButton" text="Done" styleClass="btn-primary"/>
+                </HBox>
+            </VBox>
+        </StackPane>
+    </center>
+</BorderPane>

@@ -785,3 +785,6 @@
 .chip:selected { -fx-background-color: derive(-fx-primary, 80%); -fx-border-color: -fx-primary; }
 .report-result { -fx-padding: 16; }
 .report-tiles { -fx-padding: 8; }
+
+/* ---- Slice 19 — Returns & Refunds ---- */
+.returns-body { -fx-padding: 16; }
