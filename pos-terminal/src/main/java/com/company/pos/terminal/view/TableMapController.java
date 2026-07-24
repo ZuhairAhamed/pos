@@ -54,9 +54,9 @@ public class TableMapController implements Navigator.Screen {
     public TableMapController(Services services, Navigator navigator) {
         this.services = services;
         this.navigator = navigator;
-        this.vm = new TableMapViewModel(services.diningApi, Platform::runLater,
-                services.config.takeawayLabelPrefix(), services.config.dwellAttention(),
-                Instant::now);
+        this.vm = new TableMapViewModel(services.diningApi, services.kitchenTicketApi,
+                Platform::runLater, services.config.takeawayLabelPrefix(),
+                services.config.dwellAttention(), Instant::now);
     }
 
     @FXML
@@ -122,6 +122,9 @@ public class TableMapController implements Navigator.Screen {
         if (cell.attention()) {
             tile.getStyleClass().add("attention-badge");
         }
+        if (cell.foodReady()) {
+            tile.getStyleClass().add("food-ready-badge");
+        }
         tile.setWrapText(true);
         tile.setOnAction(e -> open(cell));
         return tile;
@@ -129,10 +132,11 @@ public class TableMapController implements Navigator.Screen {
 
     private String captionFor(TableCell cell) {
         String att = cell.attention() ? " ⏰" : "";
+        String ready = cell.foodReady() ? "\n🔔 Ready" : "";
         return switch (cell.state()) {
             case FREE -> cell.label() + "\nOpen";
-            case SEATED -> cell.label() + "\nSeated · " + cell.openMinutes() + "m" + att;
-            case ACTIVE -> cell.label() + "\nIn use · " + cell.openMinutes() + "m" + att;
+            case SEATED -> cell.label() + "\nSeated · " + cell.openMinutes() + "m" + att + ready;
+            case ACTIVE -> cell.label() + "\nIn use · " + cell.openMinutes() + "m" + att + ready;
         };
     }
 

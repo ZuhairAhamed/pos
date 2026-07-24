@@ -10,7 +10,7 @@ import java.util.UUID;
  * {@code orderId} is the OPEN order's id, or {@code null} when {@code state == FREE}.
  */
 public record TableCell(UUID tableId, String label, TableState state, int openMinutes,
-        boolean attention, UUID orderId) {
+        boolean attention, UUID orderId, boolean foodReady) {
 
     public enum TableState { FREE, SEATED, ACTIVE }
 

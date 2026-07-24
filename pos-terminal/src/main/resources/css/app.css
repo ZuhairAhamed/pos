@@ -763,3 +763,4 @@
 .kds-age-green { -fx-background-color: derive(-fx-success, 90%); -fx-border-color: -fx-success; }
 .kds-age-amber { -fx-background-color: derive(-fx-accent, 82%);  -fx-border-color: -fx-accent; }
 .kds-age-red   { -fx-background-color: derive(-fx-danger, 85%);  -fx-border-color: -fx-danger; }
+.food-ready-badge { -fx-border-color: -fx-primary; -fx-border-width: 4; }

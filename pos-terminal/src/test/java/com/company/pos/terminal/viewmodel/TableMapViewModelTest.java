@@ -7,7 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.DiningApi;
+import com.company.pos.terminal.api.KitchenTicketApi;
 import com.company.pos.terminal.api.ProblemDetail;
+import com.company.pos.terminal.api.dto.KitchenTicketView;
 import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.OrderView;
 import com.company.pos.terminal.api.dto.TableView;
@@ -35,8 +37,12 @@ class TableMapViewModelTest {
         return vm.cells().stream().filter(c -> c.tableId().equals(tableId)).findFirst().orElseThrow();
     }
 
+    private static final KitchenTicketApi NO_TICKETS = new KitchenTicketApi(null) {
+        @Override public List<KitchenTicketView> list() { return List.of(); }
+    };
+
     private TableMapViewModel vm(DiningApi dining) {
-        return new TableMapViewModel(dining, Runnable::run, "Counter ",
+        return new TableMapViewModel(dining, NO_TICKETS, Runnable::run, "Counter ",
                 Duration.ofMinutes(45), fixedClock);
     }
 
@@ -289,8 +295,8 @@ class TableMapViewModelTest {
     void refreshWorksUnderDeferredDispatcher() {
         Deque<Runnable> queue = new ArrayDeque<>();
         Consumer<Runnable> deferred = queue::add;
-        TableMapViewModel vm = new TableMapViewModel(diningWithOneSeated(), deferred, "Counter ",
-                Duration.ofMinutes(45), fixedClock);
+        TableMapViewModel vm = new TableMapViewModel(diningWithOneSeated(), NO_TICKETS, deferred,
+                "Counter ", Duration.ofMinutes(45), fixedClock);
         vm.refresh();
         // Nothing applied yet.
         assertTrue(vm.cells().isEmpty());
@@ -300,5 +306,23 @@ class TableMapViewModelTest {
         }
         assertEquals(2, vm.cells().size());
         assertEquals(TableState.SEATED, cell(vm, t1).state());
+    }
+
+    @Test
+    void tableWithReadyTicketIsFlaggedFoodReady() {
+        Deque<Runnable> queue = new ArrayDeque<>();
+        KitchenTicketApi tickets = new KitchenTicketApi(null) {
+            @Override
+            public List<KitchenTicketView> list() {
+                return List.of(new KitchenTicketView(UUID.randomUUID(), openOrderId, "T1", "Grill",
+                        "READY", base, null, base, null, List.of()));
+            }
+        };
+        TableMapViewModel vm = new TableMapViewModel(diningWithOneSeated(), tickets, queue::add,
+                "Counter ", Duration.ofMinutes(45), fixedClock);
+        vm.refresh();
+        while (!queue.isEmpty()) queue.poll().run();
+        assertTrue(cell(vm, t1).foodReady());
+        assertFalse(cell(vm, t2).foodReady());
     }
 }

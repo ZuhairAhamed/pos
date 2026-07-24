@@ -2,6 +2,8 @@ package com.company.pos.terminal.viewmodel;
 
 import com.company.pos.terminal.api.ApiException;
 import com.company.pos.terminal.api.DiningApi;
+import com.company.pos.terminal.api.KitchenTicketApi;
+import com.company.pos.terminal.api.dto.KitchenTicketView;
 import com.company.pos.terminal.api.dto.OpenOrderView;
 import com.company.pos.terminal.api.dto.OrderView;
 import com.company.pos.terminal.api.dto.TableView;
@@ -38,6 +40,7 @@ import javafx.collections.ObservableList;
 public class TableMapViewModel {
 
     private final DiningApi dining;
+    private final KitchenTicketApi tickets;
     private final Consumer<Runnable> ui;
     private final String counterPrefix;
     private final Duration dwellThreshold;
@@ -46,17 +49,14 @@ public class TableMapViewModel {
     private final ObservableList<TakeawayRow> takeawayOrders = FXCollections.observableArrayList();
     private final ReadOnlyStringWrapper errorMessage = new ReadOnlyStringWrapper("");
 
-    public TableMapViewModel(DiningApi dining) {
-        this(dining, Runnable::run);
+    public TableMapViewModel(DiningApi dining, KitchenTicketApi tickets) {
+        this(dining, tickets, Runnable::run, "Counter ", Duration.ofMinutes(45), Instant::now);
     }
 
-    public TableMapViewModel(DiningApi dining, Consumer<Runnable> ui) {
-        this(dining, ui, "Counter ", Duration.ofMinutes(45), Instant::now);
-    }
-
-    public TableMapViewModel(DiningApi dining, Consumer<Runnable> ui, String counterPrefix,
-            Duration dwellThreshold, Supplier<Instant> clock) {
+    public TableMapViewModel(DiningApi dining, KitchenTicketApi tickets, Consumer<Runnable> ui,
+            String counterPrefix, Duration dwellThreshold, Supplier<Instant> clock) {
         this.dining = dining;
+        this.tickets = tickets;
         this.ui = ui;
         this.counterPrefix = counterPrefix;
         this.dwellThreshold = dwellThreshold;
@@ -78,6 +78,7 @@ public class TableMapViewModel {
     /** Loads tables + open orders and rebuilds both {@link #cells()} and {@link #takeawayOrders()}. */
     public void refresh() {
         try {
+            Set<UUID> readyOrders = readyOrderIds();
             Map<UUID, OpenOrderView> orderByTable = new HashMap<>();
             List<TakeawayRow> takeaway = new ArrayList<>();
             for (OpenOrderView o : dining.openOrders()) {
@@ -98,7 +99,8 @@ public class TableMapViewModel {
                 int minutes = o == null ? 0 : openMinutes(o.openedAt());
                 boolean attn = o != null && attention(o.openedAt());
                 next.add(new TableCell(t.id(), t.label(), state, minutes, attn,
-                        o == null ? null : o.orderId()));
+                        o == null ? null : o.orderId(),
+                        o != null && readyOrders.contains(o.orderId())));
             }
             ui.accept(() -> {
                 cells.setAll(next);
@@ -109,6 +111,20 @@ public class TableMapViewModel {
             String msg = messageOf(e);
             ui.accept(() -> errorMessage.set(msg));
         }
+    }
+
+    private Set<UUID> readyOrderIds() {
+        Set<UUID> ready = new HashSet<>();
+        try {
+            for (KitchenTicketView t : tickets.list()) {
+                if ("READY".equals(t.state()) && t.orderId() != null) {
+                    ready.add(t.orderId());
+                }
+            }
+        } catch (ApiException e) {
+            // floor stays usable even if the kitchen board is briefly unreachable
+        }
+        return ready;
     }
 
     /**
