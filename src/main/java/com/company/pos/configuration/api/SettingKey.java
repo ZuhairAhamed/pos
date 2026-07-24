@@ -16,6 +16,7 @@ public enum SettingKey {
     DASHBOARD_REVENUE_WINDOW_DAYS("dashboard.revenue.window.days", "7", SettingType.INT),
     DINING_TABLE_DEFAULT_SEATS("dining.table.default.seats", "4", SettingType.INT),
     KITCHEN_DEFAULT_STATION("kitchen.default.station", "Kitchen", SettingType.STRING),
+    KITCHEN_TICKET_RECALL_WINDOW_SECONDS("kitchen.ticket.recall.window.seconds", "180", SettingType.INT),
     SERVICE_CHARGE_ENABLED("service.charge.enabled", "false", SettingType.BOOLEAN),
     SERVICE_CHARGE_PERCENT("service.charge.percent", "0", SettingType.PERCENT),
     SERVICE_CHARGE_LABEL("service.charge.label", "Service Charge", SettingType.STRING);
