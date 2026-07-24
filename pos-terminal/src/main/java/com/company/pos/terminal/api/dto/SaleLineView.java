@@ -5,6 +5,6 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record SaleLineView(String sku, String name, BigDecimal quantity, BigDecimal lineTotal,
-        List<SaleLineModifierView> modifiers) {
+public record SaleLineView(int lineNo, String sku, String name, BigDecimal quantity,
+        BigDecimal unitPrice, BigDecimal lineTotal, List<SaleLineModifierView> modifiers) {
 }

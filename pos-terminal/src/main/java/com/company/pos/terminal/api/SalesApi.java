@@ -47,6 +47,12 @@ public class SalesApi {
         return client.get("/sales/discount-policy", new TypeReference<DiscountPolicyView>() {});
     }
 
+    /** GET /sales/by-receipt/{receiptNumber} — fetch a committed sale by its printed receipt number
+     *  (for staging a return). A 404/miss throws ApiException. */
+    public SaleView getSaleByReceipt(String receiptNumber) {
+        return client.get("/sales/by-receipt/" + receiptNumber, new TypeReference<SaleView>() {});
+    }
+
     /** {@code POST /sales/{id}/reprint} — 204 No Content. */
     public void reprint(UUID saleId) {
         client.post("/sales/" + saleId + "/reprint", null, new TypeReference<Void>() {});

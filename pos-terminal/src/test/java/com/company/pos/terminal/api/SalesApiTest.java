@@ -64,4 +64,23 @@ class SalesApiTest {
             assertTrue(stub.lastBody.contains("\"email\":\"guest@example.com\""));
         }
     }
+
+    @Test
+    void getByReceiptHitsPathAndParsesLineNo() throws Exception {
+        String saleJson = "{\"id\":\"11111111-1111-1111-1111-111111111111\","
+                + "\"receiptNumber\":\"S01-T01-9\",\"currencyCode\":\"SAR\",\"subtotal\":4.50,"
+                + "\"taxTotal\":0.68,\"serviceChargeAmount\":0.00,\"grandTotal\":5.18,"
+                + "\"discountTotal\":0.00,\"payments\":[],"
+                + "\"lines\":[{\"lineNo\":1,\"sku\":\"COLA\",\"name\":\"Cola Can\",\"quantity\":1,"
+                + "\"unitPrice\":4.50,\"lineTotal\":5.18,\"modifiers\":[]}]}";
+        try (StubServer stub = new StubServer(200, saleJson, "application/json")) {
+            SalesApi api = new SalesApi(new ApiClient(stub.baseUrl(), new SessionManager()));
+            SaleView s = api.getSaleByReceipt("S01-T01-9");
+            assertEquals("S01-T01-9", s.receiptNumber());
+            assertEquals(1, s.lines().get(0).lineNo());
+            assertEquals(0, new BigDecimal("4.50").compareTo(s.lines().get(0).unitPrice()));
+            assertEquals("GET", stub.lastMethod);
+            assertEquals("/sales/by-receipt/S01-T01-9", stub.lastPath);
+        }
+    }
 }
