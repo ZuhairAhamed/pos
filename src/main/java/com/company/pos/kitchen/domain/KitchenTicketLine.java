@@ -6,6 +6,7 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ public class KitchenTicketLine {
     @CollectionTable(name = "kitchen_ticket_line_modifier",
             joinColumns = @JoinColumn(name = "line_id"))
     @Column(name = "name", length = 200)
+    @OrderColumn(name = "ordinal")
     private List<String> modifiers = new ArrayList<>();
 
     protected KitchenTicketLine() {

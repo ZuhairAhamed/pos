@@ -59,8 +59,9 @@ class KitchenTicketServiceTest {
     void listFiltersByStation() {
         seedFired("Grill");
         seedFired("Fryer");
-        assertThat(service.listActiveTickets(Optional.of("Grill"))).hasSize(1);
-        assertThat(service.listActiveTickets(Optional.of("Grill")).get(0).station()).isEqualTo("Grill");
+        List<KitchenTicketView> grill = service.listActiveTickets(Optional.of("Grill"));
+        assertThat(grill).hasSize(1);
+        assertThat(grill.get(0).station()).isEqualTo("Grill");
     }
 
     @Test

@@ -58,16 +58,18 @@ class DefaultKitchenTicketService implements KitchenTicketService {
     @Override
     public KitchenTicketView advance(UUID ticketId, KitchenTicketState expectedState) {
         KitchenTicket t = load(ticketId);
-        t.advance(expectedState, Instant.now());
-        events.publish(new KitchenTicketChanged(t.getId(), t.getOrderId(), Instant.now()));
+        Instant now = Instant.now();
+        t.advance(expectedState, now);
+        events.publish(new KitchenTicketChanged(t.getId(), t.getOrderId(), now));
         return toView(t);
     }
 
     @Override
     public KitchenTicketView recall(UUID ticketId, KitchenTicketState expectedState) {
         KitchenTicket t = load(ticketId);
+        Instant now = Instant.now();
         t.recall(expectedState);
-        events.publish(new KitchenTicketChanged(t.getId(), t.getOrderId(), Instant.now()));
+        events.publish(new KitchenTicketChanged(t.getId(), t.getOrderId(), now));
         return toView(t);
     }
 
@@ -76,7 +78,7 @@ class DefaultKitchenTicketService implements KitchenTicketService {
                 .orElseThrow(() -> DomainException.notFound("Kitchen ticket " + ticketId + " not found"));
     }
 
-    static KitchenTicketView toView(KitchenTicket t) {
+    private static KitchenTicketView toView(KitchenTicket t) {
         List<KitchenTicketLineView> lines = t.getLines().stream()
                 .map(DefaultKitchenTicketService::toLineView)
                 .toList();

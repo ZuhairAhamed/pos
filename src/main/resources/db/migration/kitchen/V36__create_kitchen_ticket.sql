@@ -26,5 +26,6 @@ CREATE TABLE kitchen_ticket_line (
 
 CREATE TABLE kitchen_ticket_line_modifier (
     line_id UUID NOT NULL REFERENCES kitchen_ticket_line (id),
-    name    VARCHAR(200)
+    name    VARCHAR(200),
+    ordinal INTEGER NOT NULL
 );
