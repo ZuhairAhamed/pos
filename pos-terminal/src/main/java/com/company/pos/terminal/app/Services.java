@@ -5,6 +5,7 @@ import com.company.pos.terminal.api.AuthApi;
 import com.company.pos.terminal.api.CartApi;
 import com.company.pos.terminal.api.CashDrawerApi;
 import com.company.pos.terminal.api.ConfigApi;
+import com.company.pos.terminal.api.DashboardApi;
 import com.company.pos.terminal.api.DiningApi;
 import com.company.pos.terminal.api.KitchenApi;
 import com.company.pos.terminal.api.KitchenTicketApi;
@@ -46,6 +47,7 @@ public final class Services {
     public final UsersApi usersApi;
     public final KitchenApi kitchenApi;
     public final KitchenTicketApi kitchenTicketApi;
+    public final DashboardApi dashboardApi;
     public final TableAdminApi tableAdminApi;
     public final ConfigApi configApi;
 
@@ -67,6 +69,7 @@ public final class Services {
         this.usersApi = new UsersApi(apiClient);
         this.kitchenApi = new KitchenApi(apiClient);
         this.kitchenTicketApi = new KitchenTicketApi(apiClient);
+        this.dashboardApi = new DashboardApi(apiClient);
         this.tableAdminApi = new TableAdminApi(apiClient);
         this.configApi = new ConfigApi(apiClient);
     }
