@@ -51,6 +51,7 @@ public class HomeController {
     @FXML private Button retailButton;
     @FXML private Button closeShiftButton;
     @FXML private Button drawerButton;
+    @FXML private Button kitchenButton;
 
     public HomeController(Services services, Navigator navigator) {
         this.services = services;
@@ -67,6 +68,7 @@ public class HomeController {
         shiftLabel.setText("");
         dineInButton.setOnAction(e -> navigator.toTableMap());
         retailButton.setOnAction(e -> navigator.toRetail());
+        kitchenButton.setOnAction(e -> navigator.toKitchen());
         signOutButton.setOnAction(e -> {
             services.session.clear();
             navigator.toLogin();

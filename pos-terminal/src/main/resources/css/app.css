@@ -741,3 +741,25 @@
 .drawer-modal .header-panel .label {
     -fx-text-fill: white;
 }
+
+/* ---- Slice 17 — KDS ---- */
+.kds-topbar { -fx-padding: 12 16 12 16; -fx-background-color: -fx-ink; }
+.kds-topbar .title { -fx-text-fill: white; }
+.kds-scroll { -fx-background-color: -fx-canvas; }
+.kds-lanes { -fx-padding: 16; }
+.kds-lane {
+    -fx-min-width: 260px; -fx-pref-width: 260px;
+    -fx-background-color: -fx-card; -fx-background-radius: 12;
+    -fx-border-color: -fx-border; -fx-border-radius: 12; -fx-padding: 12;
+}
+.kds-lane-header { -fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: -fx-ink; }
+.kds-card {
+    -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-width: 2; -fx-padding: 10;
+}
+.kds-card-head { -fx-font-size: 16px; -fx-font-weight: bold; }
+.kds-card-item { -fx-font-size: 16px; }
+.kds-card-mod  { -fx-font-size: 13px; -fx-text-fill: -fx-muted; }
+.kds-card-note { -fx-font-size: 13px; -fx-text-fill: -fx-accent; }
+.kds-age-green { -fx-background-color: derive(-fx-success, 90%); -fx-border-color: -fx-success; }
+.kds-age-amber { -fx-background-color: derive(-fx-accent, 82%);  -fx-border-color: -fx-accent; }
+.kds-age-red   { -fx-background-color: derive(-fx-danger, 85%);  -fx-border-color: -fx-danger; }

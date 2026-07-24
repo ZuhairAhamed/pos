@@ -27,6 +27,7 @@
     <HBox spacing="32" alignment="CENTER">
       <Button fx:id="dineInButton" text="Dine-in" styleClass="home-tile"/>
       <Button fx:id="retailButton" text="Retail sale" styleClass="home-tile"/>
+      <Button fx:id="kitchenButton" text="Kitchen" styleClass="home-tile"/>
     </HBox>
   </VBox>
 </StackPane>
