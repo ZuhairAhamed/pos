@@ -13,7 +13,6 @@ import com.company.pos.terminal.viewmodel.ReportsViewModel;
 import com.company.pos.terminal.viewmodel.ReportsViewModel.Preset;
 import java.nio.file.Files;
 import java.time.LocalDate;
-import java.util.List;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
