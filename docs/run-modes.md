@@ -503,6 +503,8 @@ inventory/movement reports, JasperReports integration for printable PDF reports,
 event-sourced read model (materialised projections maintained by async listeners) to replace the
 direct-read native SQL as query volume grows.
 
+**Terminal surfaces Reports (terminal slice 18)** — the JavaFX terminal now exposes these five reports as a **Reports** screen (Admin hub, MANAGER/ADMIN) with preset/custom date ranges and CSV export via the new `ApiClient.getText` raw-text GET — terminal slice 18, no new backend endpoints.
+
 ## Dashboard (Phase 9 — MANAGER/ADMIN)
 
 Operational insight, composed on-demand from module facades (no new tables). "Today" is the UTC day, consistent with reporting.
@@ -515,6 +517,8 @@ Operational insight, composed on-demand from module facades (no new tables). "To
 - `GET /dashboard/open-shifts` — currently-open shifts + derived active cashiers.
 
 Config key: `dashboard.revenue.window.days` (default `7`) sets the revenue rolling window.
+
+**Terminal surfaces Dashboard (terminal slice 18)** — the JavaFX terminal now exposes the dashboard as a manager **Dashboard** screen (Home tile, MANAGER/ADMIN) rendering KPI tiles, best-sellers, low-stock, and open-shifts tables over `GET /dashboard` — terminal slice 18, no new backend endpoints.
 
 ## Dining (Restaurant track: Phases 10–13b)
 
