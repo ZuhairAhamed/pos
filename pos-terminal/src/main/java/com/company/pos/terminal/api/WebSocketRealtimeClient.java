@@ -1,5 +1,7 @@
 package com.company.pos.terminal.api;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
@@ -9,21 +11,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * {@link RealtimeClient} over a JDK 21 {@link WebSocket}. Attaches the cashier's bearer token to
- * the handshake (re-read on every reconnect), routes each text frame to the {@code onMessage}
- * callback, and reconnects with a fixed backoff after a drop/error so a backend restart re-arms
- * push. The floor screen's fallback poller bridges any gap while disconnected.
+ * the handshake (re-read on every reconnect), routes each text frame to the {@code onTopic}
+ * callback (with the parsed {@code topic} field, or {@code null} if absent/malformed), and
+ * reconnects with a fixed backoff after a drop/error so a backend restart re-arms push. The floor
+ * screen's fallback poller bridges any gap while disconnected.
  *
- * <p>Deliberately thin: only {@link #wsUri} and {@link FrameListener} carry logic and are unit
- * tested; the socket round-trip is exercised by the backend end-to-end test and manual E2E (no
- * WebSocket server exists in the terminal's headless test scope).
+ * <p>Deliberately thin: only {@link #wsUri}, {@link #parseTopic}, and {@link FrameListener} carry
+ * logic and are unit tested; the socket round-trip is exercised by the backend end-to-end test and
+ * manual E2E (no WebSocket server exists in the terminal's headless test scope).
  */
 public final class WebSocketRealtimeClient implements RealtimeClient {
 
     private static final System.Logger LOG = System.getLogger(WebSocketRealtimeClient.class.getName());
     private static final int RECONNECT_SECONDS = 5;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String url;
     private final SessionManager session;
@@ -36,7 +41,7 @@ public final class WebSocketRealtimeClient implements RealtimeClient {
             });
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private volatile WebSocket socket;
-    private volatile Runnable onMessage;
+    private volatile Consumer<String> onTopic;
 
     public WebSocketRealtimeClient(String httpBaseUrl, String path, SessionManager session) {
         this(wsUri(httpBaseUrl, path), session,
@@ -61,9 +66,24 @@ public final class WebSocketRealtimeClient implements RealtimeClient {
         return base + path;
     }
 
+    /** Extracts the {@code topic} field from a ping frame, or {@code null} if absent/malformed. */
+    static String parseTopic(String json) {
+        try {
+            JsonNode node = MAPPER.readTree(json);
+            return node.hasNonNull("topic") ? node.get("topic").asText() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Override
     public void connect(Runnable onMessage) {
-        this.onMessage = onMessage;
+        connect((Consumer<String>) topic -> onMessage.run());
+    }
+
+    @Override
+    public void connect(Consumer<String> onTopic) {
+        this.onTopic = onTopic;
         openSocket();
     }
 
@@ -76,7 +96,7 @@ public final class WebSocketRealtimeClient implements RealtimeClient {
         if (token != null) {
             builder.header("Authorization", "Bearer " + token);
         }
-        builder.buildAsync(URI.create(url), new FrameListener(onMessage, this))
+        builder.buildAsync(URI.create(url), new FrameListener(onTopic, this))
                 .whenComplete((ws, err) -> {
                     if (err != null) {
                         LOG.log(System.Logger.Level.DEBUG, "Floor socket connect failed; retrying", err);
@@ -108,14 +128,15 @@ public final class WebSocketRealtimeClient implements RealtimeClient {
         reconnect.shutdownNow();
     }
 
-    /** Package-visible for unit testing: routes each text frame to the callback, then asks for one
-     *  more. Reconnects via {@code owner} on close/error ({@code owner} may be null in tests). */
+    /** Package-visible for unit testing: routes each text frame to the callback (with parsed topic),
+     *  then asks for one more. Reconnects via {@code owner} on close/error ({@code owner} may be
+     *  null in tests). */
     static final class FrameListener implements WebSocket.Listener {
-        private final Runnable onMessage;
+        private final Consumer<String> onTopic;
         private final WebSocketRealtimeClient owner;
 
-        FrameListener(Runnable onMessage, WebSocketRealtimeClient owner) {
-            this.onMessage = onMessage;
+        FrameListener(Consumer<String> onTopic, WebSocketRealtimeClient owner) {
+            this.onTopic = onTopic;
             this.owner = owner;
         }
 
@@ -126,7 +147,7 @@ public final class WebSocketRealtimeClient implements RealtimeClient {
 
         @Override
         public CompletionStage<?> onText(WebSocket webSocket, CharSequence data, boolean last) {
-            onMessage.run();
+            onTopic.accept(parseTopic(data.toString()));
             webSocket.request(1);
             return null;
         }

@@ -6,6 +6,7 @@ import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 class WebSocketRealtimeClientTest {
@@ -26,13 +27,27 @@ class WebSocketRealtimeClientTest {
     void onTextRunsCallbackOnceAndRequestsAnotherFrame() {
         AtomicInteger fired = new AtomicInteger();
         WebSocketRealtimeClient.FrameListener listener =
-                new WebSocketRealtimeClient.FrameListener(fired::incrementAndGet, null);
+                new WebSocketRealtimeClient.FrameListener(t -> fired.incrementAndGet(), null);
         CountingWebSocket socket = new CountingWebSocket();
 
-        listener.onText(socket, "{\"type\":\"FLOOR_CHANGED\"}", true);
+        listener.onText(socket, "{\"type\":\"KITCHEN_CHANGED\",\"topic\":\"KITCHEN\"}", true);
 
         assertEquals(1, fired.get());
         assertEquals(1, socket.requested);
+    }
+
+    @Test
+    void parseTopicReadsTopicField() {
+        assertEquals("KITCHEN",
+                WebSocketRealtimeClient.parseTopic("{\"type\":\"KITCHEN_CHANGED\",\"topic\":\"KITCHEN\"}"));
+        assertEquals("FLOOR",
+                WebSocketRealtimeClient.parseTopic("{\"type\":\"FLOOR_CHANGED\",\"topic\":\"FLOOR\"}"));
+    }
+
+    @Test
+    void parseTopicReturnsNullWhenAbsentOrMalformed() {
+        assertEquals(null, WebSocketRealtimeClient.parseTopic("{\"type\":\"X\"}"));
+        assertEquals(null, WebSocketRealtimeClient.parseTopic("not json"));
     }
 
     /** Minimal no-op {@link WebSocket} that counts request(n) calls. */
