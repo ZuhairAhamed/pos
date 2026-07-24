@@ -65,8 +65,6 @@ public class DashboardController implements Navigator.Screen {
         bsNameCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().name()));
         bsQtyCol.setCellValueFactory(c -> new SimpleStringProperty(
                 c.getValue().quantitySold().stripTrailingZeros().toPlainString()));
-        bsRevenueCol.setCellValueFactory(c -> new SimpleStringProperty(
-                c.getValue().revenue().toPlainString()));
         lsNameCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().name()));
         lsOnHandCol.setCellValueFactory(c -> new SimpleStringProperty(
                 c.getValue().onHand().stripTrailingZeros().toPlainString()));
@@ -97,6 +95,8 @@ public class DashboardController implements Navigator.Screen {
                 kpi("Revenue today", money(s.revenue().today(), s.currencyCode()), ""),
                 kpi("Revenue " + s.revenue().windowDays() + "d",
                         money(s.revenue().window(), s.currencyCode()), ""));
+        bsRevenueCol.setCellValueFactory(c -> new SimpleStringProperty(
+                money(c.getValue().revenue(), s.currencyCode())));
         bestSellersTable.setItems(FXCollections.observableArrayList(s.bestSellers()));
         lowStockTable.setItems(FXCollections.observableArrayList(s.lowStock()));
         shiftsTable.setItems(FXCollections.observableArrayList(s.openShifts()));
