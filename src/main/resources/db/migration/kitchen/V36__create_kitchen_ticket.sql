@@ -7,7 +7,8 @@ CREATE TABLE kitchen_ticket (
     fired_at     TIMESTAMP NOT NULL,
     preparing_at TIMESTAMP,
     ready_at     TIMESTAMP,
-    bumped_at    TIMESTAMP
+    bumped_at    TIMESTAMP,
+    version      BIGINT    NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_kitchen_ticket_state ON kitchen_ticket (state);
