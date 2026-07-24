@@ -51,7 +51,7 @@ public class KitchenTicket {
     private Instant bumpedAt;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "ticket_id")
+    @JoinColumn(name = "ticket_id", insertable = false, updatable = false)
     private List<KitchenTicketLine> lines = new ArrayList<>();
 
     protected KitchenTicket() {
