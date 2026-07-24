@@ -27,7 +27,7 @@
         </VBox>
     </top>
     <center>
-        <StackPane fx:id="bodyArea" styleClass="returns-body">
+        <StackPane styleClass="returns-body">
             <VBox fx:id="stagePane" spacing="12" visible="false" managed="false">
                 <Label fx:id="saleHeaderLabel" styleClass="section-label"/>
                 <TableView fx:id="linesTable" VBox.vgrow="ALWAYS">
