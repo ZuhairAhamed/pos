@@ -82,4 +82,36 @@ class KitchenTicketControllerTest {
                         .with(cashier()))
                 .andExpect(status().isConflict());
     }
+
+    @Test
+    void recallsTicket() throws Exception {
+        UUID id = seedFired();
+        mvc.perform(post("/kitchen/tickets/" + id + "/advance")
+                        .contentType("application/json").content("{\"expectedState\":\"FIRED\"}")
+                        .with(cashier()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("PREPARING"));
+        mvc.perform(post("/kitchen/tickets/" + id + "/recall")
+                        .contentType("application/json").content("{\"expectedState\":\"PREPARING\"}")
+                        .with(cashier()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state").value("FIRED"));
+    }
+
+    @Test
+    void filtersTicketsByStation() throws Exception {
+        seedFired();                 // station "Grill"
+        seedFiredAt("Bar");          // second ticket at "Bar"
+        mvc.perform(get("/kitchen/tickets").param("station", "Grill").with(cashier()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].station").value("Grill"));
+    }
+
+    private void seedFiredAt(String station) {
+        KitchenTicket t = new KitchenTicket(Identifiers.newId(), UUID.randomUUID(), "5", station,
+                Instant.parse("2026-07-24T10:01:00Z"));
+        t.addLine("BURGER", "Beef Burger", new BigDecimal("1"), null, "MAIN", List.of());
+        repo.save(t);
+    }
 }
