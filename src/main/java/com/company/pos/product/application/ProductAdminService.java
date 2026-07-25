@@ -134,6 +134,21 @@ public class ProductAdminService {
         events.publish(new ProductChanged(sku, ProductChangeType.REACTIVATED, actor(), null, null));
     }
 
+    public ProductView setAvailability(String sku, boolean available) {
+        Product p = products.findBySku(sku)
+                .orElseThrow(() -> DomainException.notFound("No product with sku " + sku));
+        if (available) {
+            p.markAvailable();
+        } else {
+            p.markUnavailable();
+        }
+        products.save(p);
+        ProductChangeType type = available ? ProductChangeType.MARKED_AVAILABLE
+                : ProductChangeType.MARKED_UNAVAILABLE;
+        events.publish(new ProductChanged(sku, type, actor(), null, null));
+        return toView(p);
+    }
+
     @Transactional(readOnly = true)
     public List<CategoryView> listCategories() {
         return categories.findAll().stream()

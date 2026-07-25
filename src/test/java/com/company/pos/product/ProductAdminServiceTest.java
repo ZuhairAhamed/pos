@@ -147,6 +147,19 @@ class ProductAdminServiceTest {
     }
 
     @Test
+    void setAvailabilityTogglesFlagAndPersists() {
+        svc.createProduct(new CreateProductCommand("SALMON", "Grilled Salmon", null,
+                "Mains", new BigDecimal("42.00"), "SAR", "EA", null));
+
+        ProductView off = svc.setAvailability("SALMON", false);
+        assertThat(off.available()).isFalse();
+        assertThat(catalog.findBySku("SALMON").orElseThrow().available()).isFalse();
+
+        ProductView on = svc.setAvailability("SALMON", true);
+        assertThat(on.available()).isTrue();
+    }
+
+    @Test
     void deactivateThenReactivate() {
         svc.createProduct(cola());
         events.clear();

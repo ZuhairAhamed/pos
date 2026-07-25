@@ -36,6 +36,8 @@ class ProductChangedAuditListener {
             case DEACTIVATED -> AuditAction.PRODUCT_DEACTIVATED;
             case REACTIVATED -> AuditAction.PRODUCT_REACTIVATED;
             case CATEGORY_CREATED -> AuditAction.CATEGORY_CREATED;
+            case MARKED_UNAVAILABLE -> AuditAction.PRODUCT_MARKED_UNAVAILABLE;
+            case MARKED_AVAILABLE -> AuditAction.PRODUCT_MARKED_AVAILABLE;
         };
     }
 
