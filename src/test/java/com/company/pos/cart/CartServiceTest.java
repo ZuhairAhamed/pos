@@ -3,6 +3,7 @@ package com.company.pos.cart;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.company.pos.cart.api.CartLineModifierInput;
 import com.company.pos.cart.api.CartService;
 import com.company.pos.cart.api.CartView;
 import com.company.pos.common.exception.DomainException;
@@ -12,6 +13,7 @@ import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.product.api.ProductSync;
 import com.company.pos.product.application.ProductAdminService;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -84,6 +86,29 @@ class CartServiceTest {
         productAdmin.setAvailability("COLA", false);
         UUID cart = carts.createCart();
         assertThatThrownBy(() -> carts.addLine(cart, "COLA", new BigDecimal("1")))
+                .isInstanceOf(DomainException.class)
+                .satisfies(e -> assertThat(((DomainException) e).errorCode())
+                        .isEqualTo(ErrorCode.CONFLICT));
+    }
+
+    @Test
+    void addLineWithModifiersRejectsEightySixedSku() {
+        productAdmin.setAvailability("COLA", false);
+        UUID cart = carts.createCart();
+        assertThatThrownBy(() -> carts.addLine(cart, "COLA", new BigDecimal("1"),
+                List.of(UUID.randomUUID())))
+                .isInstanceOf(DomainException.class)
+                .satisfies(e -> assertThat(((DomainException) e).errorCode())
+                        .isEqualTo(ErrorCode.CONFLICT));
+    }
+
+    @Test
+    void addLinePreResolvedRejectsEightySixedSku() {
+        productAdmin.setAvailability("COLA", false);
+        UUID cart = carts.createCart();
+        assertThatThrownBy(() -> carts.addLinePreResolved(cart, "COLA", new BigDecimal("1"),
+                List.of(new CartLineModifierInput(UUID.randomUUID(), "Extra",
+                        new BigDecimal("1.00")))))
                 .isInstanceOf(DomainException.class)
                 .satisfies(e -> assertThat(((DomainException) e).errorCode())
                         .isEqualTo(ErrorCode.CONFLICT));

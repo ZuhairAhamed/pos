@@ -67,6 +67,9 @@ class DefaultCartService implements CartService {
         Cart cart = openCart(cartId);
         ProductView product = catalogue.findBySku(sku)
                 .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
+        if (!product.available()) {
+            throw DomainException.conflict("Item is 86'd: " + sku);
+        }
         ModifierResolution resolution = menu.resolveSelections(sku, modifierOptionIds);
         List<com.company.pos.cart.api.CartLineModifierInput> mods = resolution.modifiers().stream()
                 .map(m -> new com.company.pos.cart.api.CartLineModifierInput(
@@ -87,6 +90,9 @@ class DefaultCartService implements CartService {
         Cart cart = openCart(cartId);
         ProductView product = catalogue.findBySku(sku)
                 .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
+        if (!product.available()) {
+            throw DomainException.conflict("Item is 86'd: " + sku);
+        }
         cart.addLineWithModifiers(sku, product.name(), quantity, product.unitPrice(),
                 product.currencyCode(), modifiers);
         return toView(cart);
