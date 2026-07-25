@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 class RoutingRowsTest {
 
     private ProductView product(String sku, String name) {
-        return new ProductView(sku, name, null, null, new BigDecimal("1.00"));
+        return new ProductView(sku, name, null, null, new BigDecimal("1.00"), true, true);
     }
 
     @Test

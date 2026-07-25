@@ -28,7 +28,7 @@ class OrderViewModelTest {
 
     private MenuCache cache() {
         return new MenuCache(
-                List.of(new ProductView("BURGER", "Burger", "Mains", null, new BigDecimal("25.00"))));
+                List.of(new ProductView("BURGER", "Burger", "Mains", null, new BigDecimal("25.00"), true, true)));
     }
 
     /** Real OrderView is 9-arg: (id, tableId, serviceType, status, openedBy, openedAt, closedAt, saleId, lines). */

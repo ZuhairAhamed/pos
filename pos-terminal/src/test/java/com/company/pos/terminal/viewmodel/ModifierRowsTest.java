@@ -24,7 +24,7 @@ class ModifierRowsTest {
     @Test
     void skuLabelResolvesName() {
         List<ProductView> products = List.of(
-                new ProductView("STEAK", "Ribeye", "Food", "bc", new BigDecimal("80.00")));
+                new ProductView("STEAK", "Ribeye", "Food", "bc", new BigDecimal("80.00"), true, true));
         assertEquals("STEAK — Ribeye", ModifierRows.skuLabel("STEAK", products));
         assertEquals("NOPE", ModifierRows.skuLabel("NOPE", products));
     }

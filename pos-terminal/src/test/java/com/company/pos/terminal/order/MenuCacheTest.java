@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 class MenuCacheTest {
 
     private static ProductView p(String sku, String cat, String barcode, String price) {
-        return new ProductView(sku, sku + " name", cat, barcode, new BigDecimal(price));
+        return new ProductView(sku, sku + " name", cat, barcode, new BigDecimal(price), true, true);
     }
 
     @Test

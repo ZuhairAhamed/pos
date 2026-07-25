@@ -18,7 +18,7 @@ class RetailViewModelTest {
 
     private static MenuCache cache() {
         return new MenuCache(List.of(
-                new ProductView("LATTE", "Latte", "Drinks", "6291041500213", new BigDecimal("14.00"))));
+                new ProductView("LATTE", "Latte", "Drinks", "6291041500213", new BigDecimal("14.00"), true, true)));
     }
 
     private static CartView cartWith(String sku, String qty, String unit) {
