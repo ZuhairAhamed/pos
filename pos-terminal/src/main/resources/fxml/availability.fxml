@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<StackPane styleClass="screen" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+  <VBox spacing="16" maxWidth="720">
+    <HBox spacing="12" alignment="CENTER_LEFT">
+      <Label text="86 Board" styleClass="title"/>
+      <Pane HBox.hgrow="ALWAYS"/>
+      <Label fx:id="statusLabel" styleClass="subtitle"/>
+      <Button fx:id="backButton" text="Back" styleClass="btn-secondary"/>
+    </HBox>
+    <TextField fx:id="searchField" promptText="Search item…"/>
+    <ScrollPane fitToWidth="true" styleClass="menu-scroll">
+      <VBox fx:id="listBox" spacing="8"/>
+    </ScrollPane>
+  </VBox>
+</StackPane>

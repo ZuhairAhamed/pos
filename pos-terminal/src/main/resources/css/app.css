@@ -788,3 +788,8 @@
 
 /* ---- Slice 19 — Returns & Refunds ---- */
 .returns-body { -fx-padding: 16; }
+
+/* ---- 86 Board — item availability pills ---- */
+.pill-available { -fx-text-fill: #2e7d32; -fx-font-weight: bold; }
+.pill-eightysix { -fx-text-fill: #c62828; -fx-font-weight: bold; }
+.product-unavailable { -fx-opacity: 0.45; }

@@ -54,6 +54,7 @@ public class HomeController {
     @FXML private Button kitchenButton;
     @FXML private Button dashboardButton;
     @FXML private Button returnsButton;
+    @FXML private Button availabilityButton;
 
     public HomeController(Services services, Navigator navigator) {
         this.services = services;
@@ -90,6 +91,7 @@ public class HomeController {
         dashboardButton.setManaged(showDashboard);
         dashboardButton.setOnAction(e -> navigator.toDashboard());
         returnsButton.setOnAction(e -> navigator.toReturns());
+        availabilityButton.setOnAction(e -> navigator.toAvailability());
         checkShift();
     }
 

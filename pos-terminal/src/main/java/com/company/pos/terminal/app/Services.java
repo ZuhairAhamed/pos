@@ -2,6 +2,7 @@ package com.company.pos.terminal.app;
 
 import com.company.pos.terminal.api.ApiClient;
 import com.company.pos.terminal.api.AuthApi;
+import com.company.pos.terminal.api.AvailabilityApi;
 import com.company.pos.terminal.api.CartApi;
 import com.company.pos.terminal.api.CashDrawerApi;
 import com.company.pos.terminal.api.ConfigApi;
@@ -54,6 +55,7 @@ public final class Services {
     public final ReportingApi reportingApi;
     public final TableAdminApi tableAdminApi;
     public final ConfigApi configApi;
+    public final AvailabilityApi availabilityApi;
 
     public Services() {
         this.config = TerminalConfig.load();
@@ -78,6 +80,7 @@ public final class Services {
         this.reportingApi = new ReportingApi(apiClient);
         this.tableAdminApi = new TableAdminApi(apiClient);
         this.configApi = new ConfigApi(apiClient);
+        this.availabilityApi = new AvailabilityApi(apiClient);
     }
 
     /** A fresh realtime push client for one screen's lifecycle (connect on enter, close on leave).
