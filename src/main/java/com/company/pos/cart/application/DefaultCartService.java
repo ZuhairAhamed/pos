@@ -51,6 +51,9 @@ class DefaultCartService implements CartService {
         Cart cart = openCart(cartId);
         ProductView product = catalogue.findBySku(sku)
                 .orElseThrow(() -> DomainException.notFound("Unknown sku " + sku));
+        if (!product.available()) {
+            throw DomainException.conflict("Item is 86'd: " + sku);
+        }
         cart.addLine(sku, product.name(), quantity, product.unitPrice(), product.currencyCode());
         return toView(cart);
     }
