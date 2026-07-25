@@ -37,6 +37,7 @@ class DefaultProductCatalog implements ProductCatalog {
 
     private ProductView toView(Product p) {
         return new ProductView(p.getSku(), p.getName(), p.getCategoryName(), p.getBarcode(),
-                p.getUnitOfMeasure(), p.getUnitPrice(), p.getCurrencyCode(), p.isActive());
+                p.getUnitOfMeasure(), p.getUnitPrice(), p.getCurrencyCode(), p.isActive(),
+                p.isAvailable());
     }
 }

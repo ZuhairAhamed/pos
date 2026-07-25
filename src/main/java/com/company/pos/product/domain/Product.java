@@ -49,6 +49,9 @@ public class Product {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(nullable = false)
+    private boolean available = true;
+
     protected Product() {
         // JPA
     }
@@ -167,5 +170,17 @@ public class Product {
 
     public void deactivate() {
         setActive(false);
+    }
+
+    public boolean isAvailable() {
+        return available;
+    }
+
+    public void markAvailable() {
+        this.available = true;
+    }
+
+    public void markUnavailable() {
+        this.available = false;
     }
 }

@@ -10,5 +10,6 @@ public record ProductView(
         String unitOfMeasure,
         BigDecimal unitPrice,
         String currencyCode,
-        boolean active) {
+        boolean active,
+        boolean available) {
 }

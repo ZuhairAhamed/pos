@@ -44,4 +44,14 @@ class ProductBehaviorTest {
         p.activate();
         assertThat(p.isActive()).isTrue();
     }
+
+    @Test
+    void availableDefaultsTrueAndTogglesBothWays() {
+        Product p = sample();
+        assertThat(p.isAvailable()).isTrue();
+        p.markUnavailable();
+        assertThat(p.isAvailable()).isFalse();
+        p.markAvailable();
+        assertThat(p.isAvailable()).isTrue();
+    }
 }
