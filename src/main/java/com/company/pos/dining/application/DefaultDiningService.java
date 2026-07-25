@@ -292,8 +292,11 @@ class DefaultDiningService implements DiningService {
         if (command.qty() == null || command.qty().signum() <= 0) {
             throw DomainException.validation("Line quantity must be positive");
         }
-        products.findBySku(command.sku())
+        ProductView product = products.findBySku(command.sku())
                 .orElseThrow(() -> DomainException.validation("Unknown sku " + command.sku()));
+        if (!product.available()) {
+            throw DomainException.conflict("Item is 86'd: " + command.sku());
+        }
         OrderLine line = new OrderLine(Identifiers.newId(), order.getId(), command.sku(),
                 command.qty(), command.note(), command.course(), addedBy, Instant.now());
         if (!command.modifierOptionIds().isEmpty()) {

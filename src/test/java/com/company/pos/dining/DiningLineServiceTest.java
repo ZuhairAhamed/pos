@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.company.pos.common.exception.DomainException;
+import com.company.pos.common.exception.ErrorCode;
 import com.company.pos.dining.api.AddLineCommand;
 import com.company.pos.dining.api.CourseTag;
 import com.company.pos.dining.api.DiningService;
@@ -14,6 +15,7 @@ import com.company.pos.dining.api.RegisterTableCommand;
 import com.company.pos.integration.api.ErpProduct;
 import com.company.pos.integration.erp.FakeErpClient;
 import com.company.pos.product.api.ProductSync;
+import com.company.pos.product.application.ProductAdminService;
 import com.company.pos.support.DatabaseCleaner;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -34,6 +36,7 @@ class DiningLineServiceTest {
     @Autowired ProductSync productSync;
     @Autowired FakeErpClient fake;
     @Autowired DatabaseCleaner cleaner;
+    @Autowired ProductAdminService productAdmin;
 
     @BeforeEach
     void seed() {
@@ -133,5 +136,16 @@ class DiningLineServiceTest {
         assertThatThrownBy(() -> dining.addLine(orderId,
                 new AddLineCommand("BURGER", new BigDecimal("-1"), null, null), "alice"))
                 .isInstanceOf(DomainException.class);
+    }
+
+    @Test
+    void addLineRejectsEightySixedSku() {
+        productAdmin.setAvailability("BURGER", false);
+        UUID orderId = openOrderOnFreshTable();
+        assertThatThrownBy(() -> dining.addLine(orderId,
+                new AddLineCommand("BURGER", new BigDecimal("1"), null, CourseTag.MAIN), "cashier"))
+                .isInstanceOf(DomainException.class)
+                .satisfies(e -> assertThat(((DomainException) e).errorCode())
+                        .isEqualTo(ErrorCode.CONFLICT));
     }
 }
