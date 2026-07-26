@@ -37,10 +37,11 @@ Authentication is JWT bearer (HS256). Obtain a token, then send it as `Authoriza
 POST /auth/login        {"username","password"}      -> {"token"}
 POST /auth/pin-login    {"cashierCode","pin"}        -> {"token"}
 GET  /auth/me           (any authenticated)          -> {"username","roles"}
-GET  /products[?q=]     (any authenticated)          -> [ProductView...]
-GET  /products/{sku}    (any authenticated)          -> ProductView
-GET  /inventory/{sku}   (any authenticated)          -> {"sku","quantityOnHand"}
-POST /sync/erp          (ROLE_MANAGER)               -> {"products","stock"}  (manual ERP down-sync)
+GET  /products[?q=]                  (any authenticated)  -> [ProductView...]
+GET  /products/{sku}                 (any authenticated)  -> ProductView
+PUT  /products/{sku}/availability    (any authenticated)  -> 204  (cashier-level 86 toggle; audited via ProductChanged)
+GET  /inventory/{sku}                (any authenticated)  -> {"sku","quantityOnHand"}
+POST /sync/erp                       (ROLE_MANAGER)       -> {"products","stock"}  (manual ERP down-sync)
 ```
 
 Config (env overridable):
