@@ -169,6 +169,11 @@ public class OrderController implements Navigator.Screen {
                 Button b = new Button(p.name() + "\n" + priceText(p));
                 b.getStyleClass().add("menu-button");
                 b.setWrapText(true);
+                boolean available = p.available() == null || p.available();
+                b.setDisable(!available);
+                if (!available) {
+                    b.getStyleClass().add("product-unavailable");
+                }
                 b.setOnAction(e -> addProduct(p));
                 grid.getChildren().add(b);
             }
